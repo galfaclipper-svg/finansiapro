@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar",
+      "description": "User avatar placeholder",
+      "imageUrl": "https://picsum.photos/seed/user-avatar/40/40",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "receipt-scan-placeholder",
+      "description": "Placeholder for receipt scan UI",
+      "imageUrl": "https://picsum.photos/seed/receipt-placeholder/600/400",
+      "imageHint": "receipt document"
+    }
+  ]
 }
