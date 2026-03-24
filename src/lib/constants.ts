@@ -1,34 +1,4 @@
-import type { Account, CompanyProfile, InventoryItem, NavItem, Transaction } from './types';
-import { LayoutDashboard, ReceiptText, Package, LineChart, Settings } from 'lucide-react';
-
-export const NAV_ITEMS: NavItem[] = [
-  {
-    title: 'Dashboard',
-    href: '/dashboard',
-    icon: <LayoutDashboard size={20} />,
-  },
-  {
-    title: 'Transactions',
-    href: '/transactions',
-    icon: <ReceiptText size={20} />,
-  },
-  {
-    title: 'Reports',
-    href: '/reports',
-    icon: <LineChart size={20} />,
-  },
-  {
-    title: 'Inventory',
-    href: '/inventory',
-    icon: <Package size={20} />,
-  },
-  {
-    title: 'Settings',
-    href: '/settings',
-    icon: <Settings size={20} />,
-  },
-];
-
+import type { Account, CompanyProfile, InventoryItem, Transaction } from './types';
 
 export const CHART_OF_ACCOUNTS: Account[] = [
   // Assets

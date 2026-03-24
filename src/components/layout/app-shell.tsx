@@ -13,10 +13,40 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { useAppState } from '@/hooks/use-app-state';
-import { NAV_ITEMS } from '@/lib/constants';
 import { SidebarNav } from './sidebar-nav';
 import { Header } from './header';
 import Link from 'next/link';
+import { LayoutDashboard, ReceiptText, Package, LineChart, Settings } from 'lucide-react';
+import type { NavItem } from '@/lib/types';
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    title: 'Dashboard',
+    href: '/dashboard',
+    icon: <LayoutDashboard size={20} />,
+  },
+  {
+    title: 'Transactions',
+    href: '/transactions',
+    icon: <ReceiptText size={20} />,
+  },
+  {
+    title: 'Reports',
+    href: '/reports',
+    icon: <LineChart size={20} />,
+  },
+  {
+    title: 'Inventory',
+    href: '/inventory',
+    icon: <Package size={20} />,
+  },
+  {
+    title: 'Settings',
+    href: '/settings',
+    icon: <Settings size={20} />,
+  },
+];
+
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { companyProfile } = useAppState();
