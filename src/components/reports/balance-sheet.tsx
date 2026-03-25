@@ -48,7 +48,7 @@ export function BalanceSheet() {
 
         const equity = {
             'Modal Pemilik': ownersCapital,
-            'Laba Ditahan': netIncome,
+            'Laba Bersih (Periode Berjalan)': netIncome,
         };
         const totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
 
