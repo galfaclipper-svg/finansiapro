@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, FileUp, Trash2 } from 'lucide-react';
 
 const profileSchema = z.object({
-  name: z.string().min(3, "Company name must be at least 3 characters."),
-  address: z.string().min(10, "Address is too short."),
+  name: z.string().min(3, "Nama perusahaan minimal 3 karakter."),
+  address: z.string().min(10, "Alamat terlalu pendek."),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -34,17 +34,17 @@ export default function SettingsPage() {
     function onSubmit(data: ProfileFormValues) {
         setCompanyProfile(data);
         toast({
-            title: "Profile Updated",
-            description: "Your company details have been saved.",
+            title: "Profil Diperbarui",
+            description: "Detail perusahaan Anda telah disimpan.",
         });
     }
 
     function handleReset() {
-        if (confirm("Are you sure you want to reset all data? This action cannot be undone.")) {
+        if (confirm("Apakah Anda yakin ingin mereset semua data? Tindakan ini tidak dapat diurungkan.")) {
             resetData();
             toast({
-                title: "Data Reset",
-                description: "All application data has been reset to its initial state.",
+                title: "Data Direset",
+                description: "Semua data aplikasi telah direset ke keadaan awal.",
             });
             form.reset({ name: "FinansiaPro Demo Store", address: "123 E-Commerce Ave, Online City, 12345" });
         }
@@ -53,8 +53,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Settings"
-        description="Manage your company profile and application data."
+        title="Pengaturan"
+        description="Kelola profil perusahaan dan data aplikasi Anda."
       />
       
       <div className="grid gap-8 md:grid-cols-2">
@@ -62,8 +62,8 @@ export default function SettingsPage() {
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardHeader>
-                <CardTitle>Company Profile</CardTitle>
-                <CardDescription>Update your company's information.</CardDescription>
+                <CardTitle>Profil Perusahaan</CardTitle>
+                <CardDescription>Perbarui informasi perusahaan Anda.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <FormField
@@ -71,7 +71,7 @@ export default function SettingsPage() {
                     name="name"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Company Name</FormLabel>
+                        <FormLabel>Nama Perusahaan</FormLabel>
                         <FormControl>
                             <Input placeholder="Your Company LLC" {...field} />
                         </FormControl>
@@ -84,7 +84,7 @@ export default function SettingsPage() {
                     name="address"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Address</FormLabel>
+                        <FormLabel>Alamat</FormLabel>
                         <FormControl>
                             <Input placeholder="123 Main St, Anytown, USA" {...field} />
                         </FormControl>
@@ -93,12 +93,12 @@ export default function SettingsPage() {
                     )}
                 />
                 <div>
-                  <FormLabel>Company Logo</FormLabel>
+                  <FormLabel>Logo Perusahaan</FormLabel>
                    <div className="mt-2">
                        <Button asChild variant="outline">
                         <label>
                             <Upload className="mr-2 h-4 w-4" />
-                            Upload Logo
+                            Unggah Logo
                             <input type="file" className="sr-only" accept="image/*" />
                         </label>
                     </Button>
@@ -106,7 +106,7 @@ export default function SettingsPage() {
                 </div>
             </CardContent>
             <CardFooter>
-                 <Button type="submit">Save Changes</Button>
+                 <Button type="submit">Simpan Perubahan</Button>
             </CardFooter>
             </form>
             </Form>
@@ -114,15 +114,15 @@ export default function SettingsPage() {
 
         <Card>
             <CardHeader>
-                <CardTitle>Data Management</CardTitle>
-                <CardDescription>Import, export, or reset your application data.</CardDescription>
+                <CardTitle>Manajemen Data</CardTitle>
+                <CardDescription>Impor, ekspor, atau reset data aplikasi Anda.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                <Button variant="outline" className="w-full justify-start gap-2">
-                    <FileUp className="h-4 w-4" /> Import from XLSX
+                    <FileUp className="h-4 w-4" /> Impor dari XLSX
                </Button>
                <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleReset}>
-                    <Trash2 className="h-4 w-4" /> Reset All Data
+                    <Trash2 className="h-4 w-4" /> Reset Semua Data
                </Button>
             </CardContent>
         </Card>

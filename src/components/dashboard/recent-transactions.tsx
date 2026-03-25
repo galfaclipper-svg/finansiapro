@@ -21,6 +21,8 @@ import { formatCurrency } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 export function RecentTransactions() {
   const { transactions } = useAppState();
@@ -29,23 +31,23 @@ export function RecentTransactions() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="grid gap-2">
-            <CardTitle>Recent Transactions</CardTitle>
+            <CardTitle>Transaksi Terkini</CardTitle>
             <CardDescription>
-                You have {transactions.length} transactions this month.
+                Anda memiliki {transactions.length} transaksi bulan ini.
             </CardDescription>
         </div>
         <Button asChild size="sm" variant="outline">
-            <Link href="/transactions">View All</Link>
+            <Link href="/transactions">Lihat Semua</Link>
         </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Description</TableHead>
-              <TableHead className="hidden sm:table-cell">Category</TableHead>
-              <TableHead className="hidden sm:table-cell">Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Deskripsi</TableHead>
+              <TableHead className="hidden sm:table-cell">Kategori</TableHead>
+              <TableHead className="hidden sm:table-cell">Tanggal</TableHead>
+              <TableHead className="text-right">Jumlah</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,7 +59,7 @@ export function RecentTransactions() {
                 <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline">{transaction.category}</Badge>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">{transaction.date}</TableCell>
+                <TableCell className="hidden sm:table-cell">{format(new Date(transaction.date), 'd LLL y', { locale: id })}</TableCell>
                 <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                         {transaction.type === 'cash-in' ? (

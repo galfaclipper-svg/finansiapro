@@ -21,27 +21,27 @@ import type { NavItem } from '@/lib/types';
 
 const NAV_ITEMS: NavItem[] = [
   {
-    title: 'Dashboard',
+    title: 'Dasbor',
     href: '/dashboard',
     icon: <LayoutDashboard size={20} />,
   },
   {
-    title: 'Transactions',
+    title: 'Transaksi',
     href: '/transactions',
     icon: <ReceiptText size={20} />,
   },
   {
-    title: 'Reports',
+    title: 'Laporan',
     href: '/reports',
     icon: <LineChart size={20} />,
   },
   {
-    title: 'Inventory',
+    title: 'Inventaris',
     href: '/inventory',
     icon: <Package size={20} />,
   },
   {
-    title: 'Settings',
+    title: 'Pengaturan',
     href: '/settings',
     icon: <Settings size={20} />,
   },

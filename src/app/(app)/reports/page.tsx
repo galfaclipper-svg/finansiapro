@@ -8,11 +8,11 @@ const ReportPlaceholder = ({ title }: { title: string }) => (
     <Card>
         <CardHeader>
             <CardTitle>{title}</CardTitle>
-            <CardDescription>This is a placeholder for the {title} report.</CardDescription>
+            <CardDescription>Ini adalah placeholder untuk laporan {title}.</CardDescription>
         </CardHeader>
         <CardContent>
             <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
-                <p className="text-muted-foreground">{title} data will be displayed here.</p>
+                <p className="text-muted-foreground">Data {title} akan ditampilkan di sini.</p>
             </div>
         </CardContent>
     </Card>
@@ -22,41 +22,41 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Financial Reports"
-        description="Generate and view your business's financial statements."
+        title="Laporan Keuangan"
+        description="Hasilkan dan lihat laporan keuangan bisnis Anda."
       >
         <Button variant="outline">
           <Download className="mr-2 h-4 w-4" />
-          Export All (XLSX)
+          Ekspor Semua (XLSX)
         </Button>
          <Button variant="outline">
           <Printer className="mr-2 h-4 w-4" />
-          Print All (PDF)
+          Cetak Semua (PDF)
         </Button>
       </PageHeader>
       
       <Tabs defaultValue="income-statement">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-            <TabsTrigger value="income-statement">Income Statement</TabsTrigger>
-            <TabsTrigger value="balance-sheet">Balance Sheet</TabsTrigger>
-            <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
-            <TabsTrigger value="general-journal">General Journal</TabsTrigger>
-            <TabsTrigger value="general-ledger">General Ledger</TabsTrigger>
+            <TabsTrigger value="income-statement">Laporan Laba Rugi</TabsTrigger>
+            <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
+            <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
+            <TabsTrigger value="general-journal">Jurnal Umum</TabsTrigger>
+            <TabsTrigger value="general-ledger">Buku Besar</TabsTrigger>
         </TabsList>
         <TabsContent value="income-statement">
-            <ReportPlaceholder title="Income Statement" />
+            <ReportPlaceholder title="Laporan Laba Rugi" />
         </TabsContent>
         <TabsContent value="balance-sheet">
-            <ReportPlaceholder title="Balance Sheet" />
+            <ReportPlaceholder title="Neraca" />
         </TabsContent>
         <TabsContent value="cash-flow">
-            <ReportPlaceholder title="Cash Flow Statement" />
+            <ReportPlaceholder title="Laporan Arus Kas" />
         </TabsContent>
         <TabsContent value="general-journal">
-            <ReportPlaceholder title="General Journal" />
+            <ReportPlaceholder title="Jurnal Umum" />
         </TabsContent>
         <TabsContent value="general-ledger">
-            <ReportPlaceholder title="General Ledger" />
+            <ReportPlaceholder title="Buku Besar" />
         </TabsContent>
       </Tabs>
     </div>

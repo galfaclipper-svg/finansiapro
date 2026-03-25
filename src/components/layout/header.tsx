@@ -46,10 +46,10 @@ export function Header() {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>{companyProfile.name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuItem>Pengaturan</DropdownMenuItem>
+          <DropdownMenuItem>Dukungan</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem>Keluar</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

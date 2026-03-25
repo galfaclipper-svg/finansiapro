@@ -14,19 +14,19 @@ export default function InventoryPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Inventory"
-        description="Track and manage your merchandise stock levels."
+        title="Inventaris"
+        description="Lacak dan kelola tingkat stok barang dagangan Anda."
       >
         <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Item
+            Tambah Barang
         </Button>
       </PageHeader>
         <Card>
             <CardHeader>
-                <CardTitle>Inventory Items</CardTitle>
+                <CardTitle>Barang Inventaris</CardTitle>
                 <CardDescription>
-                    A list of all products in your inventory.
+                    Daftar semua produk dalam inventaris Anda.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -34,11 +34,11 @@ export default function InventoryPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>SKU</TableHead>
-                            <TableHead>Item Name</TableHead>
-                            <TableHead>Stock</TableHead>
-                            <TableHead>Cost Per Unit</TableHead>
-                            <TableHead>Sale Price</TableHead>
-                            <TableHead className="text-right">Stock Value</TableHead>
+                            <TableHead>Nama Barang</TableHead>
+                            <TableHead>Stok</TableHead>
+                            <TableHead>Biaya Per Unit</TableHead>
+                            <TableHead>Harga Jual</TableHead>
+                            <TableHead className="text-right">Nilai Stok</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

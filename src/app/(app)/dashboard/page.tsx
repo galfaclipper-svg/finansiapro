@@ -9,8 +9,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Dashboard"
-        description="Welcome back! Here's a snapshot of your business performance."
+        title="Dasbor"
+        description="Selamat datang kembali! Berikut adalah ringkasan kinerja bisnis Anda."
       >
         <DatePickerWithRange />
       </PageHeader>

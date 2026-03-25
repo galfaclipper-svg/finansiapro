@@ -14,13 +14,13 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Transactions"
-        description="Manage and review all your business transactions."
+        title="Transaksi"
+        description="Kelola dan tinjau semua transaksi bisnis Anda."
       >
         <Button asChild>
           <Link href="/transactions/new">
             <PlusCircle className="mr-2 h-4 w-4" />
-            New Transaction
+            Transaksi Baru
           </Link>
         </Button>
       </PageHeader>

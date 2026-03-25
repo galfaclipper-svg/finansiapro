@@ -14,11 +14,11 @@ import { useMemo } from 'react';
 
 const chartConfig = {
   revenue: {
-    label: 'Revenue',
+    label: 'Pendapatan',
     color: 'hsl(var(--primary))',
   },
   expenses: {
-    label: 'Expenses',
+    label: 'Pengeluaran',
     color: 'hsl(var(--accent))',
   },
 } satisfies ChartConfig;
@@ -31,7 +31,7 @@ export function RevenueChart() {
     const months = Array.from({ length: 6 }, (_, i) => {
       const d = new Date();
       d.setMonth(d.getMonth() - i);
-      return d.toLocaleString('default', { month: 'short' });
+      return d.toLocaleString('id-ID', { month: 'short' });
     }).reverse();
 
     months.forEach(month => {
@@ -39,7 +39,7 @@ export function RevenueChart() {
     });
 
     transactions.forEach(t => {
-      const month = new Date(t.date).toLocaleString('default', { month: 'short' });
+      const month = new Date(t.date).toLocaleString('id-ID', { month: 'short' });
       if (dataByMonth[month]) {
         if (t.type === 'cash-in' && t.category === 'Sales Revenue') {
           dataByMonth[month].revenue += t.amount;
@@ -58,8 +58,8 @@ export function RevenueChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Overview</CardTitle>
-        <CardDescription>Revenue and expenses over the last 6 months.</CardDescription>
+        <CardTitle>Ikhtisar</CardTitle>
+        <CardDescription>Pendapatan dan pengeluaran selama 6 bulan terakhir.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-72 w-full">
@@ -73,7 +73,7 @@ export function RevenueChart() {
               tickFormatter={(value) => value}
             />
              <YAxis
-              tickFormatter={(tick) => formatCurrency(tick as number).replace('$', 'K').replace('000', '')}
+              tickFormatter={(tick) => new Intl.NumberFormat('id-ID', { notation: 'compact', compactDisplay: 'short' }).format(tick as number)}
              />
             <ChartTooltip
               content={<ChartTooltipContent

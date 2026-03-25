@@ -15,15 +15,15 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="icon">
           <Globe className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Switch language</span>
+          <span className="sr-only">Ganti bahasa</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem>
-          English
+          Indonesia
         </DropdownMenuItem>
         <DropdownMenuItem>
-          Indonesian
+          English
         </DropdownMenuItem>
         <DropdownMenuItem>
           Arabic

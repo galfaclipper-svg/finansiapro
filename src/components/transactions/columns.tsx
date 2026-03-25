@@ -8,6 +8,8 @@ import { ArrowDown, ArrowUp, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 export const columns: ColumnDef<Transaction>[] = [
     {
@@ -19,14 +21,14 @@ export const columns: ColumnDef<Transaction>[] = [
           (table.getIsSomePageRowsSelected() && "indeterminate")
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
+        aria-label="Pilih semua"
       />
     ),
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
+        aria-label="Pilih baris"
       />
     ),
     enableSorting: false,
@@ -34,7 +36,7 @@ export const columns: ColumnDef<Transaction>[] = [
   },
   {
     accessorKey: "description",
-    header: "Description",
+    header: "Deskripsi",
   },
   {
     accessorKey: "date",
@@ -44,29 +46,33 @@ export const columns: ColumnDef<Transaction>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Date
+          Tanggal
           {column.getIsSorted() === "asc" ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />}
         </Button>
       )
     },
+    cell: ({ row }) => {
+        const date = new Date(row.getValue("date"))
+        return <div>{format(date, "d LLL y", { locale: id })}</div>
+    }
   },
     {
     accessorKey: "type",
-    header: "Type",
+    header: "Tipe",
     cell: ({ row }) => {
         const type = row.getValue("type") as string;
         const variant = type === 'cash-in' ? 'default' : 'secondary';
-        return <Badge variant={variant} className={type === 'cash-in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>{type}</Badge>
+        return <Badge variant={variant} className={type === 'cash-in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>{type === 'cash-in' ? 'Uang Masuk' : 'Uang Keluar'}</Badge>
     }
   },
   {
     accessorKey: "category",
-    header: "Category",
+    header: "Kategori",
     cell: ({ row }) => <Badge variant="outline">{row.getValue("category")}</Badge>
   },
   {
     accessorKey: "amount",
-    header: () => <div className="text-right">Amount</div>,
+    header: () => <div className="text-right">Jumlah</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue("amount"))
       return <div className="text-right font-medium">{formatCurrency(amount)}</div>
@@ -81,20 +87,20 @@ export const columns: ColumnDef<Transaction>[] = [
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Buka menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(transaction.id)}
             >
-              Copy transaction ID
+              Salin ID transaksi
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Edit transaction</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Delete transaction</DropdownMenuItem>
+            <DropdownMenuItem>Ubah transaksi</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">Hapus transaksi</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )
