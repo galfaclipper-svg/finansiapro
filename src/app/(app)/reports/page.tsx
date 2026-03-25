@@ -1,8 +1,13 @@
+'use client';
+
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Printer } from 'lucide-react';
+import { IncomeStatement } from '@/components/reports/income-statement';
+import { GeneralJournal } from '@/components/reports/general-journal';
+import { BalanceSheet } from '@/components/reports/balance-sheet';
 
 const ReportPlaceholder = ({ title }: { title: string }) => (
     <Card>
@@ -36,24 +41,24 @@ export default function ReportsPage() {
       </PageHeader>
       
       <Tabs defaultValue="income-statement">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-4">
             <TabsTrigger value="income-statement">Laporan Laba Rugi</TabsTrigger>
             <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
-            <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
             <TabsTrigger value="general-journal">Jurnal Umum</TabsTrigger>
-            <TabsTrigger value="general-ledger">Buku Besar</TabsTrigger>
+            <TabsTrigger value="cash-flow" disabled>Arus Kas</TabsTrigger>
+            <TabsTrigger value="general-ledger" disabled>Buku Besar</TabsTrigger>
         </TabsList>
         <TabsContent value="income-statement">
-            <ReportPlaceholder title="Laporan Laba Rugi" />
+            <IncomeStatement />
         </TabsContent>
         <TabsContent value="balance-sheet">
-            <ReportPlaceholder title="Neraca" />
+            <BalanceSheet />
+        </TabsContent>
+        <TabsContent value="general-journal">
+            <GeneralJournal />
         </TabsContent>
         <TabsContent value="cash-flow">
             <ReportPlaceholder title="Laporan Arus Kas" />
-        </TabsContent>
-        <TabsContent value="general-journal">
-            <ReportPlaceholder title="Jurnal Umum" />
         </TabsContent>
         <TabsContent value="general-ledger">
             <ReportPlaceholder title="Buku Besar" />
