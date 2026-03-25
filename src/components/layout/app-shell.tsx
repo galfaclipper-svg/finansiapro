@@ -51,11 +51,18 @@ const NAV_ITEMS: NavItem[] = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { companyProfile } = useAppState();
 
-  // Get initial from cookie
-  const [open, setOpen] = React.useState(() => {
-    if (typeof window === 'undefined') return true;
-    return document.cookie.includes('sidebar_state=true');
-  });
+  // The `open` state is initialized from a cookie, which is only available on the client.
+  // To prevent a hydration mismatch, we initialize the state to `true` (matching the server)
+  // and then update it on the client in a `useEffect` hook.
+  const [open, setOpen] = React.useState(true);
+
+  React.useEffect(() => {
+    // document.cookie is a client-side API.
+    // We check if the cookie exists to decide whether to use its value or the default.
+    if (document.cookie.includes('sidebar_state=')) {
+      setOpen(document.cookie.includes('sidebar_state=true'));
+    }
+  }, []);
 
   return (
     <SidebarProvider open={open} onOpenChange={setOpen}>
