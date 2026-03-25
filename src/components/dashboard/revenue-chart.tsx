@@ -41,7 +41,7 @@ export function RevenueChart() {
     transactions.forEach(t => {
       const month = new Date(t.date).toLocaleString('id-ID', { month: 'short' });
       if (dataByMonth[month]) {
-        if (t.type === 'cash-in' && t.category === 'Sales Revenue') {
+        if (t.type === 'cash-in' && t.category === 'Pendapatan Penjualan') {
           dataByMonth[month].revenue += t.amount;
         } else if (t.type === 'cash-out') {
           dataByMonth[month].expenses += t.amount;

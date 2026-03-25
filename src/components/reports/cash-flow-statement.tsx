@@ -58,7 +58,7 @@ export function CashFlowStatement() {
 
         // Cash paid for inventory
         const cashForInventory = transactions
-            .filter(t => t.type === 'cash-out' && t.category === 'Merchandise Inventory')
+            .filter(t => t.type === 'cash-out' && t.category === 'Persediaan Barang Dagang')
             .reduce((sum, t) => sum + t.amount, 0);
         if (cashForInventory > 0) operatingFlows.push({ name: 'Pembayaran kepada Pemasok', amount: -cashForInventory });
         

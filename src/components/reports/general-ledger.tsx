@@ -17,7 +17,7 @@ export function GeneralLedger() {
     const journalEntries = useMemo(() => transactions.flatMap(t => {
         const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
         const accountType = account?.type;
-        const cashAccountName = "Cash"; // Use a specific cash account from COA
+        const cashAccountName = "Kas"; // Use a specific cash account from COA
 
         if (t.type === 'cash-in') {
             // Debit Cash, Credit the other account

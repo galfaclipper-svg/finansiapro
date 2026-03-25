@@ -9,7 +9,7 @@ export function OverviewCards() {
   const { transactions } = useAppState();
 
   const totalRevenue = transactions
-    .filter(t => t.type === 'cash-in' && t.category === 'Sales Revenue')
+    .filter(t => t.type === 'cash-in' && t.category === 'Pendapatan Penjualan')
     .reduce((acc, t) => acc + t.amount, 0);
 
   const totalExpenses = transactions

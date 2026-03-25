@@ -29,13 +29,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransactions(prev => [newTransaction, ...prev]);
 
     // Simplified inventory update
-    if (transaction.category === 'Sales Revenue') {
+    if (transaction.category === 'Pendapatan Penjualan') {
       // Assuming a sale reduces stock of a random item for demo purposes
       const soldItemIndex = Math.floor(Math.random() * inventory.length);
       setInventory(prev => prev.map((item, index) => 
         index === soldItemIndex ? { ...item, stock: item.stock - 1 } : item
       ));
-    } else if (transaction.category === 'Merchandise Inventory') {
+    } else if (transaction.category === 'Persediaan Barang Dagang') {
       // Assuming a purchase increases stock of a random item
       const purchasedItemIndex = Math.floor(Math.random() * inventory.length);
        setInventory(prev => prev.map((item, index) => 
