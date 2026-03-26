@@ -434,6 +434,7 @@ export default function ReportsPage() {
     // --- Laporan Laba Rugi ---
     autoTable(doc, {
         startY: 40,
+        margin: { top: 40 },
         head: [['Deskripsi', 'Jumlah']],
         body: [
             [{content: 'Pendapatan', styles: {fontStyle: 'bold'}}],
@@ -459,6 +460,7 @@ export default function ReportsPage() {
 
     autoTable(doc, {
         startY: 40,
+        margin: { top: 40 },
         head: [['Aset', '']],
         body: sortedAssetEntries.map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
         foot: [[{content:'Total Aset', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalAssets), styles: {halign: 'right', fontStyle:'bold'}}]],
@@ -469,6 +471,7 @@ export default function ReportsPage() {
 
      autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 10,
+        margin: { top: 40 },
         head: [['Kewajiban dan Ekuitas', '']],
         body: [
             ...Object.entries(reportData.balanceSheet.liabilities).map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
@@ -490,6 +493,7 @@ export default function ReportsPage() {
 
      autoTable(doc, {
         startY: 40,
+        margin: { top: 40 },
         head: [['Tanggal', 'Akun & Keterangan', 'Debit', 'Kredit']],
         body: Object.values(groupedEntries).flatMap(entries => {
           const rows: any[] = [];
@@ -530,6 +534,7 @@ export default function ReportsPage() {
     doc.addPage();
     autoTable(doc, {
         startY: 40,
+        margin: { top: 40 },
         head: [['Deskripsi', 'Jumlah']],
         body: [
           [{ content: 'Aktivitas Operasi', styles: { fontStyle: 'bold' } }, ''],
@@ -552,6 +557,7 @@ export default function ReportsPage() {
         doc.addPage();
          autoTable(doc, {
             startY: 40,
+            margin: { top: 40 },
             theme: 'striped',
             headStyles: { fillColor: primaryColor },
             head: [['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']],
