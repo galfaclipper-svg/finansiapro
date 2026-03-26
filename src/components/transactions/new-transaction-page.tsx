@@ -56,6 +56,7 @@ import { format } from "date-fns";
 import { id } from 'date-fns/locale';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useRouter } from "next/navigation";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 const transactionSchema = z.object({
   date: z.date({
@@ -165,7 +166,7 @@ export default function NewTransactionPage() {
         
         const account = CHART_OF_ACCOUNTS.find(acc => acc.name === result.suggestedCategory);
         let type: 'cash-in' | 'cash-out' = 'cash-out'; // Default
-        if (account && (account.type === 'Revenue' || (account.type === 'Equity'  && acc.name !== 'Prive') || acc.name === 'Piutang Karyawan')) {
+        if (account && (account.type === 'Revenue' || (account.type === 'Equity'  && account.name !== 'Prive') || account.name === 'Piutang Karyawan')) {
           type = 'cash-in';
         }
 
@@ -408,7 +409,14 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Harga Satuan</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0.00" step="0.01" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
+                                <CurrencyInput
+                                  placeholder="0"
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -421,7 +429,12 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Jumlah Total</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0.00" step="0.01" {...field} value={field.value ?? ''} disabled />
+                                <CurrencyInput
+                                  placeholder="0"
+                                  disabled
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -437,7 +450,14 @@ export default function NewTransactionPage() {
                       <FormItem>
                         <FormLabel>Nominal</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="100000" step="0.01" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
+                          <CurrencyInput
+                            placeholder="100.000"
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -457,5 +477,7 @@ export default function NewTransactionPage() {
     </div>
   );
 }
+
+    
 
     
