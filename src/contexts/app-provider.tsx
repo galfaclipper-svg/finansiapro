@@ -3,6 +3,7 @@
 import React, { createContext, useState, ReactNode } from 'react';
 import type { CompanyProfile, Transaction, InventoryItem } from '@/lib/types';
 import { MOCK_TRANSACTIONS, MOCK_INVENTORY, INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
+import type { DateRange } from 'react-day-picker';
 
 interface AppContextType {
   companyProfile: CompanyProfile;
@@ -12,6 +13,8 @@ interface AppContextType {
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   inventory: InventoryItem[];
   setInventory: React.Dispatch<React.SetStateAction<InventoryItem[]>>;
+  dateRange: DateRange | undefined;
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
   resetData: () => void;
 }
 
@@ -21,6 +24,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(INITIAL_COMPANY_PROFILE);
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [inventory, setInventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    to: new Date(),
+  });
+
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
@@ -54,6 +62,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCompanyProfile(INITIAL_COMPANY_PROFILE);
     setTransactions(MOCK_TRANSACTIONS);
     setInventory(MOCK_INVENTORY);
+     setDateRange({
+        from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        to: new Date(),
+    });
   };
 
   const value = {
@@ -64,6 +76,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransactions,
     inventory,
     setInventory,
+    dateRange,
+    setDateRange,
     resetData,
   };
 

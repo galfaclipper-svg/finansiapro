@@ -14,89 +14,91 @@ export function AiSummary() {
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { transactions, inventory } = useAppState();
+  const { transactions, inventory, dateRange } = useAppState();
 
   const reportData = useMemo(() => {
+    const periodTransactions = transactions.filter(t => {
+      if (!dateRange?.from || !dateRange?.to) return true;
+      const transactionDate = new Date(t.date);
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      return transactionDate >= dateRange.from && transactionDate <= toDate;
+    });
+
+    const allTransactionsToPeriodEnd = transactions.filter(t => {
+        if (!dateRange?.to) return true;
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        return new Date(t.date) <= toDate;
+    });
+    
     // This is the full, accurate calculation logic replicated from the main reports page
     // to ensure the AI gets high-quality data.
     
-    // --- 1. Universal Journal Entry Generation ---
-    let baseJournalEntries = transactions.flatMap(t => {
-      const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-      const accountType = account?.type;
-      const cashAccountName = "Kas";
+    const calculateBalances = (transactionSet: typeof transactions, currentInventory: typeof inventory) => {
+        let baseJournalEntries = transactionSet.flatMap(t => {
+            const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+            const accountType = account?.type;
+            const cashAccountName = "Kas";
 
-      if (t.category === 'Beban Penyusutan') {
-        return [
-          { ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount },
-          { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }
-        ];
-      }
-      if (t.category === 'Beban Amortisasi') {
-         return [
-          { ...t, entryType: 'Debit', accountName: 'Beban Amortisasi', amount: t.amount },
-          { ...t, entryType: 'Credit', accountName: 'Akumulasi Amortisasi', amount: t.amount }
-        ];
-      }
+            if (t.category === 'Beban Penyusutan') {
+                return [{ ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }];
+            }
+            if (t.category === 'Beban Amortisasi') {
+                return [{ ...t, entryType: 'Debit', accountName: 'Beban Amortisasi', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Amortisasi', amount: t.amount }];
+            }
+            if (t.type === 'cash-in') {
+                return [{ ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
+            } else { // cash-out
+                if (accountType === 'Assets' && t.category !== cashAccountName) {
+                    return [{ ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+                }
+                return [{ ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+            }
+        });
 
-      if (t.type === 'cash-in') {
-          return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
-      } else { // cash-out
-          if (accountType === 'Assets' && t.category !== cashAccountName) {
-              return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
-          }
-          return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
-      }
-    });
+        const cogsEntries: any[] = [];
+        transactionSet.forEach(t => {
+            const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
+            if (isSale && t.itemId && t.quantity) {
+                const item = currentInventory.find(i => i.id === t.itemId);
+                if (item) {
+                    const cogsAmount = item.costPerUnit * t.quantity;
+                    if (cogsAmount > 0) {
+                        cogsEntries.push({ ...t, id: `${t.id}-cogs-debit`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
+                        cogsEntries.push({ ...t, id: `${t.id}-cogs-credit`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
+                    }
+                }
+            }
+        });
 
-    // --- 2. Add COGS Entries ---
-    const cogsEntries: any[] = [];
-    transactions.forEach(t => {
-      const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
-      if (isSale && t.itemId && t.quantity) {
-        const item = inventory.find(i => i.id === t.itemId);
-        if (item) {
-          const cogsAmount = item.costPerUnit * t.quantity;
-          if (cogsAmount > 0) {
-            cogsEntries.push({ ...t, id: `${t.id}-cogs-debit`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
-            cogsEntries.push({ ...t, id: `${t.id}-cogs-credit`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
-          }
-        }
-      }
-    });
+        const allJournalEntries = [...baseJournalEntries, ...cogsEntries];
+        const accountBalances: { [key: string]: number } = {};
+        CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
 
-    const allJournalEntries = [...baseJournalEntries, ...cogsEntries];
-
-    // --- 3. Calculate Final Account Balances ---
-    const accountBalances: { [key: string]: number } = {};
-    CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
-
-    allJournalEntries.forEach(entry => {
-        const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
-        if (!accountInfo) return;
-        const amount = entry.amount;
-        if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
-            accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
-        } else { // Liabilities, Equity, Revenue
-            accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
-        }
-    });
+        allJournalEntries.forEach(entry => {
+            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+            if (!accountInfo) return;
+            const amount = entry.amount;
+            if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
+                accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
+            } else { // Liabilities, Equity, Revenue
+                accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
+            }
+        });
+        return accountBalances;
+    };
     
-    // --- 4. Build Reports from Final Balances ---
-    const revenues: { [key: string]: number } = {};
-    const expenses: { [key: string]: number } = {};
-    Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
-      if (accountInfo?.type === 'Revenue') revenues[accountName] = balance;
-      if (accountInfo?.type === 'Expenses') expenses[accountName] = balance;
-    });
-    const totalRevenue = Object.values(revenues).reduce((sum, amount) => sum + amount, 0);
-    const totalExpenses = Object.values(expenses).reduce((sum, amount) => sum + amount, 0);
+    const periodBalances = calculateBalances(periodTransactions, inventory);
+    const finalBalances = calculateBalances(allTransactionsToPeriodEnd, inventory);
+
+    const totalRevenue = Object.entries(periodBalances).reduce((sum, [name, bal]) => CHART_OF_ACCOUNTS.find(a=>a.name===name)?.type === 'Revenue' ? sum + bal : sum, 0);
+    const totalExpenses = Object.entries(periodBalances).reduce((sum, [name, bal]) => CHART_OF_ACCOUNTS.find(a=>a.name===name)?.type === 'Expenses' ? sum + bal : sum, 0);
     const netIncome = totalRevenue - totalExpenses;
 
     const assets: { [key: string]: number } = {};
     const liabilities: { [key: string]: number } = {};
-    Object.entries(accountBalances).forEach(([accountName, balance]) => {
+    Object.entries(finalBalances).forEach(([accountName, balance]) => {
       const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
       if (accountInfo?.type === 'Assets') assets[accountName] = balance;
       if (accountInfo?.type === 'Liabilities') liabilities[accountName] = balance;
@@ -104,22 +106,21 @@ export function AiSummary() {
 
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-    const totalEquity = (accountBalances['Modal Pemilik'] || 0) + (accountBalances['Laba Ditahan'] || 0) + netIncome - (accountBalances['Prive'] || 0);
-    const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+    const totalEquity = (finalBalances['Modal Pemilik'] || 0) + (finalBalances['Laba Ditahan'] || 0) + netIncome - (finalBalances['Prive'] || 0);
 
     return {
-      incomeStatement: { revenues, totalRevenue, expenses, totalExpenses, netIncome },
-      balanceSheet: { assets, liabilities, totalAssets, totalLiabilities, totalEquity, totalLiabilitiesAndEquity },
+      incomeStatement: { totalRevenue, totalExpenses, netIncome },
+      balanceSheet: { totalAssets, totalLiabilities, totalEquity },
     };
-  }, [transactions, inventory]);
+  }, [transactions, inventory, dateRange]);
 
   const handleGenerateSummary = async () => {
     setIsLoading(true);
     setSummary('');
 
     // Create detailed, accurate reports for the AI flow
-    const incomeStatement = `Laporan Laba Rugi:\n- Total Pendapatan: ${formatCurrency(reportData.incomeStatement.totalRevenue)}\n- Total Beban: ${formatCurrency(reportData.incomeStatement.totalExpenses)}\n- Laba Bersih: ${formatCurrency(reportData.incomeStatement.netIncome)}`;
-    const balanceSheet = `Neraca:\n- Total Aset: ${formatCurrency(reportData.balanceSheet.totalAssets)}\n- Total Kewajiban: ${formatCurrency(reportData.balanceSheet.totalLiabilities)}\n- Total Ekuitas: ${formatCurrency(reportData.balanceSheet.totalEquity)}`;
+    const incomeStatement = `Laporan Laba Rugi (Periode Terpilih):\n- Total Pendapatan: ${formatCurrency(reportData.incomeStatement.totalRevenue)}\n- Total Beban: ${formatCurrency(reportData.incomeStatement.totalExpenses)}\n- Laba Bersih: ${formatCurrency(reportData.incomeStatement.netIncome)}`;
+    const balanceSheet = `Neraca (Posisi Akhir Periode):\n- Total Aset: ${formatCurrency(reportData.balanceSheet.totalAssets)}\n- Total Kewajiban: ${formatCurrency(reportData.balanceSheet.totalLiabilities)}\n- Total Ekuitas: ${formatCurrency(reportData.balanceSheet.totalEquity)}`;
 
     try {
       const result = await financialReportInsights({
@@ -147,7 +148,7 @@ export function AiSummary() {
           Wawasan Berbasis AI
         </CardTitle>
         <CardDescription>
-          Dapatkan ringkasan cepat kesehatan keuangan Anda yang dibuat oleh AI.
+          Dapatkan ringkasan cepat kesehatan keuangan Anda untuk periode yang dipilih.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -169,7 +170,7 @@ export function AiSummary() {
 
         <Button
           onClick={handleGenerateSummary}
-          disabled={isLoading}
+          disabled={isLoading || !dateRange?.from || !dateRange?.to}
           className="mt-4 w-full"
         >
           {isLoading ? (

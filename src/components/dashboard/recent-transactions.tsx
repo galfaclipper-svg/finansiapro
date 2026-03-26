@@ -25,7 +25,15 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 export function RecentTransactions() {
-  const { transactions } = useAppState();
+  const { transactions, dateRange } = useAppState();
+
+  const filteredTransactions = transactions.filter(t => {
+      if (!dateRange?.from || !dateRange?.to) return true;
+      const transactionDate = new Date(t.date);
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      return transactionDate >= dateRange.from && transactionDate <= toDate;
+  });
 
   return (
     <Card>
@@ -33,7 +41,7 @@ export function RecentTransactions() {
         <div className="grid gap-2">
             <CardTitle>Transaksi Terkini</CardTitle>
             <CardDescription>
-                Anda memiliki {transactions.length} transaksi bulan ini.
+                Anda memiliki {filteredTransactions.length} transaksi di periode ini.
             </CardDescription>
         </div>
         <Button asChild size="sm" variant="outline">
@@ -51,7 +59,7 @@ export function RecentTransactions() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.slice(0, 5).map((transaction) => (
+            {filteredTransactions.slice(0, 5).map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell>
                   <div className="font-medium">{transaction.description}</div>

@@ -14,6 +14,9 @@ import { useAppState } from '@/hooks/use-app-state';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
 import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { eachDayOfInterval, eachMonthOfInterval, format, differenceInDays, startOfDay } from 'date-fns';
+import { id } from 'date-fns/locale';
+
 
 const chartConfig = {
   revenue: {
@@ -27,57 +30,73 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function RevenueChart() {
-  const { transactions, inventory } = useAppState();
+  const { transactions, inventory, dateRange } = useAppState();
 
   const chartData = useMemo(() => {
+    if (!dateRange || !dateRange.from || !dateRange.to) {
+        return [];
+    }
+
+    const filteredTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        const toDate = new Date(dateRange.to as Date);
+        toDate.setHours(23, 59, 59, 999);
+        return transactionDate >= (dateRange.from as Date) && transactionDate <= toDate;
+    });
+    
     const revenueAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
     const expenseAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
+    
+    const days = differenceInDays(dateRange.to, dateRange.from);
 
-    const dataByMonth: { [key: string]: { revenue: number; expenses: number } } = {};
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      return d.toLocaleString('id-ID', { month: 'short' });
-    }).reverse();
+    // Group by day if the range is 90 days or less, otherwise group by month
+    const useDailyGrouping = days <= 90;
+    
+    let dataByDate: { [key: string]: { revenue: number; expenses: number } } = {};
+    let labels: string[] = [];
 
-    months.forEach(month => {
-      dataByMonth[month] = { revenue: 0, expenses: 0 };
-    });
-
+    if (useDailyGrouping) {
+      labels = eachDayOfInterval({ start: dateRange.from, end: dateRange.to }).map(d => format(d, 'd/M'));
+      labels.forEach(label => { dataByDate[label] = { revenue: 0, expenses: 0 }; });
+    } else {
+      labels = eachMonthOfInterval({ start: dateRange.from, end: dateRange.to }).map(d => format(d, 'MMM y', {locale: id}));
+      labels.forEach(label => { dataByDate[label] = { revenue: 0, expenses: 0 }; });
+    }
+    
     // Process all transactions
-    transactions.forEach(t => {
-      const month = new Date(t.date).toLocaleString('id-ID', { month: 'short' });
-      if (dataByMonth[month]) {
-        // Accumulate cash-based revenues and expenses
+    filteredTransactions.forEach(t => {
+      const date = new Date(t.date);
+      const key = useDailyGrouping ? format(date, 'd/M') : format(date, 'MMM y', {locale: id});
+
+      if (dataByDate[key]) {
         if (revenueAccountNames.includes(t.category)) {
-          dataByMonth[month].revenue += t.amount;
+          dataByDate[key].revenue += t.amount;
         } else if (expenseAccountNames.includes(t.category)) {
-          dataByMonth[month].expenses += t.amount;
+          dataByDate[key].expenses += t.amount;
         }
 
-        // Calculate and add COGS for sales transactions
         const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
         if (isSale && t.itemId && t.quantity) {
           const item = inventory.find(i => i.id === t.itemId);
           if (item) {
             const cogsAmount = item.costPerUnit * t.quantity;
-            dataByMonth[month].expenses += cogsAmount;
+            dataByDate[key].expenses += cogsAmount;
           }
         }
       }
     });
 
-    return Object.keys(dataByMonth).map(month => ({
-      month,
-      ...dataByMonth[month],
+    return labels.map(label => ({
+      date: label,
+      ...dataByDate[label],
     }));
-  }, [transactions, inventory]);
+  }, [transactions, inventory, dateRange]);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Ikhtisar Pendapatan vs Beban</CardTitle>
-        <CardDescription>Pendapatan dan beban selama 6 bulan terakhir.</CardDescription>
+        <CardDescription>Pendapatan dan beban selama periode yang dipilih.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-72 w-full">
@@ -94,7 +113,7 @@ export function RevenueChart() {
             </defs>
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="date"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
