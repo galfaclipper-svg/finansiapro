@@ -11,66 +11,83 @@ export function BalanceSheet() {
     const { transactions, inventory } = useAppState();
 
     const { assets, liabilities, equity, totalAssets, totalLiabilitiesAndEquity } = useMemo(() => {
-        // --- Assets ---
-        const cashBalance = transactions.reduce((balance, t) => {
-            return t.type === 'cash-in' ? balance + t.amount : balance - t.amount;
-        }, 0);
-        
-        const inventoryValue = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
+        // This logic is now centralized and consistent with other reports
+        const accountBalances: { [key: string]: number } = {};
+        CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
 
-        const assets = {
-            'Kas': cashBalance,
-            'Persediaan Barang Dagang': inventoryValue,
-            'Peralatan': 0, // Mocked for now, as there is no fixed asset tracking
-            'Akumulasi Penyusutan - Peralatan': 0, // Mocked for now
-        };
-        const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
-        
-        // --- Liabilities ---
-        const liabilities = {
-            'Utang Usaha': 0, // Mocked for now
-            'Utang Pajak': 0, // Mocked for now
-        };
-        const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+        const allJournalEntries = transactions.flatMap(t => {
+            const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+            const accountType = account?.type;
+            const cashAccountName = "Kas";
+            if (t.type === 'cash-in') {
+                return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
+            } else {
+                if (accountType === 'Assets' && t.category !== cashAccountName) {
+                    return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+                }
+                return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+            }
+        });
 
-        // --- Equity ---
-        const revenueAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
-        const expenseAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
+        allJournalEntries.forEach(entry => {
+            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+            if (!accountInfo) return;
+            const amount = entry.amount;
+            if (accountInfo.type === 'Assets' || accountInfo.type === 'Expenses') {
+                accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
+            } else { // Liabilities, Equity, Revenue
+                accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
+            }
+        });
+
+        const assets: { [key: string]: number } = {};
+        const liabilities: { [key: string]: number } = {};
+        const revenues: { [key: string]: number } = {};
+        const expenses: { [key: string]: number } = {};
+        let ownersCapital = 0;
+        let ownerDrawings = 0;
+
+        Object.entries(accountBalances).forEach(([accountName, balance]) => {
+            if (balance === 0) return; // Don't show accounts with zero balance in the report
+            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+            if (!accountInfo) return;
+            switch (accountInfo.type) {
+                case 'Assets': assets[accountName] = balance; break;
+                case 'Liabilities': liabilities[accountName] = balance; break;
+                case 'Revenue': revenues[accountName] = balance; break;
+                case 'Expenses': expenses[accountName] = balance; break;
+                case 'Equity':
+                    if (accountName === 'Modal Pemilik') ownersCapital = balance;
+                    if (accountName === 'Prive') ownerDrawings = balance; // This will be a negative value
+                    break;
+            }
+        });
         
-        const totalRevenue = transactions
-            .filter(t => revenueAccounts.includes(t.category))
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        const totalExpenses = transactions
-            .filter(t => expenseAccounts.includes(t.category))
-            .reduce((sum, t) => sum + t.amount, 0);
-            
+        // Ensure inventory value from the dedicated state is used, as it's the source of truth
+        assets['Persediaan Barang Dagang'] = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
+        if (assets['Persediaan Barang Dagang'] === 0) {
+            delete assets['Persediaan Barang Dagang']; // Don't show if zero
+        }
+
+
+        const totalRevenue = Object.values(revenues).reduce((s, a) => s + a, 0);
+        const totalExpenses = Object.values(expenses).reduce((s, a) => s + a, 0);
         const netIncome = totalRevenue - totalExpenses;
-
-        const ownersCapital = transactions
-            .filter(t => t.category === 'Modal Pemilik')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const ownerDrawings = transactions
-            .filter(t => t.category === 'Prive')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        // Laba Ditahan is mocked as 0 as we don't have previous periods.
-        // In a real scenario, this would be the beginning balance.
-        const retainedEarningsBeginning = 0; 
+        const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
+        const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
         
-        const equity = {
+        const retainedEarningsBeginning = 0; // In a real app, this would come from the previous period's closing balance
+        
+        let equity = {
             'Modal Pemilik': ownersCapital,
-            'Laba Ditahan': retainedEarningsBeginning - ownerDrawings,
+            'Laba Ditahan': retainedEarningsBeginning + ownerDrawings, // Drawings reduce equity, so we add the debit balance
             'Laba Bersih (Periode Berjalan)': netIncome,
         };
+        
         let totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
-
         let totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
-        // Due to the simplified single-entry nature of this app, the balance sheet may not balance.
-        // A "plug" is used to force the balance for demonstration purposes. 
-        // This is a common workaround in simplified accounting models.
+        // A "plug" to force the balance for demonstration purposes in this single-entry based system.
         const balanceDifference = totalAssets - totalLiabilitiesAndEquity;
         if (Math.abs(balanceDifference) > 0.01) {
             equity['Modal Pemilik'] += balanceDifference;
@@ -94,14 +111,18 @@ export function BalanceSheet() {
                         <h3 className="font-bold text-lg mb-2 p-4">Aset</h3>
                         <Table>
                             <TableBody>
-                                {Object.entries(assets).map(([name, amount]) => (
+                                {Object.keys(assets).length > 0 ? Object.entries(assets).map(([name, amount]) => (
                                     <TableRow key={name}>
                                         <TableCell>{name}</TableCell>
                                         <TableCell className="text-right">
                                             {name.includes('Akumulasi') ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">Tidak ada aset.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                             <TableFooter>
                                 <TableRow className="font-bold text-base">
@@ -116,13 +137,12 @@ export function BalanceSheet() {
                             <h3 className="font-bold text-lg mb-2 p-4">Kewajiban</h3>
                              <Table>
                                 <TableBody>
-                                    {Object.entries(liabilities).map(([name, amount]) => (
+                                    {Object.keys(liabilities).length > 0 ? Object.entries(liabilities).map(([name, amount]) => (
                                         <TableRow key={name}>
                                             <TableCell>{name}</TableCell>
                                             <TableCell className="text-right">{formatCurrency(amount)}</TableCell>
                                         </TableRow>
-                                    ))}
-                                    {Object.keys(liabilities).length === 0 && (
+                                    )) : (
                                         <TableRow>
                                             <TableCell colSpan={2} className="text-center h-10 text-muted-foreground">Tidak ada kewajiban.</TableCell>
                                         </TableRow>

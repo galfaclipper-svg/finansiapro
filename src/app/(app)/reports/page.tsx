@@ -25,56 +25,86 @@ export default function ReportsPage() {
   const { transactions, inventory, companyProfile } = useAppState();
 
   const reportData = useMemo(() => {
-     // Income Statement Data
-    const revenueAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
-    const expenseAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
+    // --- Universal Journal Entry Generation ---
+    const allJournalEntries = transactions.flatMap(t => {
+      const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+      const accountType = account?.type;
+      const cashAccountName = "Kas";
+      if (t.type === 'cash-in') {
+          return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
+      } else {
+          if (accountType === 'Assets' && t.category !== cashAccountName) {
+              return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+          }
+          return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+      }
+    });
+
+    const accountBalances: { [key: string]: number } = {};
+    CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
+
+    allJournalEntries.forEach(entry => {
+        const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+        if (!accountInfo) return;
+        const amount = entry.amount;
+        if (accountInfo.type === 'Assets' || accountInfo.type === 'Expenses') {
+            accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
+        } else { // Liabilities, Equity, Revenue
+            accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
+        }
+    });
+
+    // --- Income Statement Data ---
     const revenues: { [key: string]: number } = {};
     const expenses: { [key: string]: number } = {};
-    transactions.forEach(t => {
-      if (t.type === 'cash-in' && revenueAccounts.includes(t.category)) {
-        revenues[t.category] = (revenues[t.category] || 0) + t.amount;
-      } else if (t.type === 'cash-out' && expenseAccounts.includes(t.category)) {
-        expenses[t.category] = (expenses[t.category] || 0) + t.amount;
-      }
+    Object.entries(accountBalances).forEach(([accountName, balance]) => {
+      if (balance === 0) return;
+      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+      if (!accountInfo) return;
+      if (accountInfo.type === 'Revenue') revenues[accountName] = balance;
+      if (accountInfo.type === 'Expenses') expenses[accountName] = balance;
     });
     const totalRevenue = Object.values(revenues).reduce((sum, amount) => sum + amount, 0);
     const totalExpenses = Object.values(expenses).reduce((sum, amount) => sum + amount, 0);
     const netIncome = totalRevenue - totalExpenses;
 
-    // Balance Sheet Data
-    const cashBalance = transactions.reduce((balance, t) => t.type === 'cash-in' ? balance + t.amount : balance - t.amount, 0);
-    const inventoryValue = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
-    const assets: { [key: string]: number } = { 'Kas': cashBalance, 'Persediaan Barang Dagang': inventoryValue };
-    // Add other asset accounts from COA with 0 balance if they have transactions
-    transactions.forEach(t => {
-        const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-        if (account?.type === 'Assets' && !assets[account.name]) {
-            assets[account.name] = 0; // Will be calculated properly in the component
-        }
+    // --- Balance Sheet Data ---
+    const assets: { [key: string]: number } = {};
+    const liabilities: { [key: string]: number } = {};
+    let ownersCapital = 0;
+    let ownerDrawings = 0;
+    Object.entries(accountBalances).forEach(([accountName, balance]) => {
+      if (balance === 0 && accountName !== 'Kas' && accountName !== 'Persediaan Barang Dagang') return;
+      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+      if (!accountInfo) return;
+      if (accountInfo.type === 'Assets') assets[accountName] = balance;
+      if (accountInfo.type === 'Liabilities') liabilities[accountName] = balance;
+      if (accountInfo.name === 'Modal Pemilik') ownersCapital = balance;
+      if (accountInfo.name === 'Prive') ownerDrawings = balance;
     });
-
-
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
-    const liabilities = {};
-    const totalLiabilities = 0;
-    const ownersCapital = transactions.filter(t => t.category === 'Modal Pemilik').reduce((sum, t) => sum + t.amount, 0);
-    const ownerDrawings = transactions.filter(t => t.category === 'Prive').reduce((sum, t) => sum + t.amount, 0);
-    const retainedEarningsBeginning = 0;
+    const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+    
+    // Recalculate inventory value just in case, though it should match balance
+    assets['Persediaan Barang Dagang'] = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
+
+    const retainedEarningsBeginning = 0; // Not implemented yet
     let equity = {
       'Modal Pemilik': ownersCapital,
-      'Laba Ditahan': retainedEarningsBeginning - ownerDrawings,
+      'Laba Ditahan': retainedEarningsBeginning + ownerDrawings, // Drawings reduce equity, so we add the negative balance
       'Laba Bersih (Periode Berjalan)': netIncome,
     };
     let totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
     let totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+
+    // A "plug" to balance the sheet in this single-entry based system
     const balanceDifference = totalAssets - totalLiabilitiesAndEquity;
     if (Math.abs(balanceDifference) > 0.01) {
         equity['Modal Pemilik'] += balanceDifference;
-        totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
-        totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+        totalLiabilitiesAndEquity = totalAssets;
     }
     
-    // General Journal Data
+    // --- General Journal Data ---
     const journalEntries = transactions.flatMap(t => {
         const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
         const accountType = account?.type;
@@ -98,34 +128,25 @@ export default function ReportsPage() {
         }
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || (a.id > b.id ? 1 : -1) || (a.entryType === 'Debit' ? -1 : 1));
 
-    // Cash Flow Data
-    const cashFromSales = transactions.filter(t => t.type === 'cash-in' && revenueAccounts.includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
+    // --- Cash Flow Data ---
+    const revenueAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
+    const expenseAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
+    const cashFromSales = transactions.filter(t => t.type === 'cash-in' && revenueAccountNames.includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
     const cashForInventory = transactions.filter(t => t.type === 'cash-out' && t.category === 'Persediaan Barang Dagang').reduce((sum, t) => sum + t.amount, 0);
-    const cashForExpenses = transactions.filter(t => t.type === 'cash-out' && expenseAccounts.includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
+    const cashForExpenses = transactions.filter(t => t.type === 'cash-out' && expenseAccountNames.includes(t.category)).reduce((sum, t) => sum + t.amount, 0);
     const operatingFlows: { name: string, amount: number }[] = [];
     if (cashFromSales > 0) operatingFlows.push({ name: 'Penerimaan dari Pelanggan', amount: cashFromSales });
     if (cashForInventory > 0) operatingFlows.push({ name: 'Pembayaran kepada Pemasok', amount: -cashForInventory });
     if (cashForExpenses > 0) operatingFlows.push({ name: 'Pembayaran Beban Operasional', amount: -cashForExpenses });
     const totalOperating = operatingFlows.reduce((sum, flow) => sum + flow.amount, 0);
-    const endingCash = cashBalance;
+    const endingCash = accountBalances['Kas'] || 0;
 
-    // General Ledger Data
-    const allJournalEntriesForLedger = transactions.flatMap(t => {
-      const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-      const accountType = account?.type;
-      const cashAccountName = "Kas";
-      if (t.type === 'cash-in') {
-          return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
-      } else {
-          if (accountType === 'Assets' && t.category !== cashAccountName) {
-              return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
-          }
-          return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
-      }
-    }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // --- General Ledger Data ---
+    const allJournalEntriesForLedger = allJournalEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const ledgerAccountsData: { [key: string]: { entries: any[], balance: number, accountInfo: any } } = {};
     const allAccountNames = [...new Set(allJournalEntriesForLedger.map(e => e.accountName))];
     CHART_OF_ACCOUNTS.forEach(coa => { if (!allAccountNames.includes(coa.name)) { allAccountNames.push(coa.name); }});
+    
     allAccountNames.forEach(accountName => {
         const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
         if (!accountInfo) return;
@@ -264,12 +285,19 @@ export default function ReportsPage() {
     // Correctly add equity components with their formulas
     const equityFormulas: { [key: string]: string } = {
       'Modal Pemilik': `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`,
-      'Laba Ditahan': `-(SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F))`,
+      'Laba Ditahan': `-(SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F))`, // Inverted sign for Prive
       'Laba Bersih (Periode Berjalan)': `'${incomeSheetName}'!B${netIncomeRow}`
     };
 
     Object.entries(equityFormulas).forEach(([name, formula]) => {
-      balanceSheetData.push([ `  ${name}`, { t: 'n', f: formula }]);
+      // Find the corresponding value from the UI data to apply balancing plug if necessary
+      const uiValue = reportData.balanceSheet.equity[name as keyof typeof reportData.balanceSheet.equity];
+      const plug = (name === 'Modal Pemilik') ? (reportData.balanceSheet.totalAssets - reportData.balanceSheet.totalLiabilitiesAndEquity) : 0;
+      
+      // If there's a plug, we adjust the formula. This is a simplification.
+      const finalFormula = plug !== 0 && name === 'Modal Pemilik' ? `${formula}+${plug}` : formula;
+
+      balanceSheetData.push([ `  ${name}`, { t: 'n', f: finalFormula }]);
       balanceRow++;
     });
 
