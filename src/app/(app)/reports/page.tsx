@@ -543,6 +543,8 @@ export default function ReportsPage() {
         doc.text(`Buku Besar: ${account.accountInfo.name}`, 14, 27);
          autoTable(doc, {
             startY: 40,
+            theme: 'striped',
+            headStyles: { fillColor: [22, 163, 74] },
             head: [['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']],
             body: account.entries.map((entry: any) => [
                 format(new Date(entry.date), 'd MMM y', { locale: id }),
@@ -551,21 +553,12 @@ export default function ReportsPage() {
                 { content: entry.entryType === 'Credit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } },
                 { content: formatCurrency(entry.balance), styles: { halign: 'right' } },
             ]),
-            foot: [[{content: '', colSpan: 4}, {content: '', styles: {halign: 'right'}}]], // Empty footer for space
-            didParseCell: (data) => {
-              // Add a summary row at the bottom of the table, inside the last cell.
-              if (data.row.index === account.entries.length -1 && data.column.index === data.table.columns.length -1) {
-                data.cell.styles.fontStyle = 'bold';
-              }
-            },
-            didDrawPage: (data) => {
-                // Add final balance footer at the bottom of the page
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                const finalY = (doc as any).lastAutoTable.finalY || data.cursor.y;
-                doc.text('Saldo Akhir', 125, finalY + 10, {align: 'right'});
-                doc.text(formatCurrency(account.balance), data.table.width, finalY + 10, {align: 'right'});
-            }
+            foot: [
+                [
+                    { content: 'Saldo Akhir', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold' } },
+                    { content: formatCurrency(account.balance), styles: { halign: 'right', fontStyle: 'bold' } }
+                ]
+            ],
         });
         addHeaderFooter(doc, `Buku Besar: ${account.accountInfo.name}`);
     });
