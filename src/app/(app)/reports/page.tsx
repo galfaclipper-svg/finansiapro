@@ -318,7 +318,9 @@ export default function ReportsPage() {
     const equityEndRow = balanceRow-1;
     
     const totalLiabilitiesFormula = liabilityStartRow > liabilityEndRow ? "0" : `SUM(B${liabilityStartRow}:B${liabilityEndRow})`;
-    const totalEquityFormula = `SUM(B${equityStartRow}:B${equityEndRow})`;
+    const priveRow = equityEndRow;
+    const positiveEquityFormula = `SUM(B${equityStartRow}:B${priveRow - 1})`;
+    const totalEquityFormula = `${positiveEquityFormula}-B${priveRow}`;
     
     balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `${totalLiabilitiesFormula}+${totalEquityFormula}`, s:boldStyle} ]);
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
