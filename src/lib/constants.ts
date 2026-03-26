@@ -115,7 +115,8 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     
     // Non-cash adjustment entries
     { id: 'TRN401', date: pastDate(1), description: 'Penyusutan Peralatan Bulan Ini', amount: 250000, type: 'cash-out', category: 'Beban Penyusutan', accountId: '5270' },
-
+    { id: 'TRN402', date: pastDate(85), description: 'Beli Software Akuntansi (Aset Tak Berwujud)', amount: 6000000, type: 'cash-out', category: 'Aset Tak Berwujud', accountId: '1310' },
+    { id: 'TRN403', date: pastDate(1), description: 'Amortisasi Software Bulan Ini', amount: 100000, type: 'cash-out', category: 'Beban Amortisasi', accountId: '5280' },
 ];
 
 

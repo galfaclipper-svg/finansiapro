@@ -84,7 +84,7 @@ export function BalanceSheet({ data }: { data: BalanceSheetData }) {
                                     {Object.entries(equity).map(([name, amount]) => (
                                         <TableRow key={name}>
                                             <TableCell>{name}</TableCell>
-                                            <TableCell className="text-right">{amount < 0 ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}</TableCell>
+                                            <TableCell className="text-right">{name === 'Prive' ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -102,9 +102,9 @@ export function BalanceSheet({ data }: { data: BalanceSheetData }) {
                 </div>
                  <div className="mt-6 text-center text-sm">
                     {Math.abs(totalAssets - totalLiabilitiesAndEquity) < 1 ? (
-                        <p className="text-green-600">Neraca Seimbang</p>
+                        <p className="text-green-600 font-semibold">Neraca Seimbang</p>
                     ) : (
-                        <p className="text-red-600 font-bold">Neraca Tidak Seimbang (Selisih: {formatCurrency(totalAssets - totalLiabilitiesAndEquity)})</p>
+                        <p className="text-red-600 font-bold">Neraca Tidak Seimbang (Selisih: {formatCurrency(Math.abs(totalAssets - totalLiabilitiesAndEquity))})</p>
                     )}
                 </div>
             </CardContent>

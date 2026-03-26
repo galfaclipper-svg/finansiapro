@@ -34,38 +34,44 @@ export function GeneralLedger({ data }: { data: GeneralLedgerData }) {
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead className="w-[100px]">Tanggal</TableHead>
-                                                <TableHead>Keterangan</TableHead>
-                                                <TableHead className="text-right">Debit</TableHead>
-                                                <TableHead className="text-right">Kredit</TableHead>
-                                                <TableHead className="text-right">Saldo</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {entries.map((entry: any) => (
-                                                <TableRow key={entry.key}>
-                                                    <TableCell>{format(new Date(entry.date), 'd MMM y', { locale: id })}</TableCell>
-                                                    <TableCell>{entry.description}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        {entry.entryType === 'Debit' ? formatCurrency(entry.amount) : ''}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {entry.entryType === 'Credit' ? formatCurrency(entry.amount) : ''}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">{formatCurrency(entry.balance)}</TableCell>
+                                    {entries.length > 0 ? (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[100px]">Tanggal</TableHead>
+                                                    <TableHead>Keterangan</TableHead>
+                                                    <TableHead className="text-right">Debit</TableHead>
+                                                    <TableHead className="text-right">Kredit</TableHead>
+                                                    <TableHead className="text-right">Saldo</TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                         <LedgerTableFooter>
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="font-bold text-right">Saldo Akhir</TableCell>
-                                                <TableCell className="text-right font-bold">{formatCurrency(balance)}</TableCell>
-                                            </TableRow>
-                                        </LedgerTableFooter>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {entries.map((entry: any, index: number) => (
+                                                    <TableRow key={`${entry.id}-${entry.entryType}-${index}`}>
+                                                        <TableCell>{format(new Date(entry.date), 'd MMM y', { locale: id })}</TableCell>
+                                                        <TableCell>{entry.description}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            {entry.entryType === 'Debit' ? formatCurrency(entry.amount) : ''}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            {entry.entryType === 'Credit' ? formatCurrency(entry.amount) : ''}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">{formatCurrency(entry.balance)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                            <LedgerTableFooter>
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="font-bold text-right">Saldo Akhir</TableCell>
+                                                    <TableCell className="text-right font-bold">{formatCurrency(balance)}</TableCell>
+                                                </TableRow>
+                                            </LedgerTableFooter>
+                                        </Table>
+                                    ) : (
+                                        <div className="text-center p-4 text-sm text-muted-foreground">
+                                            Tidak ada transaksi untuk periode ini.
+                                        </div>
+                                    )}
                                 </AccordionContent>
                             </AccordionItem>
                         ))}
