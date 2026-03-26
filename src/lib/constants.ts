@@ -20,8 +20,16 @@ export const CHART_OF_ACCOUNTS: Account[] = [
 
   // Pendapatan
   { id: '4010', name: 'Pendapatan Penjualan', type: 'Revenue', category: 'Sales Revenue' },
+  { id: '4011', name: 'Pendapatan Penjualan (Shopee)', type: 'Revenue', category: 'Sales Revenue' },
+  { id: '4012', name: 'Pendapatan Penjualan (TikTok)', type: 'Revenue', category: 'Sales Revenue' },
+  { id: '4013', name: 'Pendapatan Penjualan (Facebook)', type: 'Revenue', category: 'Sales Revenue' },
+  { id: '4014', name: 'Pendapatan Penjualan (lynk.id)', type: 'Revenue', category: 'Sales Revenue' },
+  { id: '4015', name: 'Pendapatan Penjualan (WhatsApp)', type: 'Revenue', category: 'Sales Revenue' },
+  { id: '4016', name: 'Pendapatan Penjualan (Website)', type: 'Revenue', category: 'Sales Revenue' },
   { id: '4020', name: 'Pendapatan Bunga Bank', type: 'Revenue', category: 'Other Revenue' },
   { id: '4030', name: 'Pendapatan Lain-lain', type: 'Revenue', category: 'Other Revenue' },
+  { id: '4031', name: 'Pendapatan Produk Lainnya', type: 'Revenue', category: 'Other Revenue' },
+
 
   // Beban
   { id: '5010', name: 'Harga Pokok Penjualan', type: 'Expenses', category: 'Cost of Goods Sold' },

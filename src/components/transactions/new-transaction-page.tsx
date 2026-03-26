@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import {
 } from "@/ai/flows/scan-and-categorize-transaction-flow";
 
 import { useAppState } from "@/hooks/use-app-state";
-import { COA_CATEGORIES, CHART_OF_ACCOUNTS } from "@/lib/constants";
+import { CHART_OF_ACCOUNTS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -62,7 +62,7 @@ const transactionSchema = z.object({
   }),
   amount: z.coerce.number().positive("Jumlah harus positif."),
   description: z.string().min(2, "Deskripsi terlalu pendek."),
-  type: z.enum(["cash-in", "cash-out"]),
+  type: z.enum(["cash-in", "cash-out"], { required_error: "Tipe harus diisi." }),
   category: z.string({ required_error: "Silakan pilih kategori." }),
   itemId: z.string().optional(),
   quantity: z.coerce.number().optional(),
@@ -88,12 +88,28 @@ export default function NewTransactionPage() {
     },
   });
 
+  const watchedType = form.watch("type");
   const watchedCategory = form.watch("category");
   const watchedItemId = form.watch("itemId");
   const watchedQuantity = form.watch("quantity");
   const watchedUnitPrice = form.watch("unitPrice");
 
-  const isInventoryTransaction = watchedCategory === "Pendapatan Penjualan" || watchedCategory === "Persediaan Barang Dagang";
+  // Reset category when transaction type changes
+  useEffect(() => {
+      form.resetField("category");
+  }, [watchedType, form]);
+
+  const filteredCategories = useMemo(() => {
+      if (watchedType === 'cash-in') {
+          return CHART_OF_ACCOUNTS.filter(acc => acc.type === 'Revenue' || acc.type === 'Equity').map(acc => acc.name);
+      }
+      // cash-out or undefined defaults to cash-out categories
+      return CHART_OF_ACCOUNTS.filter(acc => acc.type === 'Expenses' || acc.type === 'Assets').map(acc => acc.name);
+  }, [watchedType]);
+
+  const isInventorySale = !!watchedCategory?.startsWith('Pendapatan Penjualan');
+  const isInventoryPurchase = watchedCategory === 'Persediaan Barang Dagang';
+  const isInventoryTransaction = isInventorySale || isInventoryPurchase;
 
   // Auto-calculate total amount for inventory transactions
   useEffect(() => {
@@ -109,20 +125,12 @@ export default function NewTransactionPage() {
     if (isInventoryTransaction && watchedItemId) {
       const selectedItem = inventory.find(item => item.id === watchedItemId);
       if (selectedItem) {
-        const price = watchedCategory === 'Pendapatan Penjualan' ? selectedItem.salePrice : selectedItem.costPerUnit;
+        const price = isInventorySale ? selectedItem.salePrice : selectedItem.costPerUnit;
         form.setValue('unitPrice', price);
       }
     }
-  }, [watchedItemId, watchedCategory, isInventoryTransaction, inventory, form]);
+  }, [watchedItemId, isInventorySale, isInventoryTransaction, inventory, form]);
 
-  // Auto-set transaction type based on category
-  useEffect(() => {
-    if (watchedCategory === 'Pendapatan Penjualan') {
-      form.setValue('type', 'cash-in');
-    } else if (watchedCategory === 'Persediaan Barang Dagang' || CHART_OF_ACCOUNTS.find(a => a.name === watchedCategory)?.type === 'Expenses') {
-      form.setValue('type', 'cash-out');
-    }
-  }, [watchedCategory, form]);
 
   const handleScan: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files?.[0];
@@ -138,12 +146,13 @@ export default function NewTransactionPage() {
       try {
         const result = await scanAndCategorizeTransaction({
           imageDataUri,
-          coaCategories: COA_CATEGORIES,
+          coaCategories: CHART_OF_ACCOUNTS.map(acc => acc.name),
         });
         
-        let type: 'cash-in' | 'cash-out' = 'cash-out';
-        if (result.suggestedCategory === 'Pendapatan Penjualan') {
-            type = 'cash-in';
+        const account = CHART_OF_ACCOUNTS.find(acc => acc.name === result.suggestedCategory);
+        let type: 'cash-in' | 'cash-out' = 'cash-out'; // Default
+        if (account && (account.type === 'Revenue' || account.type === 'Equity')) {
+          type = 'cash-in';
         }
 
         form.reset({
@@ -237,6 +246,95 @@ export default function NewTransactionPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                   <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Tipe Transaksi</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Pilih tipe" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              <SelectItem value="cash-in">Uang Masuk</SelectItem>
+                              <SelectItem value="cash-out">Uang Keluar</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+                  <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tanggal Transaksi</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: id })
+                                ) : (
+                                  <span>Pilih tanggal</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                              }
+                              initialFocus
+                              locale={id}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kategori Transaksi</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih kategori" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {filteredCategories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -246,29 +344,6 @@ export default function NewTransactionPage() {
                       <FormControl>
                         <Textarea placeholder="cth., Penjualan Kemeja Polos" {...field} />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Kategori</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih kategori" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {COA_CATEGORIES.map((cat) => (
-                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -319,7 +394,7 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Harga Satuan</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                                <Input type="number" placeholder="0.00" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -332,7 +407,7 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Jumlah Total</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0.00" {...field} disabled />
+                                <Input type="number" placeholder="0.00" step="0.01" {...field} disabled />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -346,81 +421,15 @@ export default function NewTransactionPage() {
                     name="amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Jumlah</FormLabel>
+                        <FormLabel>Nominal</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                          <Input type="number" placeholder="100000" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tanggal</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: id })
-                                ) : (
-                                  <span>Pilih tanggal</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                              locale={id}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Tipe</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={isInventoryTransaction}>
-                              <FormControl>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Pilih tipe" />
-                              </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                              <SelectItem value="cash-in">Uang Masuk</SelectItem>
-                              <SelectItem value="cash-out">Uang Keluar</SelectItem>
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
-                </div>
                 
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
