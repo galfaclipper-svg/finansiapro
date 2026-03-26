@@ -90,14 +90,6 @@ export default function ReportsPage() {
         }
     });
     
-    // Ensure Persediaan Barang Dagang reflects current stock value, not just transactions
-    const currentInventoryValue = inventory.reduce((sum, item) => sum + (item.stock * item.costPerUnit), 0);
-    // The balance from transactions reflects the net change, not final balance. Let's adjust.
-    // The journal entries already correctly decrease inventory for COGS. Let's recalculate based on them.
-    // For simplicity and correctness, let's just use the final balance from journals.
-    // accountBalances['Persediaan Barang Dagang'] = currentInventoryValue;
-
-
     // --- 4. Build Reports from Final Balances ---
 
     // Income Statement Data
@@ -193,7 +185,7 @@ export default function ReportsPage() {
       cashFlow: { operatingFlows, totalOperating, investingFlows, totalInvesting, financingFlows, totalFinancing, netCashFlow, beginningCash, endingCash },
       generalLedger: { sortedLedgerAccounts }
     };
-  }, [transactions, inventory]);
+  }, [transactions, inventory, companyProfile.name]);
 
  const handleExportXLSX = () => {
     const wb = XLSX.utils.book_new();
@@ -250,31 +242,31 @@ export default function ReportsPage() {
       [{v: `Per ${today}`, s:dateStyle}],
       [],
     ];
-    let incomeRow = incomeData.length + 1;
+    
     incomeData.push([{v:"Pendapatan", s:boldStyle}]);
-    incomeRow++;
-    const revenueStartRow = incomeRow;
+    const revenueStartRow = incomeData.length + 1;
     Object.keys(reportData.incomeStatement.revenues).forEach(cat => {
         incomeData.push([ `  ${cat}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${cat}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${cat}",'${journalSheetName}'!E:E)` }]);
-        incomeRow++;
     });
-    const revenueEndRow = incomeRow - 1;
+    const revenueEndRow = incomeData.length;
     incomeData.push([ {v:"Total Pendapatan", s:boldStyle}, { t: 'n', f: `SUM(B${revenueStartRow}:B${revenueEndRow})`, s:boldStyle} ]);
-    const totalRevenueRow = incomeRow;
-    incomeRow+=2;
+    const totalRevenueRow = incomeData.length;
+
+    incomeData.push([]); // Spacer
+
     incomeData.push([{v:"Beban", s:boldStyle}]);
-    incomeRow++;
-    const expenseStartRow = incomeRow;
+    const expenseStartRow = incomeData.length + 1;
     Object.keys(reportData.incomeStatement.expenses).forEach(cat => {
         incomeData.push([ `  ${cat}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${cat}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${cat}",'${journalSheetName}'!F:F)` }]);
-        incomeRow++;
     });
-    const expenseEndRow = incomeRow - 1;
+    const expenseEndRow = incomeData.length;
     incomeData.push([ {v: "Total Beban", s:boldStyle}, { t: 'n', f: `SUM(B${expenseStartRow}:B${expenseEndRow})`, s:boldStyle} ]);
-    const totalExpensesRow = incomeRow;
-    incomeRow+=2;
+    const totalExpensesRow = incomeData.length;
+
+    incomeData.push([]); // Spacer
+    
     incomeData.push([ {v: "Laba Bersih", s:{...boldStyle, sz: 12}}, { t: 'n', f: `B${totalRevenueRow}-B${totalExpensesRow}`, s:{...boldStyle, sz: 12}} ]);
-    const netIncomeRow = incomeRow;
+    const netIncomeRow = incomeData.length;
     const wsIncome = XLSX.utils.aoa_to_sheet(incomeData);
     wsIncome['!cols'] = [{wch: 40}, {wch: 20}];
     applyNumberFormatting(wsIncome, [1]);
@@ -286,8 +278,8 @@ export default function ReportsPage() {
       [{v: companyName, s:headerStyle}], [{v: balanceSheetName, s:subHeaderStyle}], [{v: `Per ${today}`, s:dateStyle}], [],
       [{v:"Aset", s:boldStyle}]
     ];
-    let balanceRow = balanceSheetData.length + 1;
-    const assetStartRow = balanceRow;
+
+    const assetStartRow = balanceSheetData.length + 1;
     const sortedAssetNames = Object.keys(reportData.balanceSheet.assets).sort((aName, bName) => {
         const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
         const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
@@ -295,44 +287,35 @@ export default function ReportsPage() {
     });
     sortedAssetNames.forEach(name => {
         balanceSheetData.push([ `  ${name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!F:F)` }]);
-        balanceRow++;
     });
-    const assetEndRow = balanceRow - 1;
+    const assetEndRow = balanceSheetData.length;
     balanceSheetData.push([ {v: "Total Aset", s:boldStyle}, { t: 'n', f: `SUM(B${assetStartRow}:B${assetEndRow})`, s:boldStyle} ]);
-    balanceRow += 2;
+    
+    balanceSheetData.push([]); // Spacer
+    
     balanceSheetData.push([{v:"Kewajiban & Ekuitas", s:boldStyle}]);
-    balanceRow++;
     
     balanceSheetData.push([{v:"  Kewajiban", s:boldStyle}]);
-    balanceRow++;
-    const liabilityStartRow = balanceRow;
+    const liabilityStartRow = balanceSheetData.length + 1;
     Object.keys(reportData.balanceSheet.liabilities).sort().forEach(name => {
         balanceSheetData.push([`    ${name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!E:E)` }]);
-        balanceRow++;
     });
-    const liabilityEndRow = balanceRow-1;
+    const liabilityEndRow = balanceSheetData.length;
     
     balanceSheetData.push([{v:"  Ekuitas", s:boldStyle}]);
-    balanceRow++;
-    const equityStartRow = balanceRow;
+    const equityStartRow = balanceSheetData.length + 1;
     balanceSheetData.push([`    Modal Pemilik`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)` }]);
-    balanceRow++;
     balanceSheetData.push([`    Laba Ditahan`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!E:E)` }]);
-    balanceRow++;
     balanceSheetData.push([`    Laba Bersih (Periode Berjalan)`, { t: 'n', f: `'${incomeSheetName}'!B${netIncomeRow}` }]);
-    balanceRow++;
     balanceSheetData.push([`    Prive`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)` }]);
-    balanceRow++;
-    const equityEndRow = balanceRow-1;
+    const equityEndRow = balanceSheetData.length;
     
     const totalLiabilitiesFormula = liabilityStartRow > liabilityEndRow ? "0" : `SUM(B${liabilityStartRow}:B${liabilityEndRow})`;
-    const priveRowNumber = equityStartRow + Object.keys(reportData.balanceSheet.equity).indexOf('Prive');
     
     let equityFormulaParts: string[] = [];
     for (let i = equityStartRow; i <= equityEndRow; i++) {
-        const cellA = `A${i}`.trim();
-        // Check if the label in column A is Prive. Note: It may have leading spaces.
-        if (balanceSheetData[i-1][0].includes("Prive")) {
+        const rowData = balanceSheetData[i-1];
+        if (rowData && rowData[0] && typeof rowData[0] === 'string' && rowData[0].includes("Prive")) {
              equityFormulaParts.push(`-B${i}`);
         } else {
              equityFormulaParts.push(`+B${i}`);
@@ -345,6 +328,7 @@ export default function ReportsPage() {
     wsBalance['!cols'] = [{wch: 40}, {wch: 20}];
     applyNumberFormatting(wsBalance, [1]);
     XLSX.utils.book_append_sheet(wb, wsBalance, balanceSheetName);
+
 
     // 4. Laporan Arus Kas
     const cashFlowSheetName = "Arus Kas";
