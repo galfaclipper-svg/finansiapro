@@ -11,6 +11,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useAppState } from '@/hooks/use-app-state';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
+import { CHART_OF_ACCOUNTS } from '@/lib/constants';
 
 const chartConfig = {
   revenue: {
@@ -18,15 +19,18 @@ const chartConfig = {
     color: 'hsl(var(--primary))',
   },
   expenses: {
-    label: 'Pengeluaran',
+    label: 'Beban',
     color: 'hsl(var(--accent))',
   },
 } satisfies ChartConfig;
 
 export function RevenueChart() {
-  const { transactions } = useAppState();
+  const { transactions, inventory } = useAppState();
 
   const chartData = useMemo(() => {
+    const revenueAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
+    const expenseAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
+
     const dataByMonth: { [key: string]: { revenue: number; expenses: number } } = {};
     const months = Array.from({ length: 6 }, (_, i) => {
       const d = new Date();
@@ -38,13 +42,25 @@ export function RevenueChart() {
       dataByMonth[month] = { revenue: 0, expenses: 0 };
     });
 
+    // Process all transactions
     transactions.forEach(t => {
       const month = new Date(t.date).toLocaleString('id-ID', { month: 'short' });
       if (dataByMonth[month]) {
-        if (t.type === 'cash-in' && t.category === 'Pendapatan Penjualan') {
+        // Accumulate cash-based revenues and expenses
+        if (revenueAccountNames.includes(t.category)) {
           dataByMonth[month].revenue += t.amount;
-        } else if (t.type === 'cash-out') {
+        } else if (expenseAccountNames.includes(t.category)) {
           dataByMonth[month].expenses += t.amount;
+        }
+
+        // Calculate and add COGS for sales transactions
+        const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
+        if (isSale && t.itemId && t.quantity) {
+          const item = inventory.find(i => i.id === t.itemId);
+          if (item) {
+            const cogsAmount = item.costPerUnit * t.quantity;
+            dataByMonth[month].expenses += cogsAmount;
+          }
         }
       }
     });
@@ -53,13 +69,13 @@ export function RevenueChart() {
       month,
       ...dataByMonth[month],
     }));
-  }, [transactions]);
+  }, [transactions, inventory]);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Ikhtisar</CardTitle>
-        <CardDescription>Pendapatan dan pengeluaran selama 6 bulan terakhir.</CardDescription>
+        <CardDescription>Pendapatan dan beban selama 6 bulan terakhir.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-72 w-full">
