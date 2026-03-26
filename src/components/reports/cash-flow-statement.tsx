@@ -1,15 +1,24 @@
+
 'use client';
 
-import { useAppState } from '@/hooks/use-app-state';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
-import { useMemo } from 'react';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
 
-// Helper function to create a report section
+interface CashFlowData {
+    operatingFlows: { name: string, amount: number }[];
+    totalOperating: number;
+    investingFlows: { name: string, amount: number }[];
+    totalInvesting: number;
+    financingFlows: { name: string, amount: number }[];
+    totalFinancing: number;
+    netCashFlow: number;
+    beginningCash: number;
+    endingCash: number;
+}
+
 const ReportSection = ({ title, items, total }: { title: string; items: { name: string, amount: number }[]; total: number }) => {
-    if (items.length === 0) return null;
+    if (items.length === 0 && total === 0) return null;
 
     return (
         <>
@@ -17,10 +26,10 @@ const ReportSection = ({ title, items, total }: { title: string; items: { name: 
                 <TableCell>{title}</TableCell>
                 <TableCell></TableCell>
             </TableRow>
-            {items.map(({name, amount}) => (
-                <TableRow key={name}>
-                    <TableCell className="pl-8">{name}</TableCell>
-                    <TableCell className="text-right">{amount < 0 ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}</TableCell>
+            {items.map((item, index) => (
+                <TableRow key={`${title}-${index}-${item.name}`}>
+                    <TableCell className="pl-8">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.amount < 0 ? `(${formatCurrency(Math.abs(item.amount))})` : formatCurrency(item.amount)}</TableCell>
                 </TableRow>
             ))}
             <TableRow className="font-medium bg-secondary/50">
@@ -32,9 +41,7 @@ const ReportSection = ({ title, items, total }: { title: string; items: { name: 
 };
 
 
-export function CashFlowStatement() {
-    const { transactions } = useAppState();
-
+export function CashFlowStatement({ data }: { data: CashFlowData }) {
     const {
         operatingFlows,
         totalOperating,
@@ -45,47 +52,7 @@ export function CashFlowStatement() {
         netCashFlow,
         beginningCash,
         endingCash
-    } = useMemo(() => {
-        let operatingFlows: { name: string, amount: number }[] = [];
-        let investingFlows: { name: string, amount: number }[] = [];
-        let financingFlows: { name: string, amount: number }[] = [];
-        
-        // Cash received from customers
-        const cashFromSales = transactions
-            .filter(t => t.type === 'cash-in' && CHART_OF_ACCOUNTS.find(a => a.name === t.category)?.type === 'Revenue')
-            .reduce((sum, t) => sum + t.amount, 0);
-        if (cashFromSales > 0) operatingFlows.push({ name: 'Penerimaan dari Pelanggan', amount: cashFromSales });
-
-        // Cash paid for inventory
-        const cashForInventory = transactions
-            .filter(t => t.type === 'cash-out' && t.category === 'Persediaan Barang Dagang')
-            .reduce((sum, t) => sum + t.amount, 0);
-        if (cashForInventory > 0) operatingFlows.push({ name: 'Pembayaran kepada Pemasok', amount: -cashForInventory });
-        
-        // Cash paid for operating expenses
-        const cashForExpenses = transactions
-            .filter(t => t.type === 'cash-out' && CHART_OF_ACCOUNTS.find(a => a.name === t.category)?.type === 'Expenses')
-            .reduce((sum, t) => sum + t.amount, 0);
-        if (cashForExpenses > 0) operatingFlows.push({ name: 'Pembayaran Beban Operasional', amount: -cashForExpenses });
-
-        // Other cash flows can be added here, e.g. for investing and financing
-        // For simplicity, this demo only includes operating activities.
-        
-        const totalOperating = operatingFlows.reduce((sum, flow) => sum + flow.amount, 0);
-        const totalInvesting = 0;
-        const totalFinancing = 0;
-
-        const netCashFlow = totalOperating + totalInvesting + totalFinancing;
-
-        // For this demo, beginning cash is 0 as we don't have prior period data
-        const beginningCash = 0;
-        const endingCash = transactions.reduce((balance, t) => {
-            return t.type === 'cash-in' ? balance + t.amount : balance - t.amount;
-        }, 0);
-
-        return { operatingFlows, totalOperating, investingFlows, totalInvesting, financingFlows, totalFinancing, netCashFlow, beginningCash, endingCash };
-
-    }, [transactions]);
+    } = data;
 
     return (
         <Card>
