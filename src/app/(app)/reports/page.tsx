@@ -89,6 +89,14 @@ export default function ReportsPage() {
             accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
         }
     });
+    
+    // Ensure Persediaan Barang Dagang reflects current stock value, not just transactions
+    const currentInventoryValue = inventory.reduce((sum, item) => sum + (item.stock * item.costPerUnit), 0);
+    // The balance from transactions reflects the net change, not final balance. Let's adjust.
+    // The journal entries already correctly decrease inventory for COGS. Let's recalculate based on them.
+    // For simplicity and correctness, let's just use the final balance from journals.
+    // accountBalances['Persediaan Barang Dagang'] = currentInventoryValue;
+
 
     // --- 4. Build Reports from Final Balances ---
 
@@ -123,7 +131,7 @@ export default function ReportsPage() {
     
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Ditahan'] || 0) + netIncome - (equityAccounts['Prive'] || 0);
+    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Ditahan'] || 0) + netIncome + (equityAccounts['Prive'] || 0); // Prive is already negative from calculation
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
     // General Journal Data
@@ -313,16 +321,26 @@ export default function ReportsPage() {
     balanceRow++;
     balanceSheetData.push([`    Laba Bersih (Periode Berjalan)`, { t: 'n', f: `'${incomeSheetName}'!B${netIncomeRow}` }]);
     balanceRow++;
-    balanceSheetData.push([`    Prive`, { t: 'n', f: `(SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F))` }]);
+    balanceSheetData.push([`    Prive`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)` }]);
     balanceRow++;
     const equityEndRow = balanceRow-1;
     
     const totalLiabilitiesFormula = liabilityStartRow > liabilityEndRow ? "0" : `SUM(B${liabilityStartRow}:B${liabilityEndRow})`;
-    const priveRow = equityEndRow;
-    const positiveEquityFormula = `SUM(B${equityStartRow}:B${priveRow - 1})`;
-    const totalEquityFormula = `${positiveEquityFormula}-B${priveRow}`;
+    const priveRowNumber = equityStartRow + Object.keys(reportData.balanceSheet.equity).indexOf('Prive');
     
-    balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `${totalLiabilitiesFormula}+${totalEquityFormula}`, s:boldStyle} ]);
+    let equityFormulaParts: string[] = [];
+    for (let i = equityStartRow; i <= equityEndRow; i++) {
+        const cellA = `A${i}`.trim();
+        // Check if the label in column A is Prive. Note: It may have leading spaces.
+        if (balanceSheetData[i-1][0].includes("Prive")) {
+             equityFormulaParts.push(`-B${i}`);
+        } else {
+             equityFormulaParts.push(`+B${i}`);
+        }
+    }
+    const totalEquityFormula = equityFormulaParts.join('');
+
+    balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `${totalLiabilitiesFormula}${totalEquityFormula}`, s:boldStyle} ]);
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
     wsBalance['!cols'] = [{wch: 40}, {wch: 20}];
     applyNumberFormatting(wsBalance, [1]);
@@ -362,11 +380,6 @@ export default function ReportsPage() {
         ];
         
         account.entries.forEach((entry: any, index: number) => {
-            const balanceFormula = index === 0
-                ? `E5+C6-D6`
-                : `E${5+index}+C${6+index}-D${6+index}`;
-             const adjustedBalanceFormula = `C${6+index}-D${6+index}` + (index > 0 ? `+E${5+index}` : '');
-            
             const isNormalDebit = ['Assets', 'Expenses'].includes(account.accountInfo.type) || account.accountInfo.name === 'Prive';
             const finalFormula = index === 0 
                 ? (isNormalDebit ? `C6-D6` : `D6-C6`)
@@ -415,7 +428,7 @@ export default function ReportsPage() {
       const pageNumber = doc.internal.getNumberOfPages();
       doc.setFontSize(8);
       const footerText = `Halaman ${pageNumber}`;
-      doc.text(footerText, data.settings.margin.left + data.table.width / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     };
 
     // --- Laporan Laba Rugi ---
@@ -435,8 +448,9 @@ export default function ReportsPage() {
         headStyles: { fillColor: primaryColor },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Laba Rugi'),
     });
-
+    
     // --- Neraca ---
+    doc.addPage();
     const sortedAssetEntries = Object.entries(reportData.balanceSheet.assets).sort(([aName], [bName]) => {
       const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
       const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
@@ -444,14 +458,13 @@ export default function ReportsPage() {
     });
 
     autoTable(doc, {
+        startY: 40,
         head: [['Aset', '']],
         body: sortedAssetEntries.map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
         foot: [[{content:'Total Aset', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalAssets), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
         headStyles: { fillColor: primaryColor },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
-        pageBreak: 'auto',
-        startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
     });
 
      autoTable(doc, {
@@ -468,6 +481,7 @@ export default function ReportsPage() {
     });
 
     // --- Jurnal Umum ---
+    doc.addPage();
     const groupedEntries = reportData.generalJournal.journalEntries.reduce((acc, entry) => {
         const key = entry.id.replace('-cogs', '');
         (acc[key] = acc[key] || []).push(entry);
@@ -475,6 +489,7 @@ export default function ReportsPage() {
     }, {} as Record<string, any[]>);
 
      autoTable(doc, {
+        startY: 40,
         head: [['Tanggal', 'Akun & Keterangan', 'Debit', 'Kredit']],
         body: Object.values(groupedEntries).flatMap(entries => {
           const rows: any[] = [];
@@ -509,11 +524,12 @@ export default function ReportsPage() {
         theme: 'striped',
         headStyles: { fillColor: primaryColor },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Jurnal Umum'),
-        startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
     });
 
      // --- Laporan Arus Kas ---
+    doc.addPage();
     autoTable(doc, {
+        startY: 40,
         head: [['Deskripsi', 'Jumlah']],
         body: [
           [{ content: 'Aktivitas Operasi', styles: { fontStyle: 'bold' } }, ''],
@@ -528,13 +544,14 @@ export default function ReportsPage() {
         headStyles: { fillColor: primaryColor },
         footStyles: { fontStyle: 'bold' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Arus Kas'),
-        startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
     });
 
      // --- Buku Besar ---
     reportData.generalLedger.sortedLedgerAccounts.forEach(account => {
         if (account.entries.length === 0) return;
+        doc.addPage();
          autoTable(doc, {
+            startY: 40,
             theme: 'striped',
             headStyles: { fillColor: primaryColor },
             head: [['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']],
@@ -552,7 +569,6 @@ export default function ReportsPage() {
                 ]
             ],
             didDrawPage: (data) => addHeaderAndFooter(data, `Buku Besar: ${account.accountInfo.name}`),
-            startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
         });
     });
 
