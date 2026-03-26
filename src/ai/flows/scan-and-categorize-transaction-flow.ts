@@ -31,6 +31,11 @@ const ScanAndCategorizeTransactionOutputSchema = z.object({
   suggestedCategory: z
     .string()
     .describe('The most appropriate Chart of Accounts category from the provided list.'),
+  type: z
+    .enum(['cash-in', 'cash-out'])
+    .describe(
+      'The type of the transaction, either cash-in or cash-out based on the context of the document.'
+    ),
 });
 export type ScanAndCategorizeTransactionOutput = z.infer<
   typeof ScanAndCategorizeTransactionOutputSchema
@@ -47,8 +52,11 @@ const prompt = ai.definePrompt({
   input: {schema: ScanAndCategorizeTransactionInputSchema},
   output: {schema: ScanAndCategorizeTransactionOutputSchema},
   prompt: `You are an expert accounting assistant. Your task is to analyze the provided image of a financial document (receipt or bank transfer proof),
-and extract the transaction date, amount, and a brief description. Then, based on the transaction details,
-suggest the most appropriate category from the given Chart of Accounts (COA) categories.
+and extract the transaction date, amount, and a brief description.
+
+Based on the document, determine if this is a cash-in (e.g., sales, receiving payment) or cash-out (e.g., expense, purchase) transaction and set the 'type' field accordingly.
+
+Then, based on the transaction details, suggest the most appropriate category from the given Chart of Accounts (COA) categories.
 
 Image: {{media url=imageDataUri}}
 

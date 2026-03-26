@@ -186,19 +186,13 @@ export default function NewTransactionPage() {
           coaCategories: CHART_OF_ACCOUNTS.map(acc => acc.name),
         });
         
-        const account = CHART_OF_ACCOUNTS.find(acc => acc.name === result.suggestedCategory);
-        let type: 'cash-in' | 'cash-out' = 'cash-out'; // Default
-        if (account && (account.type === 'Revenue' || (account.type === 'Equity'  && account.name !== 'Prive') || account.name === 'Piutang Karyawan')) {
-          type = 'cash-in';
-        }
-
         form.reset({
           ...form.getValues(),
           date: new Date(result.date),
           amount: result.amount,
           description: result.description,
           category: result.suggestedCategory,
-          type: type,
+          type: result.type,
         });
         toast({
           title: "Pindai Berhasil",
