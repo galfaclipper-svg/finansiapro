@@ -100,11 +100,24 @@ export default function NewTransactionPage() {
   }, [watchedType, form]);
 
   const filteredCategories = useMemo(() => {
-      if (watchedType === 'cash-in') {
-          return CHART_OF_ACCOUNTS.filter(acc => acc.type === 'Revenue' || acc.type === 'Equity').map(acc => acc.name);
-      }
-      // cash-out or undefined defaults to cash-out categories
-      return CHART_OF_ACCOUNTS.filter(acc => acc.type === 'Expenses' || acc.type === 'Assets').map(acc => acc.name);
+    if (watchedType === 'cash-in') {
+      // Uang masuk bisa dari: Pendapatan, suntikan Modal, atau pelunasan Piutang.
+      return CHART_OF_ACCOUNTS
+        .filter(acc => 
+          acc.type === 'Revenue' || 
+          (acc.type === 'Equity' && acc.name !== 'Prive') ||
+          acc.name === 'Piutang Karyawan'
+        )
+        .map(acc => acc.name);
+    }
+    // Uang keluar bisa untuk: Beban, pembelian Aset, atau penarikan Modal (Prive).
+    return CHART_OF_ACCOUNTS
+      .filter(acc => 
+        acc.type === 'Expenses' || 
+        acc.type === 'Assets' ||
+        acc.name === 'Prive'
+      )
+      .map(acc => acc.name);
   }, [watchedType]);
 
   const isInventorySale = !!watchedCategory?.startsWith('Pendapatan Penjualan');
