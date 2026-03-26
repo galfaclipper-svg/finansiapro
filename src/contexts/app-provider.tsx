@@ -28,19 +28,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setTransactions(prev => [newTransaction, ...prev]);
 
-    // Simplified inventory update
-    if (transaction.category === 'Pendapatan Penjualan') {
-      // Assuming a sale reduces stock of a random item for demo purposes
-      const soldItemIndex = Math.floor(Math.random() * inventory.length);
-      setInventory(prev => prev.map((item, index) => 
-        index === soldItemIndex ? { ...item, stock: item.stock - 1 } : item
-      ));
-    } else if (transaction.category === 'Persediaan Barang Dagang') {
-      // Assuming a purchase increases stock of a random item
-      const purchasedItemIndex = Math.floor(Math.random() * inventory.length);
-       setInventory(prev => prev.map((item, index) => 
-        index === purchasedItemIndex ? { ...item, stock: item.stock + 5 } : item
-      ));
+    // Update inventory if it's a sale or purchase of goods
+    if (newTransaction.itemId && newTransaction.quantity) {
+      const quantityChange = newTransaction.quantity;
+
+      if (newTransaction.category === 'Pendapatan Penjualan') {
+        setInventory(prev => prev.map(item =>
+          item.id === newTransaction.itemId
+            ? { ...item, stock: item.stock - quantityChange }
+            : item
+        ));
+      } else if (newTransaction.category === 'Persediaan Barang Dagang') {
+        setInventory(prev => prev.map(item =>
+          item.id === newTransaction.itemId
+            ? { ...item, stock: item.stock + quantityChange }
+            : item
+        ));
+      }
     }
   };
 

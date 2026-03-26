@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   scanAndCategorizeTransaction,
-  type ScanAndCategorizeTransactionOutput,
 } from "@/ai/flows/scan-and-categorize-transaction-flow";
 
 import { useAppState } from "@/hooks/use-app-state";
-import { COA_CATEGORIES } from "@/lib/constants";
+import { COA_CATEGORIES, CHART_OF_ACCOUNTS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -65,19 +64,21 @@ const transactionSchema = z.object({
   description: z.string().min(2, "Deskripsi terlalu pendek."),
   type: z.enum(["cash-in", "cash-out"]),
   category: z.string({ required_error: "Silakan pilih kategori." }),
+  itemId: z.string().optional(),
+  quantity: z.coerce.number().optional(),
+  unitPrice: z.coerce.number().optional(),
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 export default function NewTransactionPage() {
-  const { addTransaction } = useAppState();
+  const { addTransaction, inventory } = useAppState();
   const { toast } = useToast();
   const router = useRouter();
   const [isScanning, setIsScanning] = useState(false);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   
   const receiptPlaceholder = PlaceHolderImages.find(p => p.id === 'receipt-scan-placeholder');
-
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
@@ -86,6 +87,42 @@ export default function NewTransactionPage() {
       type: "cash-out",
     },
   });
+
+  const watchedCategory = form.watch("category");
+  const watchedItemId = form.watch("itemId");
+  const watchedQuantity = form.watch("quantity");
+  const watchedUnitPrice = form.watch("unitPrice");
+
+  const isInventoryTransaction = watchedCategory === "Pendapatan Penjualan" || watchedCategory === "Persediaan Barang Dagang";
+
+  // Auto-calculate total amount for inventory transactions
+  useEffect(() => {
+    if (isInventoryTransaction) {
+      const qty = watchedQuantity || 0;
+      const price = watchedUnitPrice || 0;
+      form.setValue("amount", qty * price, { shouldValidate: true });
+    }
+  }, [watchedQuantity, watchedUnitPrice, isInventoryTransaction, form]);
+
+  // Auto-fill unit price when an inventory item is selected
+  useEffect(() => {
+    if (isInventoryTransaction && watchedItemId) {
+      const selectedItem = inventory.find(item => item.id === watchedItemId);
+      if (selectedItem) {
+        const price = watchedCategory === 'Pendapatan Penjualan' ? selectedItem.salePrice : selectedItem.costPerUnit;
+        form.setValue('unitPrice', price);
+      }
+    }
+  }, [watchedItemId, watchedCategory, isInventoryTransaction, inventory, form]);
+
+  // Auto-set transaction type based on category
+  useEffect(() => {
+    if (watchedCategory === 'Pendapatan Penjualan') {
+      form.setValue('type', 'cash-in');
+    } else if (watchedCategory === 'Persediaan Barang Dagang' || CHART_OF_ACCOUNTS.find(a => a.name === watchedCategory)?.type === 'Expenses') {
+      form.setValue('type', 'cash-out');
+    }
+  }, [watchedCategory, form]);
 
   const handleScan: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files?.[0];
@@ -103,13 +140,19 @@ export default function NewTransactionPage() {
           imageDataUri,
           coaCategories: COA_CATEGORIES,
         });
+        
+        let type: 'cash-in' | 'cash-out' = 'cash-out';
+        if (result.suggestedCategory === 'Pendapatan Penjualan') {
+            type = 'cash-in';
+        }
+
         form.reset({
           ...form.getValues(),
           date: new Date(result.date),
           amount: result.amount,
           description: result.description,
           category: result.suggestedCategory,
-          type: result.amount >= 0 ? 'cash-in' : 'cash-out',
+          type: type,
         });
         toast({
           title: "Pindai Berhasil",
@@ -201,13 +244,103 @@ export default function NewTransactionPage() {
                     <FormItem>
                       <FormLabel>Deskripsi</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="cth., Penjualan Produk X" {...field} />
+                        <Textarea placeholder="cth., Penjualan Kemeja Polos" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
+
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kategori</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Pilih kategori" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {COA_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {isInventoryTransaction ? (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="itemId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Barang</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Pilih barang dari inventaris" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {inventory.map((item) => (
+                                <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-3 gap-4">
+                       <FormField
+                          control={form.control}
+                          name="quantity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Kuantitas</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                         <FormField
+                          control={form.control}
+                          name="unitPrice"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Harga Satuan</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                         <FormField
+                          control={form.control}
+                          name="amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Jumlah Total</FormLabel>
+                              <FormControl>
+                                <Input type="number" placeholder="0.00" {...field} disabled />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                    </div>
+                  </>
+                ) : (
                   <FormField
                     control={form.control}
                     name="amount"
@@ -215,12 +348,15 @@ export default function NewTransactionPage() {
                       <FormItem>
                         <FormLabel>Jumlah</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="0.00" {...field} />
+                          <Input type="number" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="date"
@@ -263,52 +399,29 @@ export default function NewTransactionPage() {
                       </FormItem>
                     )}
                   />
+                   <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Tipe</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={isInventoryTransaction}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Pilih tipe" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              <SelectItem value="cash-in">Uang Masuk</SelectItem>
+                              <SelectItem value="cash-out">Uang Keluar</SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                     <FormField
-                        control={form.control}
-                        name="type"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Tipe</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih tipe" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                <SelectItem value="cash-in">Uang Masuk</SelectItem>
-                                <SelectItem value="cash-out">Uang Keluar</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                     <FormField
-                        control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Kategori</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih kategori" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {COA_CATEGORIES.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                 </div>
+                
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Tambah Transaksi

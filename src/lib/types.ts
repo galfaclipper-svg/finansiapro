@@ -20,6 +20,8 @@ export type Transaction = {
   type: 'cash-in' | 'cash-out';
   accountId: string;
   category: string;
+  itemId?: string;
+  quantity?: number;
 };
 
 export type InventoryItem = {
