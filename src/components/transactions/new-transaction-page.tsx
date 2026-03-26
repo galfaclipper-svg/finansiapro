@@ -127,7 +127,8 @@ export default function NewTransactionPage() {
         acc.type === 'Revenue' || 
         (acc.type === 'Equity' && acc.name !== 'Prive') || // Prive is a cash-out
         acc.name === 'Piutang Karyawan' || // Getting cash back from employee
-        acc.name === 'Piutang Usaha'; // Getting cash back from customer
+        acc.name === 'Piutang Usaha' || // Getting cash back from customer
+        acc.name === 'Kas Lebih/Kurang'; // To record cash overage
     } else { // 'cash-out'
       // Cash-out can be for Expenses, buying Assets, or owner drawings (Prive)
       baseFilter = (acc: Account) => 
