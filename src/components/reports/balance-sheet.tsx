@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAppState } from '@/hooks/use-app-state';
@@ -11,7 +12,6 @@ export function BalanceSheet() {
     const { transactions, inventory } = useAppState();
 
     const { assets, liabilities, equity, totalAssets, totalLiabilitiesAndEquity } = useMemo(() => {
-        // This logic is now centralized and consistent with other reports
         const accountBalances: { [key: string]: number } = {};
         CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
 
@@ -19,6 +19,21 @@ export function BalanceSheet() {
             const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
             const accountType = account?.type;
             const cashAccountName = "Kas";
+
+            // Special handling for non-cash entries like depreciation
+            if (t.category === 'Beban Penyusutan') {
+                return [
+                    { ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount },
+                    { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }
+                ];
+            }
+             if (t.category === 'Beban Amortisasi') {
+                return [
+                    { ...t, entryType: 'Debit', accountName: 'Beban Amortisasi', amount: t.amount },
+                    { ...t, entryType: 'Credit', accountName: 'Akumulasi Amortisasi', amount: t.amount }
+                ];
+            }
+
             if (t.type === 'cash-in') {
                 return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
             } else {
@@ -40,62 +55,61 @@ export function BalanceSheet() {
             }
         });
 
-        const assets: { [key: string]: number } = {};
-        const liabilities: { [key: string]: number } = {};
+        // --- Income Statement Calculation for Net Income ---
         const revenues: { [key: string]: number } = {};
         const expenses: { [key: string]: number } = {};
-        let ownersCapital = 0;
-        let ownerDrawings = 0;
-
         Object.entries(accountBalances).forEach(([accountName, balance]) => {
-            if (balance === 0) return; // Don't show accounts with zero balance in the report
+            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+            if (!accountInfo || balance === 0) return;
+            if (accountInfo.type === 'Revenue') revenues[accountName] = balance;
+            if (accountInfo.type === 'Expenses') expenses[accountName] = balance;
+        });
+        const totalRevenue = Object.values(revenues).reduce((s, a) => s + a, 0);
+        const totalExpenses = Object.values(expenses).reduce((s, a) => s + a, 0);
+        const netIncome = totalRevenue - totalExpenses;
+
+        // --- Balance Sheet Account Grouping ---
+        const assets: { [key: string]: number } = {};
+        const liabilities: { [key: string]: number } = {};
+        const equity: { [key: string]: number } = {};
+        
+        Object.entries(accountBalances).forEach(([accountName, balance]) => {
             const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
             if (!accountInfo) return;
+            
+            // Only include accounts with non-zero balance, except for Cash and Inventory
+            if (balance === 0 && !['Kas', 'Persediaan Barang Dagang'].includes(accountName)) return;
+
             switch (accountInfo.type) {
-                case 'Assets': assets[accountName] = balance; break;
-                case 'Liabilities': liabilities[accountName] = balance; break;
-                case 'Revenue': revenues[accountName] = balance; break;
-                case 'Expenses': expenses[accountName] = balance; break;
+                case 'Assets':
+                    assets[accountName] = balance;
+                    break;
+                case 'Liabilities':
+                    if(balance !== 0) liabilities[accountName] = balance;
+                    break;
                 case 'Equity':
-                    if (accountName === 'Modal Pemilik') ownersCapital = balance;
-                    if (accountName === 'Prive') ownerDrawings = balance; // This will be a negative value
+                    if (balance !== 0) {
+                      equity[accountName] = (equity[accountName] || 0) + balance;
+                    }
                     break;
             }
         });
         
-        // Ensure inventory value from the dedicated state is used, as it's the source of truth
+        // Ensure inventory value from the dedicated state is used for consistency
         assets['Persediaan Barang Dagang'] = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
-        if (assets['Persediaan Barang Dagang'] === 0) {
-            delete assets['Persediaan Barang Dagang']; // Don't show if zero
-        }
 
-
-        const totalRevenue = Object.values(revenues).reduce((s, a) => s + a, 0);
-        const totalExpenses = Object.values(expenses).reduce((s, a) => s + a, 0);
-        const netIncome = totalRevenue - totalExpenses;
-        const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
-        const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-        
-        const retainedEarningsBeginning = 0; // In a real app, this would come from the previous period's closing balance
-        
-        let equity = {
-            'Modal Pemilik': ownersCapital,
-            'Laba Ditahan': retainedEarningsBeginning + ownerDrawings, // Drawings reduce equity, so we add the debit balance
+        const equityAccounts = {
+            'Modal Pemilik': accountBalances['Modal Pemilik'] || 0,
+            'Prive': accountBalances['Prive'] || 0,
             'Laba Bersih (Periode Berjalan)': netIncome,
         };
         
-        let totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
-        let totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+        const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
+        const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+        const totalEquity = Object.values(equityAccounts).reduce((sum, val) => sum + val, 0);
+        const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
-        // A "plug" to force the balance for demonstration purposes in this single-entry based system.
-        const balanceDifference = totalAssets - totalLiabilitiesAndEquity;
-        if (Math.abs(balanceDifference) > 0.01) {
-            equity['Modal Pemilik'] += balanceDifference;
-            totalLiabilitiesAndEquity = totalAssets; // Force balance
-        }
-
-
-        return { assets, liabilities, equity, totalAssets, totalLiabilitiesAndEquity };
+        return { assets, liabilities, equity: equityAccounts, totalAssets, totalLiabilitiesAndEquity };
 
     }, [transactions, inventory]);
 
@@ -115,7 +129,7 @@ export function BalanceSheet() {
                                     <TableRow key={name}>
                                         <TableCell>{name}</TableCell>
                                         <TableCell className="text-right">
-                                            {name.includes('Akumulasi') ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}
+                                            {amount < 0 ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}
                                         </TableCell>
                                     </TableRow>
                                 )) : (

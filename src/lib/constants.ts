@@ -1,3 +1,4 @@
+
 import type { Account, CompanyProfile, InventoryItem, Transaction } from './types';
 
 export const CHART_OF_ACCOUNTS: Account[] = [
@@ -108,9 +109,13 @@ export const MOCK_TRANSACTIONS: Transaction[] = [
     { id: 'TRN302', date: pastDate(50), description: 'Pembelian 50pcs Celana B dari Pemasok', amount: 7500000, type: 'cash-out', category: 'Persediaan Barang Dagang', accountId: '1050', itemId: 'INV002', quantity: 50 },
     { id: 'TRN303', date: pastDate(40), description: 'Pembelian 200pcs Baju C dari Pemasok', amount: 10000000, type: 'cash-out', category: 'Persediaan Barang Dagang', accountId: '1050', itemId: 'INV003', quantity: 200 },
     { id: 'TRN304', date: pastDate(80), description: 'Pembelian Komputer untuk Kantor', amount: 15000000, type: 'cash-out', category: 'Peralatan', accountId: '1210' },
-    { id: 'TRN305', date: pastDate(70), description: 'Pembayaran sewa ruko untuk 1 tahun', amount: 60000000, type: 'cash-out', category: 'Sewa Dibayar di Muka', accountId: '1060' },
+    { id: 'TRN305', date: pastDate(70), description: 'Pembayaran sewa ruko untuk 1 tahun', amount: 5000000, type: 'cash-out', category: 'Sewa Dibayar di Muka', accountId: '1060' },
     { id: 'TRN306', date: pastDate(70), description: 'Pembayaran premi asuransi kebakaran untuk 1 tahun', amount: 2400000, type: 'cash-out', category: 'Asuransi Dibayar di Muka', accountId: '1070' },
     { id: 'TRN307', date: pastDate(25), description: 'Kasbon untuk perjalanan dinas Budi', amount: 750000, type: 'cash-out', category: 'Piutang Karyawan', accountId: '1040' },
+    
+    // Non-cash adjustment entries
+    { id: 'TRN401', date: pastDate(1), description: 'Penyusutan Peralatan Bulan Ini', amount: 250000, type: 'cash-out', category: 'Beban Penyusutan', accountId: '5270' },
+
 ];
 
 

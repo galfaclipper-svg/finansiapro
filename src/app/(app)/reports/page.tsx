@@ -30,6 +30,21 @@ export default function ReportsPage() {
       const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
       const accountType = account?.type;
       const cashAccountName = "Kas";
+
+      // Special handling for non-cash entries
+      if (t.category === 'Beban Penyusutan') {
+        return [
+          { ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount },
+          { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }
+        ];
+      }
+      if (t.category === 'Beban Amortisasi') {
+         return [
+          { ...t, entryType: 'Debit', accountName: 'Beban Amortisasi', amount: t.amount },
+          { ...t, entryType: 'Credit', accountName: 'Akumulasi Amortisasi', amount: t.amount }
+        ];
+      }
+
       if (t.type === 'cash-in') {
           return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
       } else {
@@ -58,9 +73,8 @@ export default function ReportsPage() {
     const revenues: { [key: string]: number } = {};
     const expenses: { [key: string]: number } = {};
     Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      if (balance === 0) return;
       const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
-      if (!accountInfo) return;
+      if (!accountInfo || balance === 0) return;
       if (accountInfo.type === 'Revenue') revenues[accountName] = balance;
       if (accountInfo.type === 'Expenses') expenses[accountName] = balance;
     });
@@ -71,44 +85,61 @@ export default function ReportsPage() {
     // --- Balance Sheet Data ---
     const assets: { [key: string]: number } = {};
     const liabilities: { [key: string]: number } = {};
-    let ownersCapital = 0;
-    let ownerDrawings = 0;
-    Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      if (balance === 0 && accountName !== 'Kas' && accountName !== 'Persediaan Barang Dagang') return;
-      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
-      if (!accountInfo) return;
-      if (accountInfo.type === 'Assets') assets[accountName] = balance;
-      if (accountInfo.type === 'Liabilities') liabilities[accountName] = balance;
-      if (accountInfo.name === 'Modal Pemilik') ownersCapital = balance;
-      if (accountInfo.name === 'Prive') ownerDrawings = balance;
-    });
-    const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
-    const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+    const equity: { [key: string]: number } = {};
     
-    // Recalculate inventory value just in case, though it should match balance
+    Object.entries(accountBalances).forEach(([accountName, balance]) => {
+      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+      if (!accountInfo || (balance === 0 && !['Kas', 'Persediaan Barang Dagang'].includes(accountName))) return;
+      
+      switch(accountInfo.type) {
+        case 'Assets': 
+          assets[accountName] = balance;
+          break;
+        case 'Liabilities': 
+          if (balance !== 0) liabilities[accountName] = balance;
+          break;
+        case 'Equity':
+          if (balance !== 0 || accountName === 'Modal Pemilik') {
+            equity[accountName] = (equity[accountName] || 0) + balance;
+          }
+          break;
+      }
+    });
+
+    // Override inventory value with calculation from inventory state for consistency
     assets['Persediaan Barang Dagang'] = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
 
-    const retainedEarningsBeginning = 0; // Not implemented yet
-    let equity = {
-      'Modal Pemilik': ownersCapital,
-      'Laba Ditahan': retainedEarningsBeginning + ownerDrawings, // Drawings reduce equity, so we add the negative balance
+    const equityAccounts: { [key: string]: number } = {
+      'Modal Pemilik': equity['Modal Pemilik'] || 0,
+      'Prive': equity['Prive'] || 0,
       'Laba Bersih (Periode Berjalan)': netIncome,
     };
-    let totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
-    let totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-
-    // A "plug" to balance the sheet in this single-entry based system
-    const balanceDifference = totalAssets - totalLiabilitiesAndEquity;
-    if (Math.abs(balanceDifference) > 0.01) {
-        equity['Modal Pemilik'] += balanceDifference;
-        totalLiabilitiesAndEquity = totalAssets;
-    }
     
+    const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
+    const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+    const totalEquity = Object.values(equityAccounts).reduce((sum, val) => sum + val, 0);
+    const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+
     // --- General Journal Data ---
     const journalEntries = transactions.flatMap(t => {
         const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
         const accountType = account?.type;
         const cashAccountName = "Kas";
+
+        // Special handling for non-cash entries
+        if (t.category === 'Beban Penyusutan') {
+            return [
+                { ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount, key: `${t.id}-debit` },
+                { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount, key: `${t.id}-credit` }
+            ];
+        }
+        if (t.category === 'Beban Amortisasi') {
+            return [
+                { ...t, entryType: 'Debit', accountName: 'Beban Amortisasi', amount: t.amount, key: `${t.id}-debit` },
+                { ...t, entryType: 'Credit', accountName: 'Akumulasi Amortisasi', amount: t.amount, key: `${t.id}-credit` }
+            ];
+        }
+
         if (t.type === 'cash-in') {
             return [
                 { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount, key: `${t.id}-debit` },
@@ -168,7 +199,7 @@ export default function ReportsPage() {
 
     return {
       incomeStatement: { revenues, totalRevenue, expenses, totalExpenses, netIncome },
-      balanceSheet: { assets, liabilities, equity, totalAssets, totalLiabilitiesAndEquity },
+      balanceSheet: { assets, liabilities, equity: equityAccounts, totalAssets, totalLiabilitiesAndEquity },
       generalJournal: { journalEntries },
       cashFlow: { operatingFlows, totalOperating, endingCash },
       generalLedger: { sortedLedgerAccounts }
@@ -285,19 +316,12 @@ export default function ReportsPage() {
     // Correctly add equity components with their formulas
     const equityFormulas: { [key: string]: string } = {
       'Modal Pemilik': `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`,
-      'Laba Ditahan': `-(SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F))`, // Inverted sign for Prive
+      'Prive': `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)`,
       'Laba Bersih (Periode Berjalan)': `'${incomeSheetName}'!B${netIncomeRow}`
     };
 
     Object.entries(equityFormulas).forEach(([name, formula]) => {
-      // Find the corresponding value from the UI data to apply balancing plug if necessary
-      const uiValue = reportData.balanceSheet.equity[name as keyof typeof reportData.balanceSheet.equity];
-      const plug = (name === 'Modal Pemilik') ? (reportData.balanceSheet.totalAssets - reportData.balanceSheet.totalLiabilitiesAndEquity) : 0;
-      
-      // If there's a plug, we adjust the formula. This is a simplification.
-      const finalFormula = plug !== 0 && name === 'Modal Pemilik' ? `${formula}+${plug}` : formula;
-
-      balanceSheetData.push([ `  ${name}`, { t: 'n', f: finalFormula }]);
+      balanceSheetData.push([ `  ${name}`, { t: 'n', f: formula }]);
       balanceRow++;
     });
 
