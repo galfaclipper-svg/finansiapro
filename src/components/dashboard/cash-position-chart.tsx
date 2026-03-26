@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import { Wallet } from 'lucide-react';
 import { CHART_OF_ACCOUNTS } from '@/lib/constants';
 import { eachDayOfInterval, format, startOfDay } from 'date-fns';
+import type { Transaction } from '@/lib/types';
 
 const chartConfig = {
   balance: {
@@ -22,30 +23,74 @@ const chartConfig = {
 };
 
 export function CashPositionChart() {
-  const { transactions, dateRange } = useAppState();
+  const { transactions, inventory, dateRange } = useAppState();
 
   const { chartData, finalBalance } = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) {
       return { chartData: [], finalBalance: 0 };
     }
     
-    // 1. Calculate the starting cash balance before the selected period begins
-    const transactionsBeforePeriod = transactions.filter(t => new Date(t.date) < startOfDay(dateRange.from!));
-    let startingBalance = 0;
-    
-    transactionsBeforePeriod.forEach(t => {
-      if (t.category === 'Kas') {
-         if (t.type === 'cash-in') { startingBalance += t.amount; }
-         else { startingBalance -= t.amount; }
-      } else {
-        const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-        if (account?.type === 'Assets' && t.type === 'cash-out' && t.category !== 'Kas') { /* No cash change */ }
-        else if (t.type === 'cash-out') { startingBalance -= t.amount; }
-        else if (t.type === 'cash-in') { startingBalance += t.amount; }
-      }
-    });
+    // 1. Re-use the correct, robust balance calculation logic from reports/overview
+    const calculateBalances = (transactionSet: typeof transactions, currentInventory: typeof inventory) => {
+        let baseJournalEntries = transactionSet.flatMap(t => {
+            const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+            const accountType = account?.type;
+            const cashAccountName = "Kas";
 
-    // 2. Group transactions within the period by day
+            if (t.category === 'Beban Penyusutan') {
+                return [{ ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }];
+            }
+            if (t.category === 'Beban Amortisasi') {
+                return [{ ...t, entryType: 'Debit', accountName: 'Beban Amortisasi', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Amortisasi', amount: t.amount }];
+            }
+            if (t.type === 'cash-in') {
+                return [{ ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
+            } else { // cash-out
+                if (accountType === 'Assets' && t.category !== cashAccountName) {
+                    return [{ ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+                }
+                return [{ ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
+            }
+        });
+
+        const cogsEntries: any[] = [];
+        transactionSet.forEach(t => {
+            const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
+            if (isSale && t.itemId && t.quantity) {
+                const item = currentInventory.find(i => i.id === t.itemId);
+                if (item) {
+                    const cogsAmount = item.costPerUnit * t.quantity;
+                    if (cogsAmount > 0) {
+                        cogsEntries.push({ ...t, id: `${t.id}-cogs-debit`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
+                        cogsEntries.push({ ...t, id: `${t.id}-cogs-credit`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
+                    }
+                }
+            }
+        });
+
+        const allJournalEntries = [...baseJournalEntries, ...cogsEntries];
+        const accountBalances: { [key: string]: number } = {};
+        CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
+
+        allJournalEntries.forEach(entry => {
+            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+            if (!accountInfo) return;
+            const amount = entry.amount;
+            if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
+                accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
+            } else { // Liabilities, Equity, Revenue
+                accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
+            }
+        });
+        return accountBalances;
+    };
+    
+    // 2. Calculate accurate starting cash balance
+    const transactionsBeforePeriod = transactions.filter(t => new Date(t.date) < startOfDay(dateRange.from!));
+    const startingBalances = calculateBalances(transactionsBeforePeriod, inventory);
+    let runningBalance = startingBalances['Kas'] || 0;
+    
+    // 3. Group transactions within the period by day using correct cash change logic
     const transactionsInPeriod = transactions.filter(t => {
         const transactionDate = new Date(t.date);
         const toDate = new Date(dateRange.to as Date);
@@ -54,41 +99,35 @@ export function CashPositionChart() {
     });
 
     const dailyChanges: { [key: string]: number } = {};
+    const nonCashCategories = ['Beban Penyusutan', 'Beban Amortisasi'];
+
     transactionsInPeriod.forEach(t => {
+      // Exclude non-cash transactions from daily cash change calculation
+      if (nonCashCategories.includes(t.category)) {
+          return;
+      }
       const dateKey = format(new Date(t.date), 'yyyy-MM-dd');
       dailyChanges[dateKey] = dailyChanges[dateKey] || 0;
-      let cashChange = 0;
-      if (t.category === 'Kas') {
-         if (t.type === 'cash-in') { cashChange = t.amount; }
-         else { cashChange = -t.amount; }
-      } else {
-        const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-        if (account?.type === 'Assets' && t.type === 'cash-out' && t.category !== 'Kas') { /* No cash change */ }
-        else if (t.type === 'cash-out') { cashChange = -t.amount; }
-        else if (t.type === 'cash-in') { cashChange = t.amount; }
-      }
+      const cashChange = t.type === 'cash-in' ? t.amount : -t.amount;
       dailyChanges[dateKey] += cashChange;
     });
 
-    // 3. Create the chart data with a running balance
-    const chartData = eachDayOfInterval({ start: dateRange.from, end: dateRange.to }).map((day, index) => {
+    // 4. Create the chart data with a running balance
+    const chartData = eachDayOfInterval({ start: dateRange.from, end: dateRange.to }).map((day) => {
       const dateKey = format(day, 'yyyy-MM-dd');
       const change = dailyChanges[dateKey] || 0;
-      if (index === 0) {
-        startingBalance += change;
-      } else {
-        startingBalance += change;
-      }
+      runningBalance += change;
       return {
         date: format(day, 'd/M'),
-        balance: startingBalance,
+        balance: runningBalance,
       };
     });
     
-    const finalBalance = startingBalance;
+    // The final balance is the last calculated running balance
+    const finalBalance = runningBalance;
 
     return { chartData, finalBalance };
-  }, [transactions, dateRange]);
+  }, [transactions, inventory, dateRange]);
 
   return (
     <Card>
