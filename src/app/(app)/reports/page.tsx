@@ -395,27 +395,30 @@ export default function ReportsPage() {
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
     const companyName = companyProfile.name;
-    const addHeaderFooter = (doc: jsPDF, title: string) => {
-      const pageCount = doc.getNumberOfPages();
-      for(let i = 1; i <= pageCount; i++) {
-          doc.setPage(i);
-          doc.setFontSize(16);
-          doc.setFont('helvetica', 'bold');
-          doc.text(companyName, 14, 20);
-          doc.setFontSize(12);
-          doc.text(title, 14, 27);
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.text(`Tanggal Cetak: ${today}`, 14, 34);
-          doc.setFontSize(8);
-          doc.text(`Halaman ${i} dari ${pageCount}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-      }
-    }
+    const totalPagesExp = '{total_pages_count_string}';
+    const primaryColor = [36, 123, 160]; // Corresponds to #247BA0
 
-    // --- Page 1: Income Statement ---
-    doc.text(companyName, 14, 20);
-    doc.setFontSize(12);
-    doc.text('Laporan Laba Rugi', 14, 27);
+    const addHeaderAndFooter = (data: any, title: string) => {
+      // HEADER
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(companyName, data.settings.margin.left, 20);
+      
+      doc.setFontSize(12);
+      doc.text(title, data.settings.margin.left, 27);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Tanggal Cetak: ${today}`, data.settings.margin.left, 34);
+
+      // FOOTER
+      const pageNumber = doc.internal.getNumberOfPages();
+      doc.setFontSize(8);
+      const footerText = `Halaman ${pageNumber}`;
+      doc.text(footerText, data.settings.margin.left + data.table.width / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    };
+
+    // --- Laporan Laba Rugi ---
     autoTable(doc, {
         startY: 40,
         head: [['Deskripsi', 'Jumlah']],
@@ -429,28 +432,28 @@ export default function ReportsPage() {
         ],
         foot: [[{content:'Laba Bersih', styles: {fontStyle: 'bold'}}, {content: formatCurrency(reportData.incomeStatement.netIncome), styles: {halign: 'right', fontStyle: 'bold'}}]],
         theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
+        headStyles: { fillColor: primaryColor },
+        didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Laba Rugi'),
     });
-    addHeaderFooter(doc, 'Laporan Laba Rugi');
 
-    // --- Page 2: Balance Sheet ---
-    doc.addPage();
-    doc.text(companyName, 14, 20);
-    doc.setFontSize(12);
-    doc.text('Neraca', 14, 27);
+    // --- Neraca ---
     const sortedAssetEntries = Object.entries(reportData.balanceSheet.assets).sort(([aName], [bName]) => {
       const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
       const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
       return aId.localeCompare(bId);
     });
+
     autoTable(doc, {
-        startY: 40,
         head: [['Aset', '']],
         body: sortedAssetEntries.map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
         foot: [[{content:'Total Aset', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalAssets), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
+        headStyles: { fillColor: primaryColor },
+        didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
+        pageBreak: 'auto',
+        startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
     });
+
      autoTable(doc, {
         startY: (doc as any).lastAutoTable.finalY + 10,
         head: [['Kewajiban dan Ekuitas', '']],
@@ -460,22 +463,18 @@ export default function ReportsPage() {
         ],
         foot: [[{content:'Total Kewajiban dan Ekuitas', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalLiabilitiesAndEquity), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
+        headStyles: { fillColor: primaryColor },
+        didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
     });
-    addHeaderFooter(doc, 'Neraca');
 
-    // --- Page 3: General Journal ---
-    doc.addPage();
-    doc.text(companyName, 14, 20);
-    doc.setFontSize(12);
-    doc.text("Jurnal Umum", 14, 27);
+    // --- Jurnal Umum ---
     const groupedEntries = reportData.generalJournal.journalEntries.reduce((acc, entry) => {
         const key = entry.id.replace('-cogs', '');
         (acc[key] = acc[key] || []).push(entry);
         return acc;
     }, {} as Record<string, any[]>);
+
      autoTable(doc, {
-        startY: 40,
         head: [['Tanggal', 'Akun & Keterangan', 'Debit', 'Kredit']],
         body: Object.values(groupedEntries).flatMap(entries => {
           const rows: any[] = [];
@@ -508,17 +507,13 @@ export default function ReportsPage() {
           return rows;
         }),
         theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
+        headStyles: { fillColor: primaryColor },
+        didDrawPage: (data) => addHeaderAndFooter(data, 'Jurnal Umum'),
+        startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
     });
-    addHeaderFooter(doc, 'Jurnal Umum');
 
-     // --- Page 4: Cash Flow ---
-    doc.addPage();
-    doc.text(companyName, 14, 20);
-    doc.setFontSize(12);
-    doc.text('Laporan Arus Kas', 14, 27);
+     // --- Laporan Arus Kas ---
     autoTable(doc, {
-        startY: 40,
         head: [['Deskripsi', 'Jumlah']],
         body: [
           [{ content: 'Aktivitas Operasi', styles: { fontStyle: 'bold' } }, ''],
@@ -530,21 +525,18 @@ export default function ReportsPage() {
           ['Saldo Kas Akhir', { content: formatCurrency(reportData.cashFlow.endingCash), styles: { halign: 'right', fontStyle: 'bold' } }]
         ],
         theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
+        headStyles: { fillColor: primaryColor },
         footStyles: { fontStyle: 'bold' },
+        didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Arus Kas'),
+        startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
     });
-    addHeaderFooter(doc, 'Laporan Arus Kas');
 
-     // --- Page 5..N: General Ledger ---
+     // --- Buku Besar ---
     reportData.generalLedger.sortedLedgerAccounts.forEach(account => {
-        doc.addPage();
-        doc.text(companyName, 14, 20);
-        doc.setFontSize(12);
-        doc.text(`Buku Besar: ${account.accountInfo.name}`, 14, 27);
+        if (account.entries.length === 0) return;
          autoTable(doc, {
-            startY: 40,
             theme: 'striped',
-            headStyles: { fillColor: [22, 163, 74] },
+            headStyles: { fillColor: primaryColor },
             head: [['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']],
             body: account.entries.map((entry: any) => [
                 format(new Date(entry.date), 'd MMM y', { locale: id }),
@@ -559,9 +551,15 @@ export default function ReportsPage() {
                     { content: formatCurrency(account.balance), styles: { halign: 'right', fontStyle: 'bold' } }
                 ]
             ],
+            didDrawPage: (data) => addHeaderAndFooter(data, `Buku Besar: ${account.accountInfo.name}`),
+            startY: (doc as any).lastAutoTable.finalY + 15 > doc.internal.pageSize.getHeight() - 50 ? undefined : (doc as any).lastAutoTable.finalY + 15,
         });
-        addHeaderFooter(doc, `Buku Besar: ${account.accountInfo.name}`);
     });
+
+    // Replace page number placeholder
+    if (typeof (doc as any).putTotalPages === 'function') {
+      (doc as any).putTotalPages(totalPagesExp);
+    }
 
     doc.save('Laporan Keuangan FinansiaPro.pdf');
   };
