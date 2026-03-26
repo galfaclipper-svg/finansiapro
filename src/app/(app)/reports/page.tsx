@@ -159,6 +159,7 @@ export default function ReportsPage() {
     const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
     const companyName = companyProfile.name;
     const journalSheetName = "Jurnal Umum";
+    const incomeSheetName = "Laba Rugi";
 
     // --- Helper for number formatting in a sheet ---
     const applyNumberFormatting = (ws: XLSX.WorkSheet, cols: number[], fmt: string) => {
@@ -168,7 +169,6 @@ export default function ReportsPage() {
           const cell_address = {c: C, r: R};
           const cell_ref = XLSX.utils.encode_cell(cell_address);
           const cell = ws[cell_ref];
-          // Ensure cell exists and is a number or a formula
           if (!cell || (cell.t !== 'n' && !cell.f)) continue;
           cell.z = fmt;
         }
@@ -195,7 +195,6 @@ export default function ReportsPage() {
     XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
 
     // 2. Income Statement Sheet
-    const incomeSheetName = "Laba Rugi";
     const incomeData: any[] = [
       [{v: companyName, s:{font:{bold:true, sz:16}}}],
       [{v: incomeSheetName, s:{font:{bold:true, sz:14}}}],
@@ -213,7 +212,9 @@ export default function ReportsPage() {
     const revenueEndRow = incomeRow - 1;
     const totalRevenueRow = incomeRow;
     incomeData.push([ {v:"Total Pendapatan", s:{font:{bold:true}}}, { t: 'n', f: revenueStartRow > revenueEndRow ? 0 : `SUM(B${revenueStartRow}:B${revenueEndRow})`, s:{font:{bold:true}}} ]);
-    incomeRow += 2;
+    incomeRow++;
+    incomeData.push([]); // Blank row
+    incomeRow++;
     incomeData.push(["Beban"]);
     incomeRow++;
     const expenseStartRow = incomeRow;
@@ -224,7 +225,9 @@ export default function ReportsPage() {
     const expenseEndRow = incomeRow - 1;
     const totalExpensesRow = incomeRow;
     incomeData.push([ {v: "Total Beban", s:{font:{bold:true}}}, { t: 'n', f: expenseStartRow > expenseEndRow ? 0 : `SUM(B${expenseStartRow}:B${expenseEndRow})`, s:{font:{bold:true}}} ]);
-    incomeRow += 2;
+    incomeRow++;
+    incomeData.push([]); // Blank row
+    incomeRow++;
     const netIncomeRow = incomeRow;
     incomeData.push([ {v: "Laba Bersih", s:{font:{bold:true, sz: 12}}}, { t: 'n', f: `B${totalRevenueRow}-B${totalExpensesRow}`, s:{font:{bold:true, sz: 12}}} ]);
     const wsIncome = XLSX.utils.aoa_to_sheet(incomeData);
@@ -257,17 +260,19 @@ export default function ReportsPage() {
         balanceSheetData.push([`  ${name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!E:E)` }]);
         balanceRow++;
     });
+    
+    // Correctly add equity components with their formulas
     const equityFormulas: { [key: string]: string } = {
       'Modal Pemilik': `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`,
       'Laba Ditahan': `-(SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F))`,
       'Laba Bersih (Periode Berjalan)': `'${incomeSheetName}'!B${netIncomeRow}`
     };
+
     Object.entries(equityFormulas).forEach(([name, formula]) => {
-      if (name in reportData.balanceSheet.equity) {
-          balanceSheetData.push([ `  ${name}`, { t: 'n', f: formula }]);
-          balanceRow++;
-      }
+      balanceSheetData.push([ `  ${name}`, { t: 'n', f: formula }]);
+      balanceRow++;
     });
+
     const liabEqEndRow = balanceRow - 1;
     balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:{font:{bold:true}}}, { t: 'n', f: `SUM(B${liabEqStartRow}:B${liabEqEndRow})`, s:{font:{bold:true}}} ]);
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
