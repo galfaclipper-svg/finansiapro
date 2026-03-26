@@ -96,19 +96,22 @@ export default function ReportsPage() {
         liabilities[accountName] = balance;
       }
     });
-    // Manually add inventory value to assets
-    assets['Persediaan Barang Dagang'] = (assets['Persediaan Barang Dagang'] || 0) + inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
+    
+    // The definitive value for inventory comes from the inventory state, not transaction history,
+    // as COGS is not perpetually tracked. This overrides any balance from transactions.
+    assets['Persediaan Barang Dagang'] = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
 
 
     const equityAccounts: { [key: string]: number } = {
       'Modal Pemilik': accountBalances['Modal Pemilik'] || 0,
+      'Laba Ditahan': accountBalances['Laba Ditahan'] || 0,
       'Laba Bersih (Periode Berjalan)': netIncome,
-      'Prive': accountBalances['Prive'] || 0, // This will be a positive number from calculation, treat as subtraction in display
+      'Prive': -(accountBalances['Prive'] || 0), // Prive is a deduction from equity, so it's a negative value
     };
     
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Bersih (Periode Berjalan)'] || 0) - (equityAccounts['Prive'] || 0);
+    const totalEquity = Object.values(equityAccounts).reduce((sum, val) => sum + val, 0);
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
     // --- General Journal Data ---
@@ -284,26 +287,33 @@ export default function ReportsPage() {
     balanceRow += 2;
     balanceSheetData.push([{v:"Kewajiban & Ekuitas", s:boldStyle}]);
     balanceRow++;
-    const liabEqStartRow = balanceRow;
+    
     balanceSheetData.push([{v:"  Kewajiban", s:boldStyle}]);
     balanceRow++;
+    const liabilityStartRow = balanceRow;
     Object.keys(reportData.balanceSheet.liabilities).sort().forEach(name => {
         balanceSheetData.push([`    ${name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!E:E)` }]);
         balanceRow++;
     });
+    const liabilityEndRow = balanceRow-1;
+    
     balanceSheetData.push([{v:"  Ekuitas", s:boldStyle}]);
     balanceRow++;
-    const equityFormulas: { [key: string]: string } = {
-      'Modal Pemilik': `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`,
-      'Laba Bersih (Periode Berjalan)': `'${incomeSheetName}'!B${netIncomeRow}`,
-      'Prive': `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)`
-    };
-    Object.entries(equityFormulas).forEach(([name, formula]) => {
-      balanceSheetData.push([ `    ${name}`, { t: 'n', f: formula }]);
-      balanceRow++;
-    });
-    const liabEqEndRow = balanceRow - 1;
-    balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `SUM(B${liabEqStartRow}:B${liabEqEndRow})`, s:boldStyle} ]);
+    const equityStartRow = balanceRow;
+    balanceSheetData.push([`    Modal Pemilik`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)` }]);
+    balanceRow++;
+    balanceSheetData.push([`    Laba Ditahan`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!E:E)` }]);
+    balanceRow++;
+    balanceSheetData.push([`    Laba Bersih (Periode Berjalan)`, { t: 'n', f: `'${incomeSheetName}'!B${netIncomeRow}` }]);
+    balanceRow++;
+    balanceSheetData.push([`    Prive`, { t: 'n', f: `(SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F))` }]);
+    balanceRow++;
+    const equityEndRow = balanceRow-1;
+    
+    const totalLiabilitiesFormula = `SUM(B${liabilityStartRow}:B${liabilityEndRow})`;
+    const totalEquityFormula = `SUM(B${equityStartRow}:B${equityEndRow-1})-B${equityEndRow}`; // Subtract Prive
+    
+    balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `${totalLiabilitiesFormula}+${totalEquityFormula}`, s:boldStyle} ]);
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
     wsBalance['!cols'] = [{wch: 40}, {wch: 20}];
     applyNumberFormatting(wsBalance, [1]);
