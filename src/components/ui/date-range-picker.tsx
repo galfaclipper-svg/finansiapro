@@ -20,6 +20,11 @@ export function DatePickerWithRange({
   className,
 }: React.HTMLAttributes<HTMLDivElement>) {
   const { dateRange: date, setDateRange: setDate } = useAppState();
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <div className={cn('grid gap-2', className)}>
@@ -34,7 +39,7 @@ export function DatePickerWithRange({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
+            {isClient && date?.from ? (
               date.to ? (
                 <>
                   {format(date.from, 'd LLL y', { locale: id })} -{' '}
