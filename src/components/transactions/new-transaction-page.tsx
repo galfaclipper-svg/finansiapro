@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -164,7 +165,7 @@ export default function NewTransactionPage() {
         
         const account = CHART_OF_ACCOUNTS.find(acc => acc.name === result.suggestedCategory);
         let type: 'cash-in' | 'cash-out' = 'cash-out'; // Default
-        if (account && (account.type === 'Revenue' || account.type === 'Equity')) {
+        if (account && (account.type === 'Revenue' || (account.type === 'Equity'  && acc.name !== 'Prive') || acc.name === 'Piutang Karyawan')) {
           type = 'cash-in';
         }
 
@@ -394,7 +395,7 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Kuantitas</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                                <Input type="number" placeholder="0" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -407,7 +408,7 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Harga Satuan</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0.00" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                                <Input type="number" placeholder="0.00" step="0.01" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -420,7 +421,7 @@ export default function NewTransactionPage() {
                             <FormItem>
                               <FormLabel>Jumlah Total</FormLabel>
                               <FormControl>
-                                <Input type="number" placeholder="0.00" step="0.01" {...field} disabled />
+                                <Input type="number" placeholder="0.00" step="0.01" {...field} value={field.value ?? ''} disabled />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -436,7 +437,7 @@ export default function NewTransactionPage() {
                       <FormItem>
                         <FormLabel>Nominal</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="100000" step="0.01" {...field} onChange={e => field.onChange(e.target.valueAsNumber || 0)} />
+                          <Input type="number" placeholder="100000" step="0.01" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -456,3 +457,5 @@ export default function NewTransactionPage() {
     </div>
   );
 }
+
+    
