@@ -118,12 +118,12 @@ export default function ReportsPage() {
       'Modal Pemilik': accountBalances['Modal Pemilik'] || 0,
       'Laba Ditahan': accountBalances['Laba Ditahan'] || 0,
       'Laba Bersih (Periode Berjalan)': netIncome,
-      'Prive': accountBalances['Prive'] || 0, // Keep it positive here, will be subtracted in total
+      'Prive': accountBalances['Prive'] || 0,
     };
     
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Ditahan'] || 0) + netIncome + (equityAccounts['Prive'] || 0); // Prive is already negative from calculation
+    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Ditahan'] || 0) + netIncome - (equityAccounts['Prive'] || 0); // Prive is a contra-equity account (subtraction)
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
     // General Journal Data
