@@ -57,6 +57,7 @@ import { id } from 'date-fns/locale';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useRouter } from "next/navigation";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import type { Account } from "@/lib/types";
 
 const transactionSchema = z.object({
   date: z.date({
@@ -73,6 +74,19 @@ const transactionSchema = z.object({
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
 
+// These are accounts that are typically handled by automated/period-end journal entries,
+// not manual cash transactions. Hiding them prevents confusion and data entry errors.
+const EXCLUDED_MANUAL_CATEGORIES = [
+    'Akumulasi Penyusutan - Peralatan',
+    'Akumulasi Amortisasi',
+    'Beban Penyusutan',
+    'Beban Amortisasi',
+    'Laba Ditahan',
+    'Harga Pokok Penjualan',
+    'Kas',
+    'Bank',
+];
+
 export default function NewTransactionPage() {
   const { addTransaction, inventory } = useAppState();
   const { toast } = useToast();
@@ -87,6 +101,9 @@ export default function NewTransactionPage() {
     defaultValues: {
       description: "",
       type: "cash-out",
+      quantity: undefined,
+      unitPrice: undefined,
+      amount: undefined,
     },
   });
 
@@ -102,22 +119,27 @@ export default function NewTransactionPage() {
   }, [watchedType, form]);
 
   const filteredCategories = useMemo(() => {
+    let baseFilter;
+
     if (watchedType === 'cash-in') {
-      // Uang masuk bisa dari: Pendapatan, suntikan Modal, atau pelunasan Piutang.
-      return CHART_OF_ACCOUNTS
-        .filter(acc => 
-          acc.type === 'Revenue' || 
-          (acc.type === 'Equity' && acc.name !== 'Prive') ||
-          acc.name === 'Piutang Karyawan'
-        )
-        .map(acc => acc.name);
-    }
-    // Uang keluar bisa untuk: Beban, pembelian Aset, atau penarikan Modal (Prive).
-    return CHART_OF_ACCOUNTS
-      .filter(acc => 
+      // Cash-in can be from Revenue, Equity injection, or collecting receivables
+      baseFilter = (acc: Account) => 
+        acc.type === 'Revenue' || 
+        (acc.type === 'Equity' && acc.name !== 'Prive') || // Prive is a cash-out
+        acc.name === 'Piutang Karyawan' || // Getting cash back from employee
+        acc.name === 'Piutang Usaha'; // Getting cash back from customer
+    } else { // 'cash-out'
+      // Cash-out can be for Expenses, buying Assets, or owner drawings (Prive)
+      baseFilter = (acc: Account) => 
         acc.type === 'Expenses' || 
         acc.type === 'Assets' ||
-        acc.name === 'Prive'
+        acc.name === 'Prive';
+    }
+
+    return CHART_OF_ACCOUNTS
+      .filter(acc => 
+          baseFilter(acc) && 
+          !EXCLUDED_MANUAL_CATEGORIES.includes(acc.name)
       )
       .map(acc => acc.name);
   }, [watchedType]);
@@ -477,7 +499,3 @@ export default function NewTransactionPage() {
     </div>
   );
 }
-
-    
-
-    
