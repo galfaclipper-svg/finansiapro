@@ -1,24 +1,32 @@
 import type { Account, CompanyProfile, InventoryItem, Transaction } from './types';
 
 export const CHART_OF_ACCOUNTS: Account[] = [
-  // Aset
+  // Aset (Assets) - 1xxx
   { id: '1010', name: 'Kas', type: 'Assets', category: 'Current Assets' },
   { id: '1020', name: 'Bank', type: 'Assets', category: 'Current Assets' },
   { id: '1030', name: 'Piutang Usaha', type: 'Assets', category: 'Current Assets' },
   { id: '1040', name: 'Piutang Karyawan', type: 'Assets', category: 'Current Assets' },
   { id: '1050', name: 'Persediaan Barang Dagang', type: 'Assets', category: 'Current Assets' },
-  { id: '1100', name: 'Peralatan', type: 'Assets', category: 'Fixed Assets' },
+  { id: '1060', name: 'Sewa Dibayar di Muka', type: 'Assets', category: 'Current Assets' },
+  { id: '1070', name: 'Asuransi Dibayar di Muka', type: 'Assets', category: 'Current Assets' },
+  { id: '1210', name: 'Peralatan', type: 'Assets', category: 'Fixed Assets' },
+  { id: '1215', name: 'Akumulasi Penyusutan - Peralatan', type: 'Assets', category: 'Fixed Assets' }, // Contra-Asset
+  { id: '1310', name: 'Aset Tak Berwujud', type: 'Assets', category: 'Intangible Assets' },
+  { id: '1315', name: 'Akumulasi Amortisasi', type: 'Assets', category: 'Intangible Assets' }, // Contra-Asset
 
-  // Kewajiban
+  // Kewajiban (Liabilities) - 2xxx
   { id: '2010', name: 'Utang Usaha', type: 'Liabilities', category: 'Current Liabilities' },
   { id: '2020', name: 'Utang Gaji', type: 'Liabilities', category: 'Current Liabilities' },
+  { id: '2030', name: 'Utang Pajak', type: 'Liabilities', category: 'Current Liabilities' },
+  { id: '2040', name: 'Pendapatan Diterima di Muka', type: 'Liabilities', category: 'Current Liabilities' },
   { id: '2100', name: 'Utang Bank', type: 'Liabilities', category: 'Long-term Liabilities' },
 
-  // Ekuitas
+  // Ekuitas (Equity) - 3xxx
   { id: '3010', name: 'Modal Pemilik', type: 'Equity', category: 'Owner Equity' },
   { id: '3020', name: 'Laba Ditahan', type: 'Equity', category: 'Owner Equity' },
+  { id: '3030', name: 'Prive', type: 'Equity', category: 'Owner Equity' }, // Drawings
 
-  // Pendapatan
+  // Pendapatan (Revenue) - 4xxx
   { id: '4010', name: 'Pendapatan Penjualan', type: 'Revenue', category: 'Sales Revenue' },
   { id: '4011', name: 'Pendapatan Penjualan (Shopee)', type: 'Revenue', category: 'Sales Revenue' },
   { id: '4012', name: 'Pendapatan Penjualan (TikTok)', type: 'Revenue', category: 'Sales Revenue' },
@@ -30,8 +38,7 @@ export const CHART_OF_ACCOUNTS: Account[] = [
   { id: '4030', name: 'Pendapatan Lain-lain', type: 'Revenue', category: 'Other Revenue' },
   { id: '4031', name: 'Pendapatan Produk Lainnya', type: 'Revenue', category: 'Other Revenue' },
 
-
-  // Beban
+  // Beban (Expenses) - 5xxx
   { id: '5010', name: 'Harga Pokok Penjualan', type: 'Expenses', category: 'Cost of Goods Sold' },
   { id: '5110', name: 'Iklan Shopee', type: 'Expenses', category: 'Operating Expenses' },
   { id: '5120', name: 'Iklan TikTok', type: 'Expenses', category: 'Operating Expenses' },
@@ -40,8 +47,16 @@ export const CHART_OF_ACCOUNTS: Account[] = [
   { id: '5210', name: 'Beban Gaji', type: 'Expenses', category: 'Operating Expenses' },
   { id: '5220', name: 'Beban Sewa', type: 'Expenses', category: 'Operating Expenses' },
   { id: '5230', name: 'Beban Bunga Bank', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5240', name: 'Beban Asuransi', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5250', name: 'Beban Listrik, Air, & Internet', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5260', name: 'Beban Perlengkapan Kantor', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5270', name: 'Beban Penyusutan', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5280', name: 'Beban Amortisasi', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5290', name: 'Beban Administrasi Bank', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5300', name: 'Kas Lebih/Kurang', type: 'Expenses', category: 'Operating Expenses' }, // Can also be Revenue
   { id: '5990', name: 'Beban Lain-lain', type: 'Expenses', category: 'Operating Expenses' },
 ];
+
 
 export const COA_CATEGORIES = CHART_OF_ACCOUNTS.map(account => account.name);
 
@@ -51,6 +66,7 @@ export const INITIAL_COMPANY_PROFILE: CompanyProfile = {
 };
 
 export const MOCK_TRANSACTIONS: Transaction[] = [
+    { id: 'TRN000', date: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0], description: 'Setoran Modal Awal', amount: 25000.00, type: 'cash-in', accountId: '3010', category: 'Modal Pemilik' },
     { id: 'TRN001', date: new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0], description: 'Sale of Product A', amount: 150.00, type: 'cash-in', accountId: '4010', category: 'Pendapatan Penjualan' },
     { id: 'TRN002', date: new Date(new Date().setDate(new Date().getDate() - 2)).toISOString().split('T')[0], description: 'TikTok Ads Campaign', amount: 50.00, type: 'cash-out', accountId: '5120', category: 'Iklan TikTok' },
     { id: 'TRN003', date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString().split('T')[0], description: 'Purchase of Inventory', amount: 300.00, type: 'cash-out', accountId: '1050', category: 'Persediaan Barang Dagang' },

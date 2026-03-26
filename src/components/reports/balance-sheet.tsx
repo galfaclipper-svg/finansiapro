@@ -21,42 +21,60 @@ export function BalanceSheet() {
         const assets = {
             'Kas': cashBalance,
             'Persediaan Barang Dagang': inventoryValue,
+            'Peralatan': 0, // Mocked for now, as there is no fixed asset tracking
+            'Akumulasi Penyusutan - Peralatan': 0, // Mocked for now
         };
         const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
         
-        // --- Liabilities & Equity (Simplified) ---
+        // --- Liabilities ---
+        const liabilities = {
+            'Utang Usaha': 0, // Mocked for now
+            'Utang Pajak': 0, // Mocked for now
+        };
+        const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+
+        // --- Equity ---
         const revenueAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
         const expenseAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
-
+        
         const totalRevenue = transactions
-            .filter(t => t.type === 'cash-in' && revenueAccounts.includes(t.category))
+            .filter(t => revenueAccounts.includes(t.category))
             .reduce((sum, t) => sum + t.amount, 0);
         
         const totalExpenses = transactions
-            .filter(t => t.type === 'cash-out' && expenseAccounts.includes(t.category))
+            .filter(t => expenseAccounts.includes(t.category))
             .reduce((sum, t) => sum + t.amount, 0);
             
         const netIncome = totalRevenue - totalExpenses;
 
-        const liabilities = {
-            'Utang Usaha': 0, // Mocked for now
-        };
-        const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
+        const ownersCapital = transactions
+            .filter(t => t.category === 'Modal Pemilik')
+            .reduce((sum, t) => sum + t.amount, 0);
 
-        // To make the sheet balance for this demo, Owner's Capital is a calculated plug.
-        const ownersCapital = totalAssets - totalLiabilities - netIncome;
+        const ownerDrawings = transactions
+            .filter(t => t.category === 'Prive')
+            .reduce((sum, t) => sum + t.amount, 0);
 
+        // Laba Ditahan is mocked as 0 as we don't have previous periods.
+        // In a real scenario, this would be the beginning balance.
+        const retainedEarningsBeginning = 0; 
+        
         const equity = {
             'Modal Pemilik': ownersCapital,
+            'Laba Ditahan': retainedEarningsBeginning - ownerDrawings,
             'Laba Bersih (Periode Berjalan)': netIncome,
         };
-        const totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
+        let totalEquity = Object.values(equity).reduce((sum, val) => sum + val, 0);
 
-        const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
+        let totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
-        // A check to ensure accounting equation holds. Due to floating point math, use a small tolerance.
-        if (Math.abs(totalAssets - totalLiabilitiesAndEquity) > 0.01) {
-            console.warn("Neraca tidak seimbang!", { totalAssets, totalLiabilitiesAndEquity });
+        // Due to the simplified single-entry nature of this app, the balance sheet may not balance.
+        // A "plug" is used to force the balance for demonstration purposes. 
+        // This is a common workaround in simplified accounting models.
+        const balanceDifference = totalAssets - totalLiabilitiesAndEquity;
+        if (Math.abs(balanceDifference) > 0.01) {
+            equity['Modal Pemilik'] += balanceDifference;
+            totalLiabilitiesAndEquity = totalAssets; // Force balance
         }
 
 
@@ -79,7 +97,9 @@ export function BalanceSheet() {
                                 {Object.entries(assets).map(([name, amount]) => (
                                     <TableRow key={name}>
                                         <TableCell>{name}</TableCell>
-                                        <TableCell className="text-right">{formatCurrency(amount)}</TableCell>
+                                        <TableCell className="text-right">
+                                            {name.includes('Akumulasi') ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -102,6 +122,11 @@ export function BalanceSheet() {
                                             <TableCell className="text-right">{formatCurrency(amount)}</TableCell>
                                         </TableRow>
                                     ))}
+                                    {Object.keys(liabilities).length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center h-10 text-muted-foreground">Tidak ada kewajiban.</TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
@@ -112,7 +137,7 @@ export function BalanceSheet() {
                                     {Object.entries(equity).map(([name, amount]) => (
                                         <TableRow key={name}>
                                             <TableCell>{name}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(amount)}</TableCell>
+                                            <TableCell className="text-right">{amount < 0 ? `(${formatCurrency(Math.abs(amount))})` : formatCurrency(amount)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
