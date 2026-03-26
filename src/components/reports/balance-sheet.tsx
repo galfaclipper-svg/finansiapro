@@ -5,6 +5,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
+import { CHART_OF_ACCOUNTS } from '@/lib/constants';
 
 interface BalanceSheetData {
     assets: { [key: string]: number };
@@ -17,8 +18,12 @@ interface BalanceSheetData {
 export function BalanceSheet({ data }: { data: BalanceSheetData }) {
     const { assets, liabilities, equity, totalAssets, totalLiabilitiesAndEquity } = data;
 
-    // Sort assets and liabilities for consistent ordering
-    const sortedAssets = Object.entries(assets).sort(([a], [b]) => a.localeCompare(b));
+    // Sort assets by account ID for consistent, standard ordering
+    const sortedAssets = Object.entries(assets).sort(([aName], [bName]) => {
+      const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
+      const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
+      return aId.localeCompare(bId);
+    });
     const sortedLiabilities = Object.entries(liabilities).sort(([a], [b]) => a.localeCompare(b));
 
     return (
@@ -94,6 +99,13 @@ export function BalanceSheet({ data }: { data: BalanceSheetData }) {
                             </TableFooter>
                         </Table>
                     </div>
+                </div>
+                 <div className="mt-6 text-center text-sm">
+                    {Math.abs(totalAssets - totalLiabilitiesAndEquity) < 1 ? (
+                        <p className="text-green-600">Neraca Seimbang</p>
+                    ) : (
+                        <p className="text-red-600 font-bold">Neraca Tidak Seimbang (Selisih: {formatCurrency(totalAssets - totalLiabilitiesAndEquity)})</p>
+                    )}
                 </div>
             </CardContent>
         </Card>

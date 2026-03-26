@@ -62,7 +62,7 @@ export default function ReportsPage() {
         const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
         if (!accountInfo) return;
         const amount = entry.amount;
-        if (accountInfo.type === 'Assets' || accountInfo.type === 'Expenses') {
+        if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
             accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
         } else { // Liabilities, Equity, Revenue
             accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
@@ -85,61 +85,46 @@ export default function ReportsPage() {
     // --- Balance Sheet Data ---
     const assets: { [key: string]: number } = {};
     const liabilities: { [key: string]: number } = {};
-    const equity: { [key: string]: number } = {};
     
-    Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
-      if (!accountInfo) return;
-      
-      switch(accountInfo.type) {
-        case 'Assets': 
-          if (balance !== 0) assets[accountName] = balance;
-          break;
-        case 'Liabilities': 
-          if (balance !== 0) liabilities[accountName] = balance;
-          break;
-        case 'Equity':
-          if (balance !== 0) {
-            equity[accountName] = (equity[accountName] || 0) + balance;
-          }
-          break;
-      }
-    });
-
-    // Explicitly add Kas and Persediaan, even if balance is 0
-    assets['Kas'] = accountBalances['Kas'];
-    assets['Persediaan Barang Dagang'] = inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
-    // Ensure all assets with balances are included
+    // Ensure all accounts with balances are included
      Object.entries(accountBalances).forEach(([accountName, balance]) => {
       const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
       if (accountInfo?.type === 'Assets' && balance !== 0) {
         assets[accountName] = balance;
       }
+       if (accountInfo?.type === 'Liabilities' && balance !== 0) {
+        liabilities[accountName] = balance;
+      }
     });
+    // Manually add inventory value to assets
+    assets['Persediaan Barang Dagang'] = (assets['Persediaan Barang Dagang'] || 0) + inventory.reduce((sum, item) => sum + item.stock * item.costPerUnit, 0);
 
 
     const equityAccounts: { [key: string]: number } = {
       'Modal Pemilik': accountBalances['Modal Pemilik'] || 0,
       'Laba Bersih (Periode Berjalan)': netIncome,
-      'Prive': accountBalances['Prive'] || 0,
+      'Prive': accountBalances['Prive'] || 0, // This will be a positive number from calculation, treat as subtraction in display
     };
     
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Bersih (Periode Berjalan)'] || 0) + (equityAccounts['Prive'] || 0);
+    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Bersih (Periode Berjalan)'] || 0) - (equityAccounts['Prive'] || 0);
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
     // --- General Journal Data ---
-    const journalEntries = allJournalEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || (a.id > b.id ? 1 : -1) || (a.entryType === 'Debit' ? -1 : 1));
+    const journalEntries = allJournalEntries.sort((a, b) => new Date(b.date).getTime() - new Date(b.date).getTime() || (a.id > b.id ? 1 : -1) || (a.entryType === 'Debit' ? -1 : 1));
 
     // --- Cash Flow Data ---
     const operatingFlows: { name: string, amount: number }[] = [];
     let investingFlows: { name: string, amount: number }[] = [];
     let financingFlows: { name: string, amount: number }[] = [];
-
+    
+    // We use the cash account balance as the definitive source of truth
+    const endingCash = accountBalances['Kas'] || 0;
+    
     transactions.forEach(t => {
       const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-      if (!account) return;
+      if (!account || t.category === 'Kas') return;
       
       const amount = t.type === 'cash-in' ? t.amount : -t.amount;
       
@@ -148,15 +133,15 @@ export default function ReportsPage() {
       } else if (account.type === 'Assets' && !['Kas', 'Bank', 'Persediaan Barang Dagang', 'Piutang Usaha'].includes(account.name)) {
         investingFlows.push({ name: t.description, amount: amount });
       } else if (['Liabilities', 'Equity'].includes(account.type) && !['Utang Usaha'].includes(account.name)) {
-        financingFlows.push({ name: t.description, amount: amount });
+         financingFlows.push({ name: t.description, amount: amount });
       }
     });
-    const beginningCash = 0;
+
     const totalOperating = operatingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     const totalInvesting = investingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     const totalFinancing = financingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     const netCashFlow = totalOperating + totalInvesting + totalFinancing;
-    const endingCash = beginningCash + netCashFlow;
+    const beginningCash = endingCash - netCashFlow;
 
     // --- General Ledger Data ---
     const allJournalEntriesForLedger = allJournalEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -172,11 +157,11 @@ export default function ReportsPage() {
         const entriesWithBalance = entriesForAccount.map(entry => {
              const debit = entry.entryType === 'Debit' ? entry.amount : 0;
              const credit = entry.entryType === 'Credit' ? entry.amount : 0;
-             if (accountInfo.type === 'Assets' || accountInfo.type === 'Expenses') { runningBalance += debit - credit; } 
+             if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') { runningBalance += debit - credit; } 
              else { runningBalance += credit - debit; }
             return {...entry, balance: runningBalance};
         });
-        if(entriesWithBalance.length > 0 || accountName === "Kas") {
+        if(entriesWithBalance.length > 0 || accountInfo.type === 'Assets') {
           ledgerAccountsData[accountName] = { entries: entriesWithBalance, balance: runningBalance, accountInfo };
         }
     });
@@ -202,7 +187,7 @@ export default function ReportsPage() {
         return name.replace(/[\\/*?[\]:]/g, '').substring(0, 31);
     };
 
-    const applyNumberFormatting = (ws: XLSX.WorkSheet, cols: number[], fmt: string) => {
+    const applyNumberFormatting = (ws: XLSX.WorkSheet, cols: number[]) => {
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
       for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Start from row 2
         for (const C of cols) {
@@ -210,7 +195,7 @@ export default function ReportsPage() {
           const cell_ref = XLSX.utils.encode_cell(cell_address);
           const cell = ws[cell_ref];
           if (!cell || (cell.t !== 'n' && !cell.f)) continue;
-          cell.z = `_("Rp"* #,##0_);_("Rp"* (#,##0);_("Rp"* "-"??_);_(@_)`;
+          cell.z = `_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)`;
         }
       }
     };
@@ -230,13 +215,13 @@ export default function ReportsPage() {
             entry.id,
             entry.accountName,
             entry.description,
-            entry.entryType === 'Debit' ? entry.amount : '',
-            entry.entryType === 'Credit' ? entry.amount : ''
+            entry.entryType === 'Debit' ? entry.amount : 0,
+            entry.entryType === 'Credit' ? entry.amount : 0
         ]);
     });
     const wsJournal = XLSX.utils.aoa_to_sheet(journalExportData);
     wsJournal['!cols'] = [{wch: 12}, {wch: 10}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}];
-    applyNumberFormatting(wsJournal, [4, 5], '');
+    applyNumberFormatting(wsJournal, [4, 5]);
     XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
 
     // 2. Laporan Laba Rugi
@@ -274,7 +259,7 @@ export default function ReportsPage() {
     const netIncomeRow = incomeRow;
     const wsIncome = XLSX.utils.aoa_to_sheet(incomeData);
     wsIncome['!cols'] = [{wch: 40}, {wch: 20}];
-    applyNumberFormatting(wsIncome, [1], '');
+    applyNumberFormatting(wsIncome, [1]);
     XLSX.utils.book_append_sheet(wb, wsIncome, incomeSheetName);
 
     // 3. Neraca
@@ -285,7 +270,12 @@ export default function ReportsPage() {
     ];
     let balanceRow = balanceSheetData.length + 1;
     const assetStartRow = balanceRow;
-    Object.keys(reportData.balanceSheet.assets).sort().forEach(name => {
+    const sortedAssetNames = Object.keys(reportData.balanceSheet.assets).sort((aName, bName) => {
+        const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
+        const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
+        return aId.localeCompare(bId);
+    });
+    sortedAssetNames.forEach(name => {
         balanceSheetData.push([ `  ${name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${name}",'${journalSheetName}'!F:F)` }]);
         balanceRow++;
     });
@@ -306,7 +296,7 @@ export default function ReportsPage() {
     const equityFormulas: { [key: string]: string } = {
       'Modal Pemilik': `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`,
       'Laba Bersih (Periode Berjalan)': `'${incomeSheetName}'!B${netIncomeRow}`,
-      'Prive': `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)`
+      'Prive': `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)`
     };
     Object.entries(equityFormulas).forEach(([name, formula]) => {
       balanceSheetData.push([ `    ${name}`, { t: 'n', f: formula }]);
@@ -316,7 +306,7 @@ export default function ReportsPage() {
     balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `SUM(B${liabEqStartRow}:B${liabEqEndRow})`, s:boldStyle} ]);
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
     wsBalance['!cols'] = [{wch: 40}, {wch: 20}];
-    applyNumberFormatting(wsBalance, [1], '');
+    applyNumberFormatting(wsBalance, [1]);
     XLSX.utils.book_append_sheet(wb, wsBalance, balanceSheetName);
 
     // 4. Laporan Arus Kas
@@ -341,7 +331,7 @@ export default function ReportsPage() {
     ];
     const wsCashFlow = XLSX.utils.aoa_to_sheet(cashFlowData);
     wsCashFlow['!cols'] = [{wch: 40}, {wch: 20}];
-    applyNumberFormatting(wsCashFlow, [1], '');
+    applyNumberFormatting(wsCashFlow, [1]);
     XLSX.utils.book_append_sheet(wb, wsCashFlow, cashFlowSheetName);
 
     // 5. Buku Besar
@@ -351,22 +341,34 @@ export default function ReportsPage() {
             [{v: companyName, s:headerStyle}], [{v: `Buku Besar: ${account.accountInfo.name}`, s:subHeaderStyle}], [{v: `Per ${today}`, s:dateStyle}], [],
             ["Tanggal", "Keterangan", "Debit", "Kredit", "Saldo"]
         ];
-        const isAssetOrExpense = ['Assets', 'Expenses'].includes(account.accountInfo.type);
+        const isAssetOrExpense = ['Assets', 'Expenses'].includes(account.accountInfo.type) || account.accountInfo.name === 'Prive';
+        let startingBalance = 0; // You might need logic to get opening balance
+        
+        const firstRow = [
+             "Saldo Awal",
+             "",
+             "",
+             "",
+             {t:'n', v: startingBalance}
+        ]
+        //ledgerSheetData.push(firstRow);
+
+
         account.entries.forEach((entry: any, index: number) => {
             const balanceFormula = index === 0
-                ? (isAssetOrExpense ? `C6-D6` : `D6-C6`)
+                ? (isAssetOrExpense ? `E5+C6-D6` : `E5+D6-C6`)
                 : (isAssetOrExpense ? `E${5+index}+C${6+index}-D${6+index}` : `E${5+index}+D${6+index}-C${6+index}`);
             ledgerSheetData.push([
                 format(new Date(entry.date), 'yyyy-MM-dd'),
                 entry.description,
-                entry.entryType === 'Debit' ? entry.amount : '',
-                entry.entryType === 'Credit' ? entry.amount : '',
+                entry.entryType === 'Debit' ? entry.amount : 0,
+                entry.entryType === 'Credit' ? entry.amount : 0,
                 {t:'n', f: balanceFormula}
             ]);
         });
         const wsLedger = XLSX.utils.aoa_to_sheet(ledgerSheetData);
         wsLedger['!cols'] = [{wch: 12}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 15}];
-        applyNumberFormatting(wsLedger, [2, 3, 4], '');
+        applyNumberFormatting(wsLedger, [2, 3, 4]);
         XLSX.utils.book_append_sheet(wb, wsLedger, ledgerSheetName);
     });
 
@@ -421,10 +423,15 @@ export default function ReportsPage() {
     doc.text(companyName, 14, 20);
     doc.setFontSize(12);
     doc.text('Neraca', 14, 27);
+    const sortedAssetEntries = Object.entries(reportData.balanceSheet.assets).sort(([aName], [bName]) => {
+      const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
+      const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
+      return aId.localeCompare(bId);
+    });
     autoTable(doc, {
         startY: 40,
         head: [['Aset', '']],
-        body: Object.entries(reportData.balanceSheet.assets).map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
+        body: sortedAssetEntries.map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
         foot: [[{content:'Total Aset', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalAssets), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
         headStyles: { fillColor: [22, 163, 74] },
@@ -434,7 +441,7 @@ export default function ReportsPage() {
         head: [['Kewajiban dan Ekuitas', '']],
         body: [
             ...Object.entries(reportData.balanceSheet.liabilities).map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
-            ...Object.entries(reportData.balanceSheet.equity).map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
+            ...Object.entries(reportData.balanceSheet.equity).map(([name, amount]) => [name, {content: (amount as number) < 0 ? `(${formatCurrency(Math.abs(amount as number))})` : formatCurrency(amount as number), styles: {halign: 'right'}}]),
         ],
         foot: [[{content:'Total Kewajiban dan Ekuitas', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalLiabilitiesAndEquity), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
