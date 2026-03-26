@@ -61,7 +61,7 @@ export default function ReportsPage() {
     transactions.forEach(t => {
       const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
       if (isSale && t.itemId && t.quantity) {
-        const item = MOCK_INVENTORY.find(i => i.id === t.itemId); // Use MOCK_INVENTORY as it holds the original cost
+        const item = inventory.find(i => i.id === t.itemId); // Use inventory state as the source of truth for item costs
         if (item) {
           const cogsAmount = item.costPerUnit * t.quantity;
           if (cogsAmount > 0) {
