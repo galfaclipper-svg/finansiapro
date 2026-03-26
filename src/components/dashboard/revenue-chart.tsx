@@ -6,8 +6,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartConfig,
+  ChartLegend,
+  ChartLegendContent,
 } from '@/components/ui/chart';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useAppState } from '@/hooks/use-app-state';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
@@ -20,7 +22,7 @@ const chartConfig = {
   },
   expenses: {
     label: 'Beban',
-    color: 'hsl(var(--accent))',
+    color: 'hsl(var(--destructive))',
   },
 } satisfies ChartConfig;
 
@@ -74,12 +76,22 @@ export function RevenueChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ikhtisar</CardTitle>
+        <CardTitle>Ikhtisar Pendapatan vs Beban</CardTitle>
         <CardDescription>Pendapatan dan beban selama 6 bulan terakhir.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-72 w-full">
-          <BarChart data={chartData} accessibilityLayer>
+          <AreaChart data={chartData} accessibilityLayer margin={{ left: -20, right: 10 }}>
+            <defs>
+                <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1}/>
+                </linearGradient>
+                 <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-expenses)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--color-expenses)" stopOpacity={0.1}/>
+                </linearGradient>
+            </defs>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="month"
@@ -90,15 +102,19 @@ export function RevenueChart() {
             />
              <YAxis
               tickFormatter={(tick) => new Intl.NumberFormat('id-ID', { notation: 'compact', compactDisplay: 'short' }).format(tick as number)}
+              axisLine={false}
+              tickLine={false}
+              width={80}
              />
             <ChartTooltip
               content={<ChartTooltipContent
                 formatter={(value) => formatCurrency(value as number)}
               />}
             />
-            <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
-            <Bar dataKey="expenses" fill="var(--color-expenses)" radius={4} />
-          </BarChart>
+            <ChartLegend content={<ChartLegendContent />} />
+            <Area dataKey="revenue" type="natural" fill="url(#fillRevenue)" strokeWidth={2} stroke="var(--color-revenue)" stackId="a" />
+            <Area dataKey="expenses" type="natural" fill="url(#fillExpenses)" strokeWidth={2} stroke="var(--color-expenses)" stackId="a" />
+          </AreaChart>
         </ChartContainer>
       </CardContent>
     </Card>

@@ -4,6 +4,7 @@ import { OverviewCards } from '@/components/dashboard/overview-cards';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { AiSummary } from '@/components/dashboard/ai-summary';
+import { CashPositionChart } from '@/components/dashboard/cash-position-chart';
 
 export default function DashboardPage() {
   return (
@@ -17,15 +18,20 @@ export default function DashboardPage() {
       
       <OverviewCards />
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
         <div className="lg:col-span-4">
           <RevenueChart />
+        </div>
+        <div className="lg:col-span-3">
+          <CashPositionChart />
+        </div>
+        <div className="lg:col-span-4">
+          <RecentTransactions />
         </div>
         <div className="lg:col-span-3">
           <AiSummary />
         </div>
       </div>
-      <RecentTransactions />
     </div>
   );
 }
