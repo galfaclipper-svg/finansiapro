@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, ReactNode } from 'react';
 import type { CompanyProfile, Transaction, InventoryItem } from '@/lib/types';
-import { MOCK_TRANSACTIONS, MOCK_INVENTORY, INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 
 interface AppContextType {
@@ -25,8 +25,8 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(INITIAL_COMPANY_PROFILE);
-  const [transactions, setTransactions] = useState<Transaction[]>(() => MOCK_TRANSACTIONS.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-  const [inventory, setInventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   React.useEffect(() => {
