@@ -9,7 +9,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <Link href="#" className="flex items-center justify-center" prefetch={false}>
+        <Link href="/" className="flex items-center justify-center">
           <Logo className="h-8 w-8" />
           <span className="sr-only">FinansiaPro</span>
         </Link>
@@ -17,28 +17,24 @@ export default function LandingPage() {
           <Link
             href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             Features
           </Link>
           <Link
             href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             Pricing
           </Link>
           <Link
             href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             About
           </Link>
           <Link
             href="/dashboard"
             className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
           >
             Contact
           </Link>
@@ -134,10 +130,10 @@ export default function LandingPage() {
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
         <p className="text-xs text-foreground/60">&copy; 2024 FinansiaPro. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+          <Link href="/" className="text-xs hover:underline underline-offset-4">
             Terms of Service
           </Link>
-          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
+          <Link href="/" className="text-xs hover:underline underline-offset-4">
             Privacy
           </Link>
         </nav>
