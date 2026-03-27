@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import Image from 'next/image';
 import {
   DropdownMenu,
@@ -18,6 +19,11 @@ import { useAppState } from '@/hooks/use-app-state';
 export function Header() {
   const { companyProfile } = useAppState();
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:pb-4">
@@ -31,7 +37,7 @@ export function Header() {
             size="icon"
             className="overflow-hidden rounded-full"
           >
-            {companyProfile.logoUrl ? (
+            {isClient && companyProfile.logoUrl ? (
                 <Image
                     src={companyProfile.logoUrl}
                     width={40}
@@ -52,7 +58,7 @@ export function Header() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{companyProfile.name}</DropdownMenuLabel>
+          <DropdownMenuLabel>{isClient ? companyProfile.name : ''}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Pengaturan</DropdownMenuItem>
           <DropdownMenuItem>Dukungan</DropdownMenuItem>

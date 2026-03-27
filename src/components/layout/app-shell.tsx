@@ -56,8 +56,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // To prevent a hydration mismatch, we initialize the state to `true` (matching the server)
   // and then update it on the client in a `useEffect` hook.
   const [open, setOpen] = React.useState(true);
+  const [isClient, setIsClient] = React.useState(false);
 
   React.useEffect(() => {
+    setIsClient(true);
     // document.cookie is a client-side API.
     // We check if the cookie exists to decide whether to use its value or the default.
     if (document.cookie.includes('sidebar_state=')) {
@@ -74,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <SidebarHeader className="h-14 p-3.5 flex items-center gap-2">
           <Link className="flex items-center gap-2" href="/dashboard">
-            {companyProfile.logoUrl ? (
+            {isClient && companyProfile.logoUrl ? (
                 <Image src={companyProfile.logoUrl} alt={companyProfile.name} width={28} height={28} className="shrink-0 rounded-sm object-contain" />
               ) : (
                 <Logo className="w-7 h-7 text-primary shrink-0" />
@@ -90,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
             <SidebarSeparator/>
              <div className="p-4 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-                <p>&copy; {new Date().getFullYear()} {companyProfile.name}</p>
+                <p>&copy; {new Date().getFullYear()} {isClient ? companyProfile.name : ''}</p>
              </div>
         </SidebarFooter>
       </Sidebar>
