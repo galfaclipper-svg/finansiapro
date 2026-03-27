@@ -25,7 +25,7 @@ export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(INITIAL_COMPANY_PROFILE);
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>(() => MOCK_TRANSACTIONS.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   const [inventory, setInventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
@@ -40,7 +40,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
       ...transaction,
-      id: `TRN${String(transactions.length + 1).padStart(3, '0')}`,
+      id: `TRN${Date.now()}`,
     };
     setTransactions(prev => [newTransaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
 
@@ -86,8 +86,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetData = () => {
     setCompanyProfile(INITIAL_COMPANY_PROFILE);
-    setTransactions(MOCK_TRANSACTIONS);
-    setInventory(MOCK_INVENTORY);
+    setTransactions([]);
+    setInventory([]);
      setDateRange({
         from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         to: new Date(),

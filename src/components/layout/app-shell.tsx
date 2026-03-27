@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import {
   SidebarProvider,
   Sidebar,
@@ -73,7 +74,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <SidebarHeader className="h-14 p-3.5 flex items-center gap-2">
           <Link className="flex items-center gap-2" href="/dashboard">
-            <Logo className="w-7 h-7 text-primary shrink-0" />
+            {companyProfile.logoUrl ? (
+                <Image src={companyProfile.logoUrl} alt={companyProfile.name} width={28} height={28} className="shrink-0 rounded-sm object-contain" />
+              ) : (
+                <Logo className="w-7 h-7 text-primary shrink-0" />
+            )}
             <span className="font-bold text-lg text-primary truncate">
               FinansiaPro
             </span>

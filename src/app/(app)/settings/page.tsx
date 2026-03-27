@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,10 +12,11 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAppState } from '@/hooks/use-app-state';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileUp, Trash2 } from 'lucide-react';
+import { Upload, FileUp, Trash2, Package } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Transaction } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { INITIAL_COMPANY_PROFILE } from '@/lib/constants';
 
 
 const profileSchema = z.object({
@@ -29,6 +31,11 @@ export default function SettingsPage() {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
+    const [logoPreview, setLogoPreview] = useState<string | undefined>(companyProfile.logoUrl);
+
+     useEffect(() => {
+        setLogoPreview(companyProfile.logoUrl);
+    }, [companyProfile.logoUrl]);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -39,7 +46,7 @@ export default function SettingsPage() {
     });
 
     function onSubmit(data: ProfileFormValues) {
-        setCompanyProfile(data);
+        setCompanyProfile(prev => ({...prev, ...data}));
         toast({
             title: "Profil Diperbarui",
             description: "Detail perusahaan Anda telah disimpan.",
@@ -50,15 +57,38 @@ export default function SettingsPage() {
         resetData();
         toast({
             title: "Data Direset",
-            description: "Semua data aplikasi telah direset ke data demo.",
+            description: "Semua data transaksi dan inventaris telah dihapus. Profil perusahaan kembali ke default.",
         });
-        form.reset({ name: "FinansiaPro Demo Store", address: "123 E-Commerce Ave, Online City, 12345" });
+        form.reset(INITIAL_COMPANY_PROFILE);
+        setLogoPreview(undefined);
         setIsResetAlertOpen(false);
     }
     
     const handleImportClick = () => {
         fileInputRef.current?.click();
     };
+
+    const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            setLogoPreview(dataUrl);
+            setCompanyProfile(prev => ({ ...prev, logoUrl: dataUrl }));
+            toast({
+                title: "Logo Diperbarui",
+                description: "Logo perusahaan Anda telah diunggah.",
+            });
+        };
+        reader.readAsDataURL(file);
+        
+        if (event.target) {
+            event.target.value = '';
+        }
+    };
+
 
     const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -190,12 +220,19 @@ export default function SettingsPage() {
                 />
                 <div>
                   <FormLabel>Logo Perusahaan</FormLabel>
-                   <div className="mt-2">
+                   <div className="mt-2 flex items-center gap-4">
+                       {logoPreview ? (
+                            <Image src={logoPreview} alt="Logo Preview" width={48} height={48} className="rounded-md object-contain bg-muted p-1" />
+                        ) : (
+                            <div className="h-12 w-12 rounded-md bg-muted flex items-center justify-center text-muted-foreground">
+                                <Package className="h-6 w-6" />
+                            </div>
+                        )}
                        <Button asChild variant="outline">
                         <label>
                             <Upload className="mr-2 h-4 w-4" />
                             Unggah Logo
-                            <input type="file" className="sr-only" accept="image/*" />
+                            <input type="file" className="sr-only" accept="image/*" onChange={handleLogoUpload} />
                         </label>
                     </Button>
                    </div>
@@ -237,7 +274,7 @@ export default function SettingsPage() {
             <AlertDialogHeader>
                 <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
                 <AlertDialogDescription>
-                    Tindakan ini tidak dapat dibatalkan. Seluruh data transaksi, inventaris, dan profil perusahaan akan diganti dengan data demo.
+                    Tindakan ini tidak dapat dibatalkan. Seluruh data transaksi dan inventaris akan dihapus secara permanen. Profil perusahaan akan dikembalikan ke pengaturan default.
                 </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
