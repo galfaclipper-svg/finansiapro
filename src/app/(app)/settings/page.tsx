@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, FileUp, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Transaction } from '@/lib/types';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 const profileSchema = z.object({
   name: z.string().min(3, "Nama perusahaan minimal 3 karakter."),
@@ -26,6 +28,7 @@ export default function SettingsPage() {
     const { companyProfile, setCompanyProfile, setTransactions, resetData } = useAppState();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -43,15 +46,14 @@ export default function SettingsPage() {
         });
     }
 
-    function handleReset() {
-        if (confirm("Apakah Anda yakin ingin mereset semua data? Tindakan ini tidak dapat diurungkan. Seluruh data transaksi dan inventaris akan diganti dengan data demo yang komprehensif.")) {
-            resetData();
-            toast({
-                title: "Data Direset",
-                description: "Semua data aplikasi telah direset ke data demo.",
-            });
-            form.reset({ name: "FinansiaPro Demo Store", address: "123 E-Commerce Ave, Online City, 12345" });
-        }
+    function handleConfirmReset() {
+        resetData();
+        toast({
+            title: "Data Direset",
+            description: "Semua data aplikasi telah direset ke data demo.",
+        });
+        form.reset({ name: "FinansiaPro Demo Store", address: "123 E-Commerce Ave, Online City, 12345" });
+        setIsResetAlertOpen(false);
     }
     
     const handleImportClick = () => {
@@ -144,6 +146,7 @@ export default function SettingsPage() {
 
 
   return (
+    <>
     <div className="space-y-8">
       <PageHeader
         title="Pengaturan"
@@ -221,14 +224,30 @@ export default function SettingsPage() {
                     accept=".xlsx, .xls"
                     onChange={handleFileImport}
                 />
-               <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleReset}>
+               <Button variant="destructive" className="w-full justify-start gap-2" onClick={() => setIsResetAlertOpen(true)}>
                     <Trash2 className="h-4 w-4" /> Reset Semua Data
                </Button>
             </CardContent>
         </Card>
 
       </div>
-
     </div>
+    <AlertDialog open={isResetAlertOpen} onOpenChange={setIsResetAlertOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Apakah Anda benar-benar yakin?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Tindakan ini tidak dapat dibatalkan. Seluruh data transaksi, inventaris, dan profil perusahaan akan diganti dengan data demo.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmReset}>
+                    Ya, Reset Data
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
