@@ -31,7 +31,15 @@ export function Header() {
             size="icon"
             className="overflow-hidden rounded-full"
           >
-            {userAvatar && (
+            {companyProfile.logoUrl ? (
+                <Image
+                    src={companyProfile.logoUrl}
+                    width={40}
+                    height={40}
+                    alt={companyProfile.name}
+                    className="overflow-hidden rounded-full object-contain"
+                />
+            ) : userAvatar && (
               <Image
                 src={userAvatar.imageUrl}
                 width={40}
