@@ -30,12 +30,4 @@ export type InventoryItem = {
   sku: string;
   stock: number;
   costPerUnit: number;
-  salePrice: number;
-};
-
-export type NavItem = {
-  title: string;
-  href: string;
-  icon: React.ReactNode;
-  disabled?: boolean;
 };

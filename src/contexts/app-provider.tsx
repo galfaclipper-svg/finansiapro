@@ -47,9 +47,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Update inventory if it's a sale or purchase of goods
     if (newTransaction.itemId && newTransaction.quantity) {
       const quantityChange = newTransaction.quantity;
-      const isSale = CHART_OF_ACCOUNTS.find(a => a.name === newTransaction.category)?.type === 'Revenue';
-
-      if (isSale) {
+      
+      const account = CHART_OF_ACCOUNTS.find(a => a.name === newTransaction.category);
+      const isStockReduction = account?.type === 'Revenue' || ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi'].includes(newTransaction.category);
+      
+      if (isStockReduction) {
         setInventory(prev => prev.map(item =>
           item.id === newTransaction.itemId
             ? { ...item, stock: item.stock - quantityChange }

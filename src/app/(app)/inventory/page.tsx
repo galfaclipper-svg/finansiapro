@@ -92,7 +92,6 @@ export default function InventoryPage() {
                             <TableHead>Nama Barang</TableHead>
                             <TableHead>Stok</TableHead>
                             <TableHead>Biaya Per Unit</TableHead>
-                            <TableHead>Harga Jual</TableHead>
                             <TableHead>Nilai Stok</TableHead>
                             <TableHead className="text-right w-[80px]">Aksi</TableHead>
                         </TableRow>
@@ -104,7 +103,6 @@ export default function InventoryPage() {
                                 <TableCell>{item.name}</TableCell>
                                 <TableCell>{item.stock}</TableCell>
                                 <TableCell>{formatCurrency(item.costPerUnit)}</TableCell>
-                                <TableCell>{formatCurrency(item.salePrice)}</TableCell>
                                 <TableCell>{formatCurrency(item.stock * item.costPerUnit)}</TableCell>
                                 <TableCell className="text-right">
                                      <DropdownMenu>
@@ -125,7 +123,7 @@ export default function InventoryPage() {
                             </TableRow>
                         )) : (
                            <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                     Belum ada barang di inventaris. Klik 'Tambah Barang' untuk memulai.
                                 </TableCell>
                            </TableRow>

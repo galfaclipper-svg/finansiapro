@@ -55,6 +55,8 @@ export const CHART_OF_ACCOUNTS: Account[] = [
   { id: '5280', name: 'Beban Amortisasi', type: 'Expenses', category: 'Operating Expenses' },
   { id: '5290', name: 'Beban Administrasi Bank', type: 'Expenses', category: 'Operating Expenses' },
   { id: '5300', name: 'Kas Lebih/Kurang', type: 'Expenses', category: 'Operating Expenses' }, // Can also be Revenue
+  { id: '5410', name: 'Beban Barang Rusak/Hilang', type: 'Expenses', category: 'Operating Expenses' },
+  { id: '5420', name: 'Beban Sampel/Promosi', type: 'Expenses', category: 'Operating Expenses' },
   { id: '5990', name: 'Beban Lain-lain', type: 'Expenses', category: 'Operating Expenses' },
 ];
 

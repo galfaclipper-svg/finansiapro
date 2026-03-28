@@ -16,10 +16,9 @@ const itemSchema = z.object({
   sku: z.string().min(1, "SKU harus diisi."),
   stock: z.coerce.number().int().min(0, "Stok tidak boleh negatif."),
   costPerUnit: z.coerce.number().min(0, "Biaya harus angka positif."),
-  salePrice: z.coerce.number().min(0, "Harga jual harus angka positif."),
 });
 
-type ItemFormValues = z.infer<typeof itemSchema>;
+type ItemFormValues = Omit<z.infer<typeof itemSchema>, 'id'>;
 
 interface ItemFormProps {
   onSubmit: (values: ItemFormValues) => void;
@@ -35,7 +34,6 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
       sku: '',
       stock: 0,
       costPerUnit: 0,
-      salePrice: 0,
     },
   });
   
@@ -48,7 +46,6 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
           sku: '',
           stock: 0,
           costPerUnit: 0,
-          salePrice: 0,
         });
     }
   }, [initialData, form]);
@@ -88,7 +85,7 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
             name="stock"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Stok</FormLabel>
+                <FormLabel>Stok Awal</FormLabel>
                 <FormControl>
                     <Input type="number" placeholder="0" {...field} />
                 </FormControl>
@@ -97,40 +94,22 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
             )}
             />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-             <FormField
-                control={form.control}
-                name="costPerUnit"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Biaya Per Unit</FormLabel>
-                    <FormControl>
-                        <CurrencyInput
-                            value={field.value}
-                            onValueChange={field.onChange}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-             <FormField
-                control={form.control}
-                name="salePrice"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Harga Jual</FormLabel>
-                    <FormControl>
-                        <CurrencyInput
-                            value={field.value}
-                            onValueChange={field.onChange}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-        </div>
+         <FormField
+            control={form.control}
+            name="costPerUnit"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Biaya Per Unit (HPP)</FormLabel>
+                <FormControl>
+                    <CurrencyInput
+                        value={field.value}
+                        onValueChange={field.onChange}
+                    />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+        />
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isSubmitting ? 'Menyimpan...' : (initialData ? 'Simpan Perubahan' : 'Tambah Barang')}

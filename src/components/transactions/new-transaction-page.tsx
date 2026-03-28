@@ -145,9 +145,10 @@ export default function NewTransactionPage() {
       .map(acc => acc.name);
   }, [watchedType]);
 
-  const isInventorySale = !!watchedCategory?.startsWith('Pendapatan Penjualan');
+  const isInventorySale = !!CHART_OF_ACCOUNTS.find(acc => acc.name === watchedCategory)?.type.startsWith('Revenue');
   const isInventoryPurchase = watchedCategory === 'Persediaan Barang Dagang';
-  const isInventoryTransaction = isInventorySale || isInventoryPurchase;
+  const isInventoryAdjustment = ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi'].includes(watchedCategory || '');
+  const isInventoryTransaction = isInventorySale || isInventoryPurchase || isInventoryAdjustment;
 
   // Auto-calculate total amount for inventory transactions
   useEffect(() => {
@@ -163,11 +164,14 @@ export default function NewTransactionPage() {
     if (isInventoryTransaction && watchedItemId) {
       const selectedItem = inventory.find(item => item.id === watchedItemId);
       if (selectedItem) {
-        const price = isInventorySale ? selectedItem.salePrice : selectedItem.costPerUnit;
-        form.setValue('unitPrice', price);
+        // For purchases and adjustments, unit price is the cost.
+        // For sales, we leave it blank for the user to fill in.
+        if (isInventoryPurchase || isInventoryAdjustment) {
+            form.setValue('unitPrice', selectedItem.costPerUnit);
+        }
       }
     }
-  }, [watchedItemId, isInventorySale, isInventoryTransaction, inventory, form]);
+  }, [watchedItemId, isInventoryPurchase, isInventoryAdjustment, isInventoryTransaction, inventory, form]);
 
 
   const handleScan: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
