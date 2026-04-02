@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import type { NavItem } from '@/lib/types';
+type NavItem = { title: string; href: string; icon: React.ReactNode; disabled?: boolean; };
 
 interface SidebarNavProps {
   items: NavItem[];

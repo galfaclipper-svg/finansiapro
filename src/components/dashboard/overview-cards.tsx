@@ -52,13 +52,26 @@ export function OverviewCards() {
         const cogsEntries: any[] = [];
         transactionSet.forEach(t => {
             const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
-            if (isSale && t.itemId && t.quantity) {
-                const item = inventory.find(i => i.id === t.itemId);
-                if (item) {
-                    const cogsAmount = item.costPerUnit * t.quantity;
-                    if (cogsAmount > 0) {
-                        cogsEntries.push({ ...t, id: `${t.id}-cogs-debit`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
-                        cogsEntries.push({ ...t, id: `${t.id}-cogs-credit`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
+            if (isSale) {
+                if (t.items && t.items.length > 0) {
+                    t.items.forEach((itemEntry: any, i: number) => {
+                        const item = inventory.find(inv => inv.id === itemEntry.itemId);
+                        if (item) {
+                            const cogsAmount = item.costPerUnit * itemEntry.quantity;
+                            if (cogsAmount > 0) {
+                                cogsEntries.push({ ...t, id: `${t.id}-cogs-debit-${i}`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
+                                cogsEntries.push({ ...t, id: `${t.id}-cogs-credit-${i}`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
+                            }
+                        }
+                    });
+                } else if (t.itemId && t.quantity) {
+                    const item = inventory.find(i => i.id === t.itemId);
+                    if (item) {
+                        const cogsAmount = item.costPerUnit * t.quantity;
+                        if (cogsAmount > 0) {
+                            cogsEntries.push({ ...t, id: `${t.id}-cogs-debit`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
+                            cogsEntries.push({ ...t, id: `${t.id}-cogs-credit`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
+                        }
                     }
                 }
             }

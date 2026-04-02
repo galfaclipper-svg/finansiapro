@@ -15,9 +15,11 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useAppState } from '@/hooks/use-app-state';
+import { useAuth } from '@/contexts/auth-provider';
 
 export function Header() {
   const { companyProfile } = useAppState();
+  const { user, logout } = useAuth();
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
   const [isClient, setIsClient] = React.useState(false);
 
@@ -58,12 +60,15 @@ export function Header() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{isClient ? companyProfile.name : ''}</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex flex-col space-y-1">
+            <span className="text-sm font-medium leading-none">{isClient ? companyProfile.name : ''}</span>
+            <span className="text-xs leading-none text-muted-foreground">{user?.email}</span>
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>Pengaturan</DropdownMenuItem>
           <DropdownMenuItem>Dukungan</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Keluar</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-red-600 focus:text-red-600">Keluar</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>

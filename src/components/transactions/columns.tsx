@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Checkbox } from "@/components/ui/checkbox"
 import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { id as dateFnsId } from 'date-fns/locale';
+import { useAppState } from "@/hooks/use-app-state"
+import { useRouter } from "next/navigation"
 
 export const columns: ColumnDef<Transaction>[] = [
     {
@@ -53,7 +55,7 @@ export const columns: ColumnDef<Transaction>[] = [
     },
     cell: ({ row }) => {
         const date = new Date(row.getValue("date"))
-        return <div>{format(date, "d LLL y", { locale: id })}</div>
+        return <div>{format(date, "d LLL y", { locale: dateFnsId })}</div>
     }
   },
     {
@@ -80,30 +82,39 @@ export const columns: ColumnDef<Transaction>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const transaction = row.original
- 
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Buka menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(transaction.id)}
-            >
-              Salin ID transaksi
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Ubah transaksi</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Hapus transaksi</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
+    cell: ({ row }) => <ActionCell transaction={row.original} />
   },
 ]
+
+const ActionCell = ({ transaction }: { transaction: Transaction }) => {
+  const { deleteTransaction } = useAppState();
+  const router = useRouter();
+
+  const handleDelete = async () => {
+    if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+      await deleteTransaction(transaction.id);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Buka menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Aksi</DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() => navigator.clipboard.writeText(transaction.id)}
+        >
+          Salin ID transaksi
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push(`/transactions/edit/${transaction.id}`)}>Ubah transaksi</DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive" onClick={handleDelete}>Hapus transaksi</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};

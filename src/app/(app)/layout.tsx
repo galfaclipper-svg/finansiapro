@@ -1,5 +1,10 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { ProtectedRoute } from '@/components/layout/protected-route';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <ProtectedRoute>
+      <AppShell>{children}</AppShell>
+    </ProtectedRoute>
+  );
 }

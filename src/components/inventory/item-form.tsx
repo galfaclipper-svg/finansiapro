@@ -14,7 +14,6 @@ import { Loader2 } from 'lucide-react';
 const itemSchema = z.object({
   name: z.string().min(2, "Nama barang minimal 2 karakter."),
   sku: z.string().min(1, "SKU harus diisi."),
-  stock: z.coerce.number().int().min(0, "Stok tidak boleh negatif."),
   costPerUnit: z.coerce.number().min(0, "Biaya harus angka positif."),
 });
 
@@ -32,7 +31,6 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
     defaultValues: initialData || {
       name: '',
       sku: '',
-      stock: 0,
       costPerUnit: 0,
     },
   });
@@ -44,7 +42,6 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
        form.reset({
           name: '',
           sku: '',
-          stock: 0,
           costPerUnit: 0,
         });
     }
@@ -66,8 +63,7 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
-            <FormField
+        <FormField
             control={form.control}
             name="sku"
             render={({ field }) => (
@@ -80,20 +76,6 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
                 </FormItem>
             )}
             />
-            <FormField
-            control={form.control}
-            name="stock"
-            render={({ field }) => (
-                <FormItem>
-                <FormLabel>Stok Awal</FormLabel>
-                <FormControl>
-                    <Input type="number" placeholder="0" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-        </div>
          <FormField
             control={form.control}
             name="costPerUnit"

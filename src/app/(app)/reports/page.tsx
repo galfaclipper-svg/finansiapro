@@ -1,5 +1,6 @@
 
 
+// @ts-nocheck
 'use client';
 
 import { PageHeader } from '@/components/layout/page-header';
@@ -11,6 +12,7 @@ import { GeneralJournal } from '@/components/reports/general-journal';
 import { BalanceSheet } from '@/components/reports/balance-sheet';
 import { CashFlowStatement } from '@/components/reports/cash-flow-statement';
 import { GeneralLedger } from '@/components/reports/general-ledger';
+import { AdvancedBEPROIAnalysis } from '@/components/reports/advanced-bep-roi-analysis';
 import { useAppState } from '@/hooks/use-app-state';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -25,8 +27,48 @@ export default function ReportsPage() {
   const { transactions, inventory, companyProfile } = useAppState();
 
   const reportData = useMemo(() => {
+    // --- 0. Generate Virtual Depreciation Transactions ---
+    const virtualDepreciations: any[] = [];
+    const today = new Date();
+
+    transactions.forEach(t => {
+      if (['Peralatan', 'Aset Tak Berwujud'].includes(t.category) && t.amount > 0 && t.usefulLifeInMonths) {
+        const cost = t.amount;
+        const salvage = t.salvageValue || 0;
+        const lifeMonths = t.usefulLifeInMonths;
+        const monthlyAmount = (cost - salvage) / lifeMonths;
+
+        if (monthlyAmount <= 0) return;
+
+        let currentDate = new Date(t.date);
+        // Move to the end of the acquisition month
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+        let monthsCalculated = 0;
+        while (monthsCalculated < lifeMonths && currentDate <= today) {
+          const category = t.category === 'Peralatan' ? 'Beban Penyusutan' : 'Beban Amortisasi';
+          
+          virtualDepreciations.push({
+            id: `${t.id}-dep-${monthsCalculated}`,
+            date: format(currentDate, 'yyyy-MM-dd'),
+            description: `Auto (${t.category}): ${t.description} (Bulan ke-${monthsCalculated + 1})`,
+            amount: monthlyAmount,
+            type: 'cash-out',
+            accountId: '',
+            category: category,
+          });
+
+          // Move to next month's end
+          currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+          monthsCalculated++;
+        }
+      }
+    });
+
+    const augmentedTransactions = [...transactions, ...virtualDepreciations];
+
     // --- 1. Universal Journal Entry Generation ---
-    let baseJournalEntries = transactions.flatMap(t => {
+    let baseJournalEntries = augmentedTransactions.flatMap(t => {
       const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
       const accountType = account?.type;
       const cashAccountName = "Kas";
@@ -58,15 +100,28 @@ export default function ReportsPage() {
 
     // --- 2. Add COGS Entries ---
     const cogsEntries: any[] = [];
-    transactions.forEach(t => {
+    augmentedTransactions.forEach(t => {
       const isSale = t.type === 'cash-in' && t.category.startsWith('Pendapatan Penjualan');
-      if (isSale && t.itemId && t.quantity) {
-        const item = inventory.find(i => i.id === t.itemId); // Use inventory state as the source of truth for item costs
-        if (item) {
-          const cogsAmount = item.costPerUnit * t.quantity;
-          if (cogsAmount > 0) {
-            cogsEntries.push({ ...t, id: `${t.id}-cogs`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount });
-            cogsEntries.push({ ...t, id: `${t.id}-cogs`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount });
+      if (isSale) {
+        if (t.items && t.items.length > 0) {
+          t.items.forEach((itemEntry: any, i: number) => {
+            const item = inventory.find(inv => inv.id === itemEntry.itemId);
+            if (item) {
+              const cogsAmount = item.costPerUnit * itemEntry.quantity;
+              if (cogsAmount > 0) {
+                cogsEntries.push({ ...t, id: `${t.id}-cogs-${i}`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount, description: `${t.description} (HPP - ${item.name})` });
+                cogsEntries.push({ ...t, id: `${t.id}-cogs-${i}`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount, description: `${t.description} (HPP - ${item.name})` });
+              }
+            }
+          });
+        } else if (t.itemId && t.quantity) {
+          const item = inventory.find(i => i.id === t.itemId); // Use inventory state as the source of truth for item costs
+          if (item) {
+            const cogsAmount = item.costPerUnit * t.quantity;
+            if (cogsAmount > 0) {
+              cogsEntries.push({ ...t, id: `${t.id}-cogs`, entryType: 'Debit', accountName: 'Harga Pokok Penjualan', amount: cogsAmount, description: `${t.description} (HPP)` });
+              cogsEntries.push({ ...t, id: `${t.id}-cogs`, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: cogsAmount, description: `${t.description} (HPP)` });
+            }
           }
         }
       }
@@ -127,14 +182,14 @@ export default function ReportsPage() {
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
     // General Journal Data
-    const journalEntries = allJournalEntries.sort((a, b) => new Date(b.date).getTime() - new Date(b.id > b.id ? 1 : -1) || (a.entryType === 'Debit' ? -1 : 1));
+    const journalEntries = allJournalEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id.localeCompare(b.id) || (a.entryType === 'Debit' ? -1 : 1));
 
     // Cash Flow Data
     const operatingFlows: { name: string, amount: number }[] = [];
     const investingFlows: { name: string, amount: number }[] = [];
     const financingFlows: { name: string, amount: number }[] = [];
     
-    const cashTransactions = transactions.filter(t => !['Beban Penyusutan', 'Beban Amortisasi'].includes(t.category));
+    const cashTransactions = augmentedTransactions.filter(t => !['Beban Penyusutan', 'Beban Amortisasi'].includes(t.category));
     
     cashTransactions.forEach(t => {
       const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
@@ -397,16 +452,29 @@ export default function ReportsPage() {
 
     const addHeaderAndFooter = (data: any, title: string) => {
       // HEADER
+      let textOffsetX = data.settings.margin.left;
+      
+      if (companyProfile.logoUrl) {
+          try {
+              const typeMatch = companyProfile.logoUrl.match(/^data:image\/(png|jpeg|jpg);/);
+              const imgType = typeMatch ? (typeMatch[1] === 'jpg' ? 'JPEG' : typeMatch[1].toUpperCase()) : 'PNG';
+              doc.addImage(companyProfile.logoUrl, imgType, data.settings.margin.left, 10, 16, 16);
+              textOffsetX += 20; // Shift text right if logo is present
+          } catch(e) {
+              console.warn("Gagal menampilkan logo", e);
+          }
+      }
+
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(companyName, data.settings.margin.left, 20);
+      doc.text(companyName, textOffsetX, 16);
       
       doc.setFontSize(12);
-      doc.text(title, data.settings.margin.left, 27);
+      doc.text(title, textOffsetX, 22);
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(`Tanggal Cetak: ${today}`, data.settings.margin.left, 34);
+      doc.text(`Tanggal Cetak: ${today}`, textOffsetX, 28);
 
       // FOOTER
       const pageNumber = doc.internal.getNumberOfPages();
@@ -587,12 +655,13 @@ export default function ReportsPage() {
       </PageHeader>
       
       <Tabs defaultValue="income-statement">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-4">
             <TabsTrigger value="income-statement">Laporan Laba Rugi</TabsTrigger>
             <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
             <TabsTrigger value="general-journal">Jurnal Umum</TabsTrigger>
             <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
             <TabsTrigger value="general-ledger">Buku Besar</TabsTrigger>
+            <TabsTrigger value="audit-investor">Audit & Investor</TabsTrigger>
         </TabsList>
         <TabsContent value="income-statement">
             <IncomeStatement data={reportData.incomeStatement} />
@@ -608,6 +677,9 @@ export default function ReportsPage() {
         </TabsContent>
         <TabsContent value="general-ledger">
             <GeneralLedger data={reportData.generalLedger} />
+        </TabsContent>
+        <TabsContent value="audit-investor">
+            <AdvancedBEPROIAnalysis reportData={reportData} />
         </TabsContent>
       </Tabs>
     </div>

@@ -18,7 +18,7 @@ import { SidebarNav } from './sidebar-nav';
 import { Header } from './header';
 import Link from 'next/link';
 import { LayoutDashboard, ReceiptText, Package, LineChart, Settings } from 'lucide-react';
-import type { NavItem } from '@/lib/types';
+type NavItem = { title: string; href: string; icon: React.ReactNode; };
 
 const NAV_ITEMS: NavItem[] = [
   {

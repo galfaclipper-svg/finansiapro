@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, useFieldArray, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -67,9 +67,12 @@ const transactionSchema = z.object({
   description: z.string().min(2, "Deskripsi terlalu pendek."),
   type: z.enum(["cash-in", "cash-out"], { required_error: "Tipe harus diisi." }),
   category: z.string({ required_error: "Silakan pilih kategori." }),
-  itemId: z.string().optional(),
-  quantity: z.coerce.number().optional(),
-  unitPrice: z.coerce.number().optional(),
+  items: z.array(z.object({
+    itemId: z.string().min(1, "Silakan pilih barang."),
+    quantity: z.coerce.number().positive("Kuantitas harus positif."),
+  })).optional(),
+  usefulLifeInMonths: z.coerce.number().optional(),
+  salvageValue: z.coerce.number().optional(),
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
@@ -101,17 +104,18 @@ export default function NewTransactionPage() {
     defaultValues: {
       description: "",
       type: "cash-out",
-      quantity: undefined,
-      unitPrice: undefined,
       amount: undefined,
     },
   });
 
+  const { fields: itemFields, append: appendItem, remove: removeItem } = useFieldArray({
+    control: form.control,
+    name: "items",
+  });
+
   const watchedType = form.watch("type");
   const watchedCategory = form.watch("category");
-  const watchedItemId = form.watch("itemId");
-  const watchedQuantity = form.watch("quantity");
-  const watchedUnitPrice = form.watch("unitPrice");
+  const watchedItems = form.watch("items");
 
   // Reset category when transaction type changes
   useEffect(() => {
@@ -145,33 +149,21 @@ export default function NewTransactionPage() {
       .map(acc => acc.name);
   }, [watchedType]);
 
-  const isInventorySale = !!CHART_OF_ACCOUNTS.find(acc => acc.name === watchedCategory)?.type.startsWith('Revenue');
+  const isInventorySale = !!CHART_OF_ACCOUNTS.find(acc => acc.name === watchedCategory && acc.category === 'Sales Revenue');
   const isInventoryPurchase = watchedCategory === 'Persediaan Barang Dagang';
   const isInventoryAdjustment = ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi'].includes(watchedCategory || '');
   const isInventoryTransaction = isInventorySale || isInventoryPurchase || isInventoryAdjustment;
+  const isFixedAssetTransaction = ['Peralatan', 'Aset Tak Berwujud'].includes(watchedCategory || '');
 
-  // Auto-calculate total amount for inventory transactions
+  // Manage items array
   useEffect(() => {
-    if (isInventoryTransaction) {
-      const qty = watchedQuantity || 0;
-      const price = watchedUnitPrice || 0;
-      form.setValue("amount", qty * price, { shouldValidate: true });
+    if (isInventoryTransaction && itemFields.length === 0) {
+      appendItem({ itemId: "", quantity: 1 });
+    } else if (!isInventoryTransaction && itemFields.length > 0) {
+      // Clear items if category changes from inventory to non-inventory
+      form.setValue("items", undefined);
     }
-  }, [watchedQuantity, watchedUnitPrice, isInventoryTransaction, form]);
-
-  // Auto-fill unit price when an inventory item is selected
-  useEffect(() => {
-    if (isInventoryTransaction && watchedItemId) {
-      const selectedItem = inventory.find(item => item.id === watchedItemId);
-      if (selectedItem) {
-        // For purchases and adjustments, unit price is the cost.
-        // For sales, we leave it blank for the user to fill in.
-        if (isInventoryPurchase || isInventoryAdjustment) {
-            form.setValue('unitPrice', selectedItem.costPerUnit);
-        }
-      }
-    }
-  }, [watchedItemId, isInventoryPurchase, isInventoryAdjustment, isInventoryTransaction, inventory, form]);
+  }, [isInventoryTransaction, itemFields.length, appendItem, form]);
 
 
   const handleScan: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
@@ -217,7 +209,7 @@ export default function NewTransactionPage() {
   };
 
   const onSubmit: SubmitHandler<TransactionFormValues> = (data) => {
-    addTransaction({ ...data, date: data.date.toISOString().split("T")[0], accountId: ''});
+    addTransaction({ ...data, date: format(data.date, 'yyyy-MM-dd'), accountId: ''});
     toast({
       title: "Transaksi Ditambahkan",
       description: "Transaksi Anda telah berhasil dicatat.",
@@ -385,50 +377,104 @@ export default function NewTransactionPage() {
                   )}
                 />
                 
-                {isInventoryTransaction ? (
-                  <>
+                {isFixedAssetTransaction && (
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="itemId"
+                      name="usefulLifeInMonths"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Barang</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih barang dari inventaris" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {inventory.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>Umur Ekonomis (Bulan)</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="cth. 48" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-3 gap-4">
-                       <FormField
+                    <FormField
+                      control={form.control}
+                      name="salvageValue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nilai Residu (Sisa)</FormLabel>
+                          <FormControl>
+                            <CurrencyInput
+                              placeholder="0"
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {isInventoryTransaction ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                       <FormLabel className="text-base">Daftar Produk yang Dijual/Dibeli</FormLabel>
+                       <Button type="button" variant="outline" size="sm" onClick={() => appendItem({ itemId: "", quantity: 1 })}>
+                         + Produk
+                       </Button>
+                    </div>
+                    {itemFields.map((field, index) => (
+                      <div key={field.id} className="flex gap-4 items-end">
+                        <FormField
                           control={form.control}
-                          name="quantity"
+                          name={`items.${index}.itemId` as any}
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Kuantitas</FormLabel>
-                              <FormControl>
-                                <Input type="number" placeholder="0" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
-                              </FormControl>
+                            <FormItem className="flex-1">
+                              {index === 0 && <FormLabel>Barang</FormLabel>}
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Pilih barang dari inventaris" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {inventory.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                         <FormField
+                        <FormField
+                            control={form.control}
+                            name={`items.${index}.quantity` as any}
+                            render={({ field }) => (
+                              <FormItem className="w-24">
+                                {index === 0 && <FormLabel>Qty</FormLabel>}
+                                <FormControl>
+                                  <Input type="number" placeholder="1" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          {index > 0 && (
+                            <Button type="button" variant="ghost" size="icon" className="text-destructive mb-2" onClick={() => removeItem(index)}>
+                               <Sparkles className="h-4 w-4 hidden"/>X
+                            </Button>
+                          )}
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t mt-4">
+                       <FormField
                           control={form.control}
-                          name="unitPrice"
+                          name="amount"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Harga Satuan</FormLabel>
+                              <FormLabel>Nominal Bersih Transaksi *</FormLabel>
+                              <CardDescription>Masukkan total pendapatan/pengeluaran bersih dari gabungan produk di atas.</CardDescription>
                               <FormControl>
                                 <CurrencyInput
                                   placeholder="0"
@@ -443,26 +489,8 @@ export default function NewTransactionPage() {
                             </FormItem>
                           )}
                         />
-                         <FormField
-                          control={form.control}
-                          name="amount"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Jumlah Total</FormLabel>
-                              <FormControl>
-                                <CurrencyInput
-                                  placeholder="0"
-                                  disabled
-                                  value={field.value}
-                                  onValueChange={field.onChange}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <FormField
                     control={form.control}

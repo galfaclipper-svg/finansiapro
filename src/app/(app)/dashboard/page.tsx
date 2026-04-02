@@ -3,8 +3,8 @@ import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { OverviewCards } from '@/components/dashboard/overview-cards';
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { AiSummary } from '@/components/dashboard/ai-summary';
 import { CashPositionChart } from '@/components/dashboard/cash-position-chart';
+import { SalesByPlatformChart } from '@/components/dashboard/sales-by-platform-chart';
 
 export default function DashboardPage() {
   return (
@@ -25,11 +25,11 @@ export default function DashboardPage() {
         <div className="lg:col-span-3">
           <CashPositionChart />
         </div>
-        <div className="lg:col-span-4">
-          <RecentTransactions />
+        <div className="lg:col-span-7">
+          <SalesByPlatformChart />
         </div>
-        <div className="lg:col-span-3">
-          <AiSummary />
+        <div className="lg:col-span-7">
+          <RecentTransactions />
         </div>
       </div>
     </div>
