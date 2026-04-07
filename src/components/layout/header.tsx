@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,8 +66,12 @@ export function Header() {
             <span className="text-xs leading-none text-muted-foreground">{user?.email}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Pengaturan</DropdownMenuItem>
-          <DropdownMenuItem>Dukungan</DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link href="/settings">Pengaturan</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <a href="mailto:wisesaniskala@gmail.com?subject=Dukungan%20FinansiaPro">Dukungan</a>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-red-600 focus:text-red-600">Keluar</DropdownMenuItem>
         </DropdownMenuContent>
