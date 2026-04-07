@@ -16,6 +16,7 @@ import { AdvancedBEPROIAnalysis } from '@/components/reports/advanced-bep-roi-an
 import { useAppState } from '@/hooks/use-app-state';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 import { useMemo } from 'react';
 import { CHART_OF_ACCOUNTS } from '@/lib/constants';
@@ -440,10 +441,57 @@ export default function ReportsPage() {
     });
 
 
+    // 6. Audit & Investor Metrics
+    const auditSheetName = "Audit & Investor";
+    const variableCosts = reportData.incomeStatement.expenses['Harga Pokok Penjualan'] || 0;
+    let fixedCosts = 0;
+    Object.entries(reportData.incomeStatement.expenses).forEach(([name, amt]) => {
+        if (name !== 'Harga Pokok Penjualan') fixedCosts += (amt as number);
+    });
+    const { totalRevenue, netIncome } = reportData.incomeStatement;
+    const { totalAssets, equity } = reportData.balanceSheet;
+    const contributionMarginRatio = totalRevenue > 0 ? ((totalRevenue - variableCosts) / totalRevenue) : 0;
+    const bepRupiah = contributionMarginRatio > 0 ? (fixedCosts / contributionMarginRatio) : 0;
+    const marginOfSafetyPercent = totalRevenue > 0 ? ((totalRevenue - bepRupiah) / totalRevenue) * 100 : 0;
+    const totalEquityCalc = (equity['Modal Pemilik'] || 0) + (equity['Laba Ditahan'] || 0);
+    const roi = totalEquityCalc > 0 ? (netIncome / totalEquityCalc) * 100 : 0;
+    const roa = totalAssets > 0 ? (netIncome / totalAssets) * 100 : 0;
+    
+    let healthStateTitle = '';
+    let healthStateDesc = '';
+    const totalCosts = fixedCosts + variableCosts;
+    if (totalRevenue === 0 && totalCosts === 0) { healthStateTitle = 'EMPTY'; healthStateDesc = 'Belum ada data operasional.'; }
+    else if (totalRevenue < bepRupiah) { healthStateTitle = 'CRITICAL ALERT (REVENUE UNDER BEP)'; healthStateDesc = 'Perusahaan saat ini mengalami kerugian operasional dan belum mencapai Titik Impas (BEP).'; }
+    else if (marginOfSafetyPercent < 15) { healthStateTitle = 'WARNING (MARGIN OF SAFETY RENDAH)'; healthStateDesc = 'Perusahaan berhasil melewati level impas, namun berada dalam rentan (Margin of Safety < 15%).'; }
+    else if (roi > 20 && marginOfSafetyPercent > 30) { healthStateTitle = 'KEUANGAN SANGAT PRIMA (HIGH ROI)'; healthStateDesc = 'Pengembalian modal (ROI) sangat memuaskan, margin of safety aman. Risiko rendah.'; }
+    else { healthStateTitle = 'SEHAT & PROFITABLE'; healthStateDesc = 'Fundamental sehat. Pendapatan berada di level yang aman di atas Titik Impas.'; }
+
+    const auditData = [
+       [{v: companyName, s:headerStyle}], [{v: "Laporan Executive Audit & Investor", s:subHeaderStyle}], [{v: `Per ${today}`, s:dateStyle}], [],
+       [{v: "Kesimpulan Analisis Sistem", s:boldStyle}, ""],
+       ["Status Kesehatan", healthStateTitle],
+       ["Deskripsi", healthStateDesc],
+       [],
+       [{v: "Indikator Utama", s:boldStyle}, ""],
+       ["Titik Impas (BEP Rupiah)", bepRupiah],
+       ["Batas Aman (Margin of Safety %)", marginOfSafetyPercent],
+       ["Total Biaya Tetap", fixedCosts],
+       ["Rasio Margin Kontribusi (%)", contributionMarginRatio * 100],
+       [],
+       [{v: "Kinerja Investasi", s:boldStyle}, ""],
+       ["Return on Investment (ROI %)", roi],
+       ["Return on Asset (ROA %)", roa],
+       ["Modal Pemilik", equity['Modal Pemilik'] || 0]
+    ];
+    const wsAudit = XLSX.utils.aoa_to_sheet(auditData);
+    wsAudit['!cols'] = [{wch: 40}, {wch: 20}];
+    applyNumberFormatting(wsAudit, [1]);
+    XLSX.utils.book_append_sheet(wb, wsAudit, auditSheetName);
+
     XLSX.writeFile(wb, "Laporan Keuangan FinansiaPro (Formula).xlsx");
   };
 
-  const handlePrintPDF = () => {
+  const handlePrintPDF = async () => {
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
     const companyName = companyProfile.name;
@@ -629,6 +677,77 @@ export default function ReportsPage() {
             didDrawPage: (data) => addHeaderAndFooter(data, `Buku Besar: ${account.accountInfo.name}`),
         });
     });
+
+    // --- Laporan Audit & Investor ---
+    doc.addPage();
+    const variableCostsPDF = reportData.incomeStatement.expenses['Harga Pokok Penjualan'] || 0;
+    let fixedCostsPDF = 0;
+    Object.entries(reportData.incomeStatement.expenses).forEach(([name, amt]) => {
+        if (name !== 'Harga Pokok Penjualan') fixedCostsPDF += (amt as number);
+    });
+    const contributionMarginRatioPDF = reportData.incomeStatement.totalRevenue > 0 ? ((reportData.incomeStatement.totalRevenue - variableCostsPDF) / reportData.incomeStatement.totalRevenue) : 0;
+    const bepRupiahPDF = contributionMarginRatioPDF > 0 ? (fixedCostsPDF / contributionMarginRatioPDF) : 0;
+    const marginOfSafetyPercentPDF = reportData.incomeStatement.totalRevenue > 0 ? ((reportData.incomeStatement.totalRevenue - bepRupiahPDF) / reportData.incomeStatement.totalRevenue) * 100 : 0;
+    const totalEquityPDF = (reportData.balanceSheet.equity['Modal Pemilik'] || 0) + (reportData.balanceSheet.equity['Laba Ditahan'] || 0);
+    const roiPDF = totalEquityPDF > 0 ? (reportData.incomeStatement.netIncome / totalEquityPDF) * 100 : 0;
+    const roaPDF = reportData.balanceSheet.totalAssets > 0 ? (reportData.incomeStatement.netIncome / reportData.balanceSheet.totalAssets) * 100 : 0;
+    
+    let healthStateTitlePDF = '';
+    let healthStateDescPDF = '';
+    const totalCostsPDF = fixedCostsPDF + variableCostsPDF;
+    if (reportData.incomeStatement.totalRevenue === 0 && totalCostsPDF === 0) { healthStateTitlePDF = 'EMPTY'; healthStateDescPDF = 'Belum ada data operasional.'; }
+    else if (reportData.incomeStatement.totalRevenue < bepRupiahPDF) { healthStateTitlePDF = 'CRITICAL ALERT (REVENUE UNDER BEP)'; healthStateDescPDF = 'Perusahaan kerugian operasional dan belum mencapai Titik Impas (BEP).'; }
+    else if (marginOfSafetyPercentPDF < 15) { healthStateTitlePDF = 'WARNING (MARGIN OF SAFETY RENDAH)'; healthStateDescPDF = 'Berhasil melewati level impas, namun berada rentan (Margin < 15%).'; }
+    else if (roiPDF > 20 && marginOfSafetyPercentPDF > 30) { healthStateTitlePDF = 'KEUANGAN SANGAT PRIMA (HIGH ROI)'; healthStateDescPDF = 'ROI tinggi, margin of safety kokoh. Momentum baik untuk ekspansi.'; }
+    else { healthStateTitlePDF = 'SEHAT & PROFITABLE'; healthStateDescPDF = 'Fundamental sehat. Beban dapat ditutup dengan baik.'; }
+
+    autoTable(doc, {
+        startY: 40,
+        margin: { top: 40 },
+        head: [['Indikator Executive Audit & Investor', 'Nilai/Rasio']],
+        body: [
+            ['[KESIMPULAN METRIK KESEHATAN]', healthStateTitlePDF],
+            ['[DESKRIPSI]', healthStateDescPDF],
+            ['', ''],
+            ['Titik Impas / BEP', { content: formatCurrency(bepRupiahPDF), styles: { halign: 'right' } }],
+            ['Batas Aman / Margin of Safety', { content: `${marginOfSafetyPercentPDF.toFixed(2)} %`, styles: { halign: 'right' } }],
+            ['Total Biaya Tetap Operasional', { content: formatCurrency(fixedCostsPDF), styles: { halign: 'right' } }],
+            ['Rasio Margin Kontribusi', { content: `${(contributionMarginRatioPDF * 100).toFixed(2)} %`, styles: { halign: 'right' } }],
+            ['Return on Investment (ROI)', { content: `${roiPDF.toFixed(2)} %`, styles: { halign: 'right' } }],
+            ['Return on Asset (ROA)', { content: `${roaPDF.toFixed(2)} %`, styles: { halign: 'right' } }]
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor },
+        styles: { cellPadding: 4 },
+        columnStyles: { 0: { cellWidth: 70 } },
+        didDrawPage: (data) => addHeaderAndFooter(data, 'Audit & Investor Executive Dashboard'),
+    });
+
+    // Check if the dashboard is currently rendered in the UI to screenshot the graph
+    const chartRenderEl = document.getElementById('advanced-bep-roi-container');
+    if (chartRenderEl) {
+        try {
+            const canvas = await html2canvas(chartRenderEl, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+            
+            // AutoTable finished, get its final Y
+            const finalY = (doc as any).lastAutoTable.finalY + 15;
+            const pdfWidth = doc.internal.pageSize.getWidth() - 28; // Margins
+            const imgRatio = canvas.height / canvas.width;
+            let imgHeight = pdfWidth * imgRatio;
+            
+            // Add to new page if it won't fit entirely
+            if (finalY + imgHeight > doc.internal.pageSize.getHeight() - 20) {
+               doc.addPage();
+               doc.addImage(imgData, 'PNG', 14, 20, pdfWidth, imgHeight);
+               addHeaderAndFooter({pageNumber: doc.getNumberOfPages()}, 'Visualisasi Grafik Audit');
+            } else {
+               doc.addImage(imgData, 'PNG', 14, finalY, pdfWidth, imgHeight);
+            }
+        } catch (e) {
+            console.error("Failed to capture chart: ", e);
+        }
+    }
 
     // Replace page number placeholder
     if (typeof (doc as any).putTotalPages === 'function') {

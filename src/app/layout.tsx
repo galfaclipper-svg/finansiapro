@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/contexts/app-provider';
 import { AuthProvider } from '@/contexts/auth-provider';
+import { LicenseProvider } from '@/contexts/license-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { Balancer as ProivderBalancer } from 'react-wrap-balancer';
@@ -30,10 +31,12 @@ export default function RootLayout({
       <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable)}>
         <ProivderBalancer>
           <AuthProvider>
-            <AppProvider>
-              {children}
-              <Toaster />
-            </AppProvider>
+            <LicenseProvider>
+              <AppProvider>
+                {children}
+                <Toaster />
+              </AppProvider>
+            </LicenseProvider>
           </AuthProvider>
         </ProivderBalancer>
       </body>

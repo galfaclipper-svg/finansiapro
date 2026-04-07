@@ -21,7 +21,7 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
     // --- Core BEP Math ---
     // Variable Cost: Only Harga Pokok Penjualan (COGS)
     const variableCosts = expenses['Harga Pokok Penjualan'] || 0;
-    
+
     // Fixed Cost: All other operational expenses
     const fixedCosts = Object.entries(expenses).reduce((sum, [name, amt]) => {
         return name === 'Harga Pokok Penjualan' ? sum : sum + (amt as number);
@@ -32,7 +32,7 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
     // Margin Calculations
     const contributionMargin = totalRevenue - variableCosts;
     const contributionMarginRatio = totalRevenue > 0 ? (contributionMargin / totalRevenue) : 0;
-    
+
     // BEP (Break Even Point in Rupiah)
     const bepRupiah = contributionMarginRatio > 0 ? (fixedCosts / contributionMarginRatio) : 0;
 
@@ -54,12 +54,12 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
         const data = [];
         const stepCount = 20; // Generate 20 data points
         // Base range on BEP. If BEP is super high, make graph go to BEP * 1.5. If revenue is higher, go to Revenue * 1.5.
-        const maxRange = Math.max(totalRevenue, bepRupiah) * 1.5 || 1000000; 
+        const maxRange = Math.max(totalRevenue, bepRupiah) * 1.5 || 1000000;
         const stepSize = maxRange / stepCount;
 
         for (let i = 0; i <= stepCount; i++) {
             const currentSimulationRevenue = i * stepSize;
-            
+
             // Assume variable cost behaves linearly proportionally to Revenue
             const simulatedVariableCost = contributionMarginRatio > 0 ? (currentSimulationRevenue * (1 - contributionMarginRatio)) : 0;
             const simulatedTotalCost = fixedCosts + simulatedVariableCost;
@@ -89,7 +89,7 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
 
     return (
         <div className="space-y-6">
-            
+
             {/* Header / Condition Alert */}
             <h2 className="text-2xl font-bold tracking-tight">Audit & Investor Executive Dashboard</h2>
             <p className="text-muted-foreground mb-4">
@@ -214,7 +214,7 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                         <p className="text-xs text-slate-500 mt-1">Nilai modal yang ditanam ke bisnis.</p>
                     </CardContent>
                 </Card>
-                 <Card className="bg-slate-50 border-slate-200">
+                <Card className="bg-slate-50 border-slate-200">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-slate-600 font-semibold">Aset Penjamin</CardDescription>
                     </CardHeader>
@@ -238,47 +238,47 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                <XAxis 
-                                    dataKey="xRevenue" 
+                                <XAxis
+                                    dataKey="xRevenue"
                                     type="number"
                                     domain={[0, 'dataMax']}
                                     tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: "compact", compactDisplay: "short" }).format(val)}
                                 />
-                                <YAxis 
-                                    tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: "compact", compactDisplay: "short" }).format(val)} 
+                                <YAxis
+                                    tickFormatter={(val) => new Intl.NumberFormat('id-ID', { notation: "compact", compactDisplay: "short" }).format(val)}
                                 />
-                                <Tooltip 
+                                <Tooltip
                                     formatter={(value: number) => formatCurrency(value)}
                                     labelFormatter={(label: number) => `Simulasi Pendapatan: ${formatCurrency(label)}`}
                                 />
                                 <Legend />
-                                
+
                                 {/* Garis Abu: Fixed Costs */}
-                                <Line 
-                                    type="step" 
-                                    dataKey="Biaya Tetap (Abu)" 
-                                    stroke="#94a3b8" 
-                                    strokeWidth={3} 
+                                <Line
+                                    type="step"
+                                    dataKey="Biaya Tetap (Abu)"
+                                    stroke="#94a3b8"
+                                    strokeWidth={3}
                                     dot={false}
                                     activeDot={false}
                                 />
-                                
+
                                 {/* Garis Merah: Total Costs */}
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="Total Biaya (Merah)" 
-                                    stroke="#ef4444" 
-                                    strokeWidth={3} 
-                                    dot={false} 
+                                <Line
+                                    type="monotone"
+                                    dataKey="Total Biaya (Merah)"
+                                    stroke="#ef4444"
+                                    strokeWidth={3}
+                                    dot={false}
                                 />
-                                
+
                                 {/* Garis Biru: Revenue */}
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="Pendapatan (Biru)" 
-                                    stroke="#3b82f6" 
-                                    strokeWidth={3} 
-                                    dot={false} 
+                                <Line
+                                    type="monotone"
+                                    dataKey="Pendapatan (Biru)"
+                                    stroke="#3b82f6"
+                                    strokeWidth={3}
+                                    dot={false}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
