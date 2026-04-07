@@ -35,6 +35,16 @@ export default function RootLayout({
               <AppProvider>
                 {children}
                 <Toaster />
+                {/* Anti-Piracy Watermark */}
+                <div className="fixed bottom-2 right-2 text-[10px] md:text-xs font-black text-slate-800 opacity-[0.04] pointer-events-none select-none z-[9999] tracking-widest uppercase origin-bottom-right">
+                  Wisesa Niskala - Proprietary
+                </div>
+                {/* Copyright Console Trace */}
+                <script
+                  dangerouslySetInnerHTML={{
+                    __html: `console.log("%cFinansiaPro SaaS Hak Cipta dilindungi. Proprietary Software milik Wisesa Niskala.", "color: #247BA0; font-size: 14px; font-weight: bold; border: 1px solid #247BA0; padding: 10px; border-radius: 5px;");`
+                  }}
+                />
               </AppProvider>
             </LicenseProvider>
           </AuthProvider>

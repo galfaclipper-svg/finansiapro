@@ -4,36 +4,39 @@ import { ArrowRight, BarChart, FileText, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Balancer from 'react-wrap-balancer';
+import { SecretAdminGate } from '@/components/secret-admin-gate';
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <Link href="/" className="flex items-center justify-center">
-          <Logo className="h-8 w-8" />
+        <div className="flex items-center justify-center">
+          <SecretAdminGate>
+            <Logo className="h-8 w-8 text-primary" />
+          </SecretAdminGate>
           <span className="sr-only">FinansiaPro</span>
-        </Link>
+        </div>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link
-            href="/dashboard"
+            href="#features"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
             Features
           </Link>
           <Link
-            href="/dashboard"
+            href="#pricing"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
             Pricing
           </Link>
           <Link
-            href="/dashboard"
+            href="#about"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
             About
           </Link>
           <Link
-            href="/dashboard"
+            href="#contact"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
             Contact
@@ -74,7 +77,9 @@ export default function LandingPage() {
               <div className="relative hidden lg:block">
                  <div className="absolute inset-0 -m-4 rounded-full bg-primary/10 blur-3xl"></div>
                   <div className="relative w-full h-full flex items-center justify-center">
-                    <Logo className="w-64 h-64 text-primary" />
+                    <SecretAdminGate>
+                      <Logo className="w-64 h-64 text-primary" />
+                    </SecretAdminGate>
                   </div>
               </div>
             </div>
@@ -125,6 +130,49 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 bg-background">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                Pricing Plans
+              </h2>
+              <p className="max-w-[700px] text-foreground/80 md:text-xl/relaxed">
+                Simple, transparent pricing for growing businesses. Start optimizing your finances today.
+              </p>
+            </div>
+            {/* Add pricing table here if needed */}
+          </div>
+        </section>
+
+        <section id="about" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/50">
+          <div className="container px-4 md:px-6">
+             <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                About FinansiaPro
+              </h2>
+              <p className="max-w-[700px] text-foreground/80 md:text-xl/relaxed">
+                Built to solve the real financial headaches of modern e-commerce entrepreneurs. We believe good accounting shouldn't require a finance degree.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="w-full py-12 md:py-24 lg:py-32 bg-background">
+            <div className="container px-4 md:px-6 text-center">
+                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline mb-4">
+                    Get in Touch
+                 </h2>
+                 <p className="max-w-[700px] mx-auto text-foreground/80 md:text-xl/relaxed mb-8">
+                    Have questions? Our support team is ready to help you set up your financial workflows.
+                 </p>
+                 <Button asChild size="lg">
+                    <Link href="mailto:support@finansiapro.com">
+                        Contact Support
+                    </Link>
+                 </Button>
+            </div>
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
