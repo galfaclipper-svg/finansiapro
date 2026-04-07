@@ -29,7 +29,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function SettingsPage() {
-    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData } = useAppState();
+    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData } = useAppState();
     const { user } = useAuth();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -209,13 +209,11 @@ export default function SettingsPage() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target?.result as string);
                 if (data.transactions && data.inventory) {
-                    setTransactions(data.transactions);
-                    if (data.inventory) setInventory(data.inventory);
-                    if (data.companyProfile) setCompanyProfile(data.companyProfile);
+                    await restoreBackupData(data);
 
                     toast({
                         title: 'Restore Berhasil',

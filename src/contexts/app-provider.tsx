@@ -24,6 +24,7 @@ interface AppContextType {
   dateRange: DateRange | undefined;
   setDateRange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
   resetData: () => Promise<void>;
+  restoreBackupData: (data: any) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -255,6 +256,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const restoreBackupData = async (data: any) => {
+    if (!user) return;
+    try {
+      // 1. Restore Company Profile
+      if (data.companyProfile) {
+        await fsSetDoc(fsDoc(db, `users/${user.uid}/companyProfile`, 'data'), data.companyProfile);
+      }
+
+      // 2. Restore Transactions
+      if (data.transactions && Array.isArray(data.transactions)) {
+        const txPromises = data.transactions.map((tx: any) => {
+           const cleanTx = Object.fromEntries(Object.entries(tx).filter(([_, v]) => v !== undefined));
+           return fsSetDoc(fsDoc(db, `users/${user.uid}/transactions`, tx.id), cleanTx);
+        });
+        await Promise.all(txPromises);
+      }
+
+      // 3. Restore Inventory
+      if (data.inventory && Array.isArray(data.inventory)) {
+        const invPromises = data.inventory.map((inv: any) => {
+           const cleanInv = Object.fromEntries(Object.entries(inv).filter(([_, v]) => v !== undefined));
+           return fsSetDoc(fsDoc(db, `users/${user.uid}/inventory`, inv.id), cleanInv);
+        });
+        await Promise.all(invPromises);
+      }
+    } catch (err) {
+      console.error('Error restoring backup data', err);
+      throw err;
+    }
+  };
+
   const value = {
     companyProfile,
     setCompanyProfile: updateCompanyProfileAndSave,
@@ -271,6 +303,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dateRange,
     setDateRange,
     resetData,
+    restoreBackupData,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
