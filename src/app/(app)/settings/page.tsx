@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAppState } from '@/hooks/use-app-state';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileUp, Trash2, Package } from 'lucide-react';
+import { Upload, FileUp, FileDown, Database, Trash2, Package } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Transaction } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -29,10 +29,11 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function SettingsPage() {
-    const { companyProfile, setCompanyProfile, setTransactions, resetData } = useAppState();
+    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData } = useAppState();
     const { user } = useAuth();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const jsonInputRef = useRef<HTMLInputElement>(null);
     const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
     const [logoPreview, setLogoPreview] = useState<string | undefined>(companyProfile.logoUrl);
 
@@ -123,6 +124,12 @@ export default function SettingsPage() {
 
                 const importedTransactions: Transaction[] = Object.values(entriesById).map((entries: any[]) => {
                     const firstEntry = entries[0];
+                    
+                    // Abaikan jurnal virtual (HPP dan Penyusutan) agar tidak mengurangi Kas secara keliru
+                    if (firstEntry.ID && (String(firstEntry.ID).includes('-cogs') || String(firstEntry.ID).includes('-dep'))) {
+                        return null;
+                    }
+
                     const cashEntry = entries.find(e => e.Akun === 'Kas');
                     const nonCashEntry = entries.find(e => e.Akun !== 'Kas');
                     
@@ -175,6 +182,58 @@ export default function SettingsPage() {
         if (event.target) {
             event.target.value = '';
         }
+    };
+
+    const handleBackupJSON = () => {
+        const backupData = {
+            transactions,
+            inventory,
+            companyProfile
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `Backup_FinansiaPro_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchorNode); 
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        toast({ title: "Backup Berhasil", description: "File backup JSON telah diunduh dengan aman." });
+    };
+
+    const handleRestoreJSONClick = () => {
+        jsonInputRef.current?.click();
+    };
+
+    const handleJSONRestore = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target?.result as string);
+                if (data.transactions && data.inventory) {
+                    setTransactions(data.transactions);
+                    if (data.inventory) setInventory(data.inventory);
+                    if (data.companyProfile) setCompanyProfile(data.companyProfile);
+
+                    toast({
+                        title: 'Restore Berhasil',
+                        description: `Data aplikasi berhasil dipulihkan dari file backup JSON.`
+                    });
+                } else {
+                    throw new Error("Format backup tidak valid.");
+                }
+            } catch (error: any) {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Restore Gagal',
+                    description: error.message || 'Terjadi kesalahan saat memproses file JSON.'
+                });
+            }
+        };
+        reader.readAsText(file);
+        if (event.target) event.target.value = '';
     };
 
 
@@ -268,8 +327,27 @@ export default function SettingsPage() {
                 <CardDescription>Impor, ekspor, atau reset data aplikasi Anda.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+               <div className="grid grid-cols-2 gap-4">
+                   <Button variant="outline" className="w-full justify-center gap-2 border-green-600/30 text-green-700 hover:bg-green-50" onClick={handleBackupJSON}>
+                        <FileDown className="h-4 w-4" /> Unduh Backup (JSON)
+                   </Button>
+                   <Button variant="outline" className="w-full justify-center gap-2 border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={handleRestoreJSONClick}>
+                        <Database className="h-4 w-4" /> Restore Data (JSON)
+                   </Button>
+               </div>
+               <input
+                    type="file"
+                    ref={jsonInputRef}
+                    className="sr-only"
+                    accept=".json"
+                    onChange={handleJSONRestore}
+                />
+               <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Opsi Lainnya</span></div>
+               </div>
                <Button variant="outline" className="w-full justify-start gap-2" onClick={handleImportClick}>
-                    <FileUp className="h-4 w-4" /> Impor dari XLSX
+                    <FileUp className="h-4 w-4" /> Impor dari Jurnal Manual (XLSX)
                </Button>
                <input
                     type="file"
