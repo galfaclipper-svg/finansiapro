@@ -45,6 +45,23 @@ export default function RootLayout({
                     __html: `console.log("%cFinansiaPro SaaS Hak Cipta dilindungi. Proprietary Software milik Wisesa Niskala.", "color: #247BA0; font-size: 14px; font-weight: bold; border: 1px solid #247BA0; padding: 10px; border-radius: 5px;");`
                   }}
                 />
+                
+                {/* Google Translate Integration */}
+                <div id="google_translate_element" className="hidden" aria-hidden="true"></div>
+                <script
+                  dangerouslySetInnerHTML={{
+                    __html: `
+                      function googleTranslateElementInit() {
+                        new window.google.translate.TranslateElement({
+                          pageLanguage: 'id',
+                          includedLanguages: 'id,en,ar',
+                          autoDisplay: false
+                        }, 'google_translate_element');
+                      }
+                    `
+                  }}
+                />
+                <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
               </AppProvider>
             </LicenseProvider>
           </AuthProvider>

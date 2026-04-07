@@ -84,3 +84,16 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Hide Google Translate UI */
+.goog-te-banner-frame.skiptranslate, 
+.goog-te-gadget-icon,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-text-highlight {
+  display: none !important;
+}
+
+body {
+  top: 0px !important;
+}

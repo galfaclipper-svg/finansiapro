@@ -10,6 +10,15 @@ import {
 import { Globe } from 'lucide-react';
 
 export function LanguageSwitcher() {
+  const switchLanguage = (lang: string) => {
+    // Set the cookie for Google Translate
+    document.cookie = `googtrans=/id/${lang}; path=/`;
+    document.cookie = `googtrans=/id/${lang}; domain=${window.location.hostname}; path=/`;
+    
+    // Reload the page to apply translation
+    window.location.reload();
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -19,13 +28,13 @@ export function LanguageSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => switchLanguage('id')}>
           Indonesia
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => switchLanguage('en')}>
           English
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => switchLanguage('ar')}>
           Arabic
         </DropdownMenuItem>
       </DropdownMenuContent>
