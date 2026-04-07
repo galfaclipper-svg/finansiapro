@@ -21,7 +21,7 @@ export default function EnterLicensePage() {
     
     setIsLoading(true);
     try {
-      await licenseService.validateAndClaimLicense(code, user.uid);
+      await licenseService.validateAndClaimLicense(code, user.uid, user.email);
       setSuccess(true);
       toast({
         title: "Lisensi Berhasil Diverifikasi",

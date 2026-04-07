@@ -15,6 +15,7 @@ export interface LicenseData {
   code: string;
   isUsed: boolean;
   usedByUserId: string | null;
+  usedByUserEmail?: string | null;
   createdAt: any;
   usedAt: any | null;
   createdBy: string;
@@ -59,7 +60,7 @@ export const licenseService = {
   },
 
   // Validate and claim a license for a user
-  async validateAndClaimLicense(code: string, userId: string): Promise<boolean> {
+  async validateAndClaimLicense(code: string, userId: string, userEmail?: string | null): Promise<boolean> {
     const codeUpper = code.toUpperCase().trim();
     const licenseRef = doc(db, 'licenses', codeUpper);
     const licenseSnap = await getDoc(licenseRef);
@@ -82,6 +83,7 @@ export const licenseService = {
     await updateDoc(licenseRef, {
       isUsed: true,
       usedByUserId: userId,
+      usedByUserEmail: userEmail || null,
       usedAt: serverTimestamp(),
     });
 

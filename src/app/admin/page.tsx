@@ -163,7 +163,11 @@ export default function AdminPage() {
                         {license.isUsed ? (
                           <div className="flex items-center gap-2 text-primary font-medium">
                             <User className="h-4 w-4 opacity-70" />
-                            <span className="truncate max-w-[150px]">{license.usedByUserId?.substring(0,8)}...</span>
+                            <div className="group relative">
+                              <span className="truncate max-w-[150px] block cursor-help" title={license.usedByUserEmail || license.usedByUserId || ''}>
+                                {license.usedByUserEmail ? license.usedByUserEmail : (license.usedByUserId ? `${license.usedByUserId.substring(0,8)}...` : 'N/A')}
+                              </span>
+                            </div>
                           </div>
                         ) : (
                           <span className="text-gray-400 italic">-</span>
