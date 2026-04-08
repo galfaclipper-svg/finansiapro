@@ -24,6 +24,23 @@ export function BusinessPlanner() {
     recommendedPrice: 0,
   });
 
+  const handleChange = React.useCallback((updates: Partial<PlannerState>) => {
+    setPlannerState(prev => {
+      // Check if any keys are actually different to avoid infinite loop renders
+      let hasChanges = false;
+      for (const key in updates) {
+        if (updates[key as keyof PlannerState] !== prev[key as keyof PlannerState]) {
+          hasChanges = true;
+          break;
+        }
+      }
+      if (hasChanges) {
+        return { ...prev, ...updates };
+      }
+      return prev;
+    });
+  }, []);
+
   return (
     <Card className="border-border">
       <CardHeader>
@@ -42,13 +59,13 @@ export function BusinessPlanner() {
           <TabsContent value="hpp">
             <HppCalculator 
               state={plannerState} 
-              onChange={(updates) => setPlannerState(prev => ({ ...prev, ...updates }))} 
+              onChange={handleChange} 
             />
           </TabsContent>
           <TabsContent value="pricing">
             <PricingRecommendation 
               state={plannerState} 
-              onChange={(updates) => setPlannerState(prev => ({ ...prev, ...updates }))} 
+              onChange={handleChange} 
             />
           </TabsContent>
           <TabsContent value="analysis">
