@@ -16,26 +16,22 @@ interface Props {
 
 export function PricingRecommendation({ state, onChange }: Props) {
   const [method, setMethod] = React.useState<'markup' | 'margin'>('margin');
-  const [percentage, setPercentage] = React.useState(30);
+  const [percentage, setPercentage] = React.useState<number | string>(30);
 
   const formatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
   let recommendedPrice = 0;
   let profitPerUnit = 0;
+  const activePercentage = typeof percentage === 'number' ? percentage : (parseFloat(percentage) || 0);
 
   if (state.totalHpp > 0) {
     if (method === 'markup') {
-      // Markup = (Price - Cost) / Cost
-      // Price = Cost * (1 + markup)
-      recommendedPrice = state.totalHpp * (1 + percentage / 100);
+      recommendedPrice = state.totalHpp * (1 + activePercentage / 100);
     } else {
-      // Margin = (Price - Cost) / Price
-      // Price = Cost / (1 - margin)
-      if (percentage >= 100) {
-        // Prevent division by zero or negative
+      if (activePercentage >= 100) {
         recommendedPrice = state.totalHpp * 10; 
       } else {
-        recommendedPrice = state.totalHpp / (1 - percentage / 100);
+        recommendedPrice = state.totalHpp / (1 - activePercentage / 100);
       }
     }
     profitPerUnit = recommendedPrice - state.totalHpp;
@@ -86,17 +82,17 @@ export function PricingRecommendation({ state, onChange }: Props) {
 
               <div className="space-y-6 pt-2">
                 <div className="flex items-center justify-between">
-                  <Label>Target Persentase: <span className="text-primary font-bold">{percentage}%</span></Label>
+                  <Label>Target Persentase: <span className="text-primary font-bold">{activePercentage}%</span></Label>
                   <Input 
                     type="number" 
                     min="1" max={method === 'margin' ? "99" : "1000"} 
                     className="w-24 text-right"
                     value={percentage}
-                    onChange={(e) => setPercentage(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => setPercentage(e.target.value === '' ? '' : (parseFloat(e.target.value) || 0))}
                   />
                 </div>
                 <Slider 
-                  value={[percentage]} 
+                  value={[Math.max(1, activePercentage)]} 
                   min={1} 
                   max={method === 'margin' ? 99 : 200} 
                   step={1}

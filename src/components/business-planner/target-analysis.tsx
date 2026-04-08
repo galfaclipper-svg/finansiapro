@@ -50,7 +50,7 @@ export function TargetAnalysis({ state }: Props) {
   const paybackPeriodMonths = targetProfit > 0 ? investment / targetProfit : 0;
 
   // Chart Data Generator
-  const generateChartData = () => {
+  const generateChartData = React.useCallback(() => {
     const data = [];
     const step = Math.max(Math.ceil(bepUnits / 5), 10);
     const maxVal = Math.max(targetUnits + step, bepUnits * 2 + step);
@@ -64,12 +64,13 @@ export function TargetAnalysis({ state }: Props) {
       });
     }
     return data;
-  };
+  }, [bepUnits, targetUnits, price, fixedCosts, variableCost]);
 
-  const chartData = generateChartData();
+  const chartData = React.useMemo(() => generateChartData(), [generateChartData]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+  const renderTooltipContent = (props: any) => {
+    const { active, payload, label } = props;
+    if (active && payload && payload.length >= 2) {
       return (
         <div className="bg-background border border-border p-3 shadow-md rounded-lg text-sm">
           <p className="font-bold mb-2">Penjualan: {numberFormatter.format(label)} Unit</p>
@@ -230,7 +231,7 @@ export function TargetAnalysis({ state }: Props) {
                     axisLine={false} 
                     width={60}
                   />
-                  <RechartsTooltip content={<CustomTooltip />} />
+                  <RechartsTooltip content={renderTooltipContent} />
                   <Legend verticalAlign="top" height={36}/>
                   <Line 
                     type="monotone" 
