@@ -443,6 +443,11 @@ export default function ReportsPage() {
 
     // 6. Audit & Investor Metrics
     const auditSheetName = "Audit & Investor";
+    
+    // We already have string references to things on other sheets:
+    // netIncomeRow, totalRevenueRow, totalExpensesRow, etc.
+    
+    // Calculate static values for Status Evaluator (doesn't go in formula, since JS needs to know the text)
     const variableCosts = reportData.incomeStatement.expenses['Harga Pokok Penjualan'] || 0;
     let fixedCosts = 0;
     Object.entries(reportData.incomeStatement.expenses).forEach(([name, amt]) => {
@@ -456,36 +461,58 @@ export default function ReportsPage() {
     const totalEquityCalc = (equity['Modal Pemilik'] || 0) + (equity['Laba Ditahan'] || 0);
     const roi = totalEquityCalc > 0 ? (netIncome / totalEquityCalc) * 100 : 0;
     const roa = totalAssets > 0 ? (netIncome / totalAssets) * 100 : 0;
-    
+
     let healthStateTitle = '';
     let healthStateDesc = '';
     const totalCosts = fixedCosts + variableCosts;
     if (totalRevenue === 0 && totalCosts === 0) { healthStateTitle = 'EMPTY'; healthStateDesc = 'Belum ada data operasional.'; }
     else if (totalRevenue < bepRupiah) { healthStateTitle = 'CRITICAL ALERT (REVENUE UNDER BEP)'; healthStateDesc = 'Perusahaan saat ini mengalami kerugian operasional dan belum mencapai Titik Impas (BEP).'; }
-    else if (marginOfSafetyPercent < 15) { healthStateTitle = 'WARNING (MARGIN OF SAFETY RENDAH)'; healthStateDesc = 'Perusahaan berhasil melewati level impas, namun berada dalam rentan (Margin of Safety < 15%).'; }
+    else if (marginOfSafetyPercent < 15) { healthStateTitle = 'WARNING (MARGIN OF SAFETY RENDAH)'; healthStateDesc = 'Perusahaan berhasil melewati level impas, namun berada dalam batas rentan (Margin of Safety < 15%).'; }
     else if (roi > 20 && marginOfSafetyPercent > 30) { healthStateTitle = 'KEUANGAN SANGAT PRIMA (HIGH ROI)'; healthStateDesc = 'Pengembalian modal (ROI) sangat memuaskan, margin of safety aman. Risiko rendah.'; }
-    else { healthStateTitle = 'SEHAT & PROFITABLE'; healthStateDesc = 'Fundamental sehat. Pendapatan berada di level yang aman di atas Titik Impas.'; }
+    else { healthStateTitle = 'SEHAT & PROFITABLE'; healthStateDesc = 'Fundamental operasional sehat. Pendapatan berada di level yang aman di atas Titik Impas.'; }
 
     const auditData = [
-       [{v: companyName, s:headerStyle}], [{v: "Laporan Executive Audit & Investor", s:subHeaderStyle}], [{v: `Per ${today}`, s:dateStyle}], [],
-       [{v: "Kesimpulan Analisis Sistem", s:boldStyle}, ""],
-       ["Status Kesehatan", healthStateTitle],
-       ["Deskripsi", healthStateDesc],
+       [{v: companyName, s:headerStyle}, "", ""], 
+       [{v: "Laporan Executive Audit & Investor", s:subHeaderStyle}, "", ""], 
+       [{v: `Per ${today}`, s:dateStyle}, "", ""], 
        [],
-       [{v: "Indikator Utama", s:boldStyle}, ""],
-       ["Titik Impas (BEP Rupiah)", bepRupiah],
-       ["Batas Aman (Margin of Safety %)", marginOfSafetyPercent],
-       ["Total Biaya Tetap", fixedCosts],
-       ["Rasio Margin Kontribusi (%)", contributionMarginRatio * 100],
-       [],
-       [{v: "Kinerja Investasi", s:boldStyle}, ""],
-       ["Return on Investment (ROI %)", roi],
-       ["Return on Asset (ROA %)", roa],
-       ["Modal Pemilik", equity['Modal Pemilik'] || 0]
+       [{v: "Kesimpulan Analisis Sistem", s:boldStyle}, "", "Keterangan"],
+       ["Status Kesehatan", healthStateTitle, "-"],
+       ["Deskripsi", healthStateDesc, "-"],
+       [], // Row 8
+       [{v: "Komponen Operasional", s:boldStyle}, "", "Rumus Terintegrasi"],
+       ["Total Pendapatan", { t: 'n', f: `'${incomeSheetName}'!B${totalRevenueRow}` }, "Dari Total Laba Rugi"],
+       ["Total Biaya Variabel (HPP)", { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Harga Pokok Penjualan",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Harga Pokok Penjualan",'${journalSheetName}'!F:F)` }, "Akumulasi Debit - Kredit HPP"],
+       ["Total Biaya Tetap (Fixed Cost)", { t: 'n', f: `'${incomeSheetName}'!B${totalExpensesRow} - B11` }, "Total Beban - Biaya Variabel"],
+       ["Margin Kontribusi", { t: 'n', f: `B10 - B11` }, "Pendapatan - Biaya Variabel"],
+       ["Rasio Margin Kontribusi", { t: 'n', f: `IF(B10>0, B13/B10, 0)` }, "Margin Kontribusi / Pendapatan"],
+       [], // Row 15
+       [{v: "Indikator Target & Titik Impas (BEP)", s:boldStyle}, "", "Rumus Terintegrasi"],
+       ["Titik Impas (BEP Rupiah)", { t: 'n', f: `IF(B14>0, B12/B14, 0)` }, "Biaya Tetap / Rasio Margin Kont."],
+       ["Batas Aman (Margin of Safety Rp)", { t: 'n', f: `B10 - B17` }, "Pendapatan - Titik Impas (BEP)"],
+       ["Batas Aman (Margin of Safety %)", { t: 'n', f: `IF(B10>0, B18/B10, 0)` }, "MoS Rupiah / Pendapatan"],
+       [], // Row 20
+       [{v: "Kinerja Investasi (ROI & ROA)", s:boldStyle}, "", "Rumus Terintegrasi"],
+       ["Modal Pemilik (Owner Equity)", { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)` }, "Total Modal Disetor"],
+       ["Laba Ditahan", { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!E:E)` }, "Laba Ditahan Masa Lalu"],
+       ["Total Ekuitas Penjamin", { t: 'n', f: `B22 + B23` }, "Modal Pemilik + Laba Ditahan"],
+       ["Total Aset Tertanggung", { t: 'n', f: `'${balanceSheetName}'!B${assetEndRow + 1}` }, "Dari Total Aset Neraca"],
+       ["Laba Bersih Saat Ini", { t: 'n', f: `'${incomeSheetName}'!B${netIncomeRow}` }, "Dari Total Laba Bersih"],
+       ["Return on Investment (ROI)", { t: 'n', f: `IF(B24>0, B26/B24, 0)` }, "Laba Bersih / Total Ekuitas Penjamin"],
+       ["Return on Asset (ROA)", { t: 'n', f: `IF(B25>0, B26/B25, 0)` }, "Laba Bersih / Total Aset Tertanggung"]
     ];
+    
     const wsAudit = XLSX.utils.aoa_to_sheet(auditData);
-    wsAudit['!cols'] = [{wch: 40}, {wch: 20}];
-    applyNumberFormatting(wsAudit, [1]);
+    wsAudit['!cols'] = [{wch: 40}, {wch: 25}, {wch: 45}]; // Added width for formula explainer column
+    // Apply formatting. Rows 10 to 14, 17 to 18, 22 to 26 are currency. Row 14, 19, 27, 28 are percentage but we can leave them standard number or apply a percent format.
+    // Let's just use the standard number formatter `_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)` for all value rows except percentages, which will display nicely as decimals and we can format strictly.
+    applyNumberFormatting(wsAudit, [1]); 
+    // Format percentages specifically for column B row 13(14), 18(19), 26(27), 27(28)
+    const percentageCells = ['B14', 'B19', 'B27', 'B28'];
+    percentageCells.forEach(cell => {
+      if(wsAudit[cell]) wsAudit[cell].z = '0.00%';
+    });
+
     XLSX.utils.book_append_sheet(wb, wsAudit, auditSheetName);
 
     XLSX.writeFile(wb, "Laporan Keuangan FinansiaPro (Formula).xlsx");
