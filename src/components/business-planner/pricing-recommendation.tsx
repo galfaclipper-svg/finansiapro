@@ -23,22 +23,33 @@ export function PricingRecommendation({ state, onChange }: Props) {
   let profitPerUnit = 0;
   const activePercentage = typeof percentage === 'number' ? percentage : (parseFloat(percentage) || 0);
 
-  if (state.totalHpp > 0) {
+  // Helper function to calculate price
+  const calculatePrice = (baseHpp: number) => {
+    if (baseHpp <= 0) return { price: 0, profit: 0 };
+    let price = 0;
     if (method === 'markup') {
-      recommendedPrice = state.totalHpp * (1 + activePercentage / 100);
+      price = baseHpp * (1 + activePercentage / 100);
     } else {
       if (activePercentage >= 100) {
-        recommendedPrice = state.totalHpp * 10; 
+        price = baseHpp * 10; 
       } else {
-        recommendedPrice = state.totalHpp / (1 - activePercentage / 100);
+        price = baseHpp / (1 - activePercentage / 100);
       }
     }
-    profitPerUnit = recommendedPrice - state.totalHpp;
+    return { price, profit: price - baseHpp };
+  };
+
+  const isMulti = state.isMultiProduct && state.businessType === 'retail';
+
+  if (!isMulti && state.totalHpp > 0) {
+    const res = calculatePrice(state.totalHpp);
+    recommendedPrice = res.price;
+    profitPerUnit = res.profit;
   }
 
   React.useEffect(() => {
-    onChange({ recommendedPrice });
-  }, [recommendedPrice, onChange]);
+    if (!isMulti) onChange({ recommendedPrice });
+  }, [isMulti, recommendedPrice, onChange]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -51,8 +62,8 @@ export function PricingRecommendation({ state, onChange }: Props) {
           <CardContent className="pt-6">
             <div className="space-y-8">
               <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border">
-                <span className="text-sm font-medium">Dasar HPP:</span>
-                <span className="text-lg font-bold text-primary">{formatter.format(state.totalHpp)}</span>
+                <span className="text-sm font-medium">{isMulti ? 'Strategi berlaku untuk semua produk' : 'Dasar HPP:'}</span>
+                {!isMulti && <span className="text-lg font-bold text-primary">{formatter.format(state.totalHpp)}</span>}
               </div>
 
               <div className="space-y-4">
@@ -114,10 +125,36 @@ export function PricingRecommendation({ state, onChange }: Props) {
             <CardDescription>Harga jual ideal ke pelanggan.</CardDescription>
           </CardHeader>
           <CardContent>
-            {state.totalHpp === 0 ? (
+            {(!isMulti && state.totalHpp === 0) || (isMulti && state.multiProducts.length === 0) ? (
               <div className="flex flex-col items-center justify-center p-6 text-center text-muted-foreground bg-background rounded-lg border border-dashed border-border h-full">
                 <AlertCircle className="h-8 w-8 text-muted-foreground/50 mb-2" />
                 <p className="text-sm">Silakan isi Kalkulator HPP terlebih dahulu.</p>
+              </div>
+            ) : isMulti ? (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                {state.multiProducts.map(prod => {
+                  const totalQty = state.multiProducts.reduce((sum, p) => sum + p.qty, 0);
+                  const ongkirPerUnit = totalQty > 0 ? (state.globalOngkir / totalQty) : 0;
+                  const prodHpp = prod.hargaBeli + ongkirPerUnit + prod.kemasan;
+                  const { price: prodPrice, profit: prodProfit } = calculatePrice(prodHpp);
+
+                  return (
+                    <div key={prod.id} className="p-3 border rounded-lg bg-background shadow-sm space-y-2">
+                      <div className="flex justify-between items-start">
+                        <span className="font-semibold text-sm line-clamp-1 flex-1">{prod.name || 'Produk'}</span>
+                        <span className="text-xs text-muted-foreground ml-2 px-2 py-0.5 bg-muted rounded-full">HPP: {formatter.format(prodHpp)}</span>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <span className="text-xs text-muted-foreground">Harga Jual:</span>
+                        <span className="text-lg font-bold text-primary">{formatter.format(prodPrice)}</span>
+                      </div>
+                      <div className="flex items-center justify-between px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 rounded">
+                        <span className="text-[10px] font-medium uppercase">Laba/Unit</span>
+                        <span className="font-bold text-xs">{formatter.format(prodProfit)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="space-y-4">

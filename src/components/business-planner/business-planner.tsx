@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { DownloadCloud, FileText, Table } from "lucide-react";
 import { exportPlannerToExcel, exportPlannerToPdf } from '@/lib/export-planner';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export function BusinessPlanner() {
   const context = React.useContext(AppContext);
@@ -60,6 +62,20 @@ export function BusinessPlanner() {
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
+      
+      {plannerState.businessType === 'retail' && (
+        <div className="px-6 pb-4 flex items-center justify-end space-x-2">
+          <Label htmlFor="multi-product-mode" className="text-sm text-muted-foreground font-medium cursor-pointer">
+            Mode Multi-Produk (Batch)
+          </Label>
+          <Switch 
+            id="multi-product-mode" 
+            checked={plannerState.isMultiProduct} 
+            onCheckedChange={(checked) => handleChange({ isMultiProduct: checked })}
+          />
+        </div>
+      )}
+
       <CardContent>
         <Tabs defaultValue="hpp" className="w-full">
           <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">

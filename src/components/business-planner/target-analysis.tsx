@@ -17,6 +17,7 @@ interface Props {
 
 export function TargetAnalysis({ state, onChange }: Props) {
   const { fixedCosts = 5000000, investment = 20000000, targetUnits = 0 } = state;
+  const isMulti = state.isMultiProduct && state.businessType === 'retail';
 
   const formatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
   const numberFormatter = new Intl.NumberFormat('id-ID');
@@ -25,24 +26,62 @@ export function TargetAnalysis({ state, onChange }: Props) {
   const variableCost = state.totalHpp;
   const contributionMargin = price - variableCost;
 
-  // BEP Calculations
+  // -- Multi Product Portfolio Math --
+  let totalPortfolioRevenue = 0;
+  let totalPortfolioHpp = 0;
+
+  if (isMulti) {
+     const totalQty = state.multiProducts.reduce((sum, p) => sum + p.qty, 0);
+     const ongkirPerUnit = totalQty > 0 ? (state.globalOngkir / totalQty) : 0;
+     
+     state.multiProducts.forEach(prod => {
+        const prodHpp = prod.hargaBeli + ongkirPerUnit + prod.kemasan;
+        let prodPrice = 0;
+        const percentage = typeof state.pricingPercentage === 'number' ? state.pricingPercentage : parseFloat(state.pricingPercentage) || 0;
+        if (state.pricingMethod === 'markup') {
+          prodPrice = prodHpp * (1 + percentage / 100);
+        } else {
+          prodPrice = percentage >= 100 ? prodHpp * 10 : prodHpp / (1 - percentage / 100);
+        }
+        totalPortfolioRevenue += (prodPrice * prod.qty);
+        totalPortfolioHpp += (prodHpp * prod.qty);
+     });
+  }
+
+  let cmRatio = 0;
+  if (isMulti && totalPortfolioRevenue > 0) {
+      cmRatio = (totalPortfolioRevenue - totalPortfolioHpp) / totalPortfolioRevenue;
+  }
+
+  // -- BEP Calculations --
   let bepUnits = 0;
   let bepRevenue = 0;
 
-  if (contributionMargin > 0) {
-    bepUnits = Math.ceil(fixedCosts / contributionMargin);
-    bepRevenue = bepUnits * price;
+  if (isMulti) {
+      if (cmRatio > 0) {
+          bepRevenue = fixedCosts / cmRatio;
+      }
+  } else {
+      if (contributionMargin > 0) {
+        bepUnits = Math.ceil(fixedCosts / contributionMargin);
+        bepRevenue = bepUnits * price;
+      }
   }
 
-  // Target Profit
+  // Target Profit Math
   React.useEffect(() => {
-    if (bepUnits > 0 && targetUnits === 0) {
-      onChange({ targetUnits: Math.ceil(bepUnits * 1.5) }); // Default target 1.5x BEP
+    if (isMulti && bepRevenue > 0 && targetUnits === 0) {
+      // For multi, targetUnits stores Revenue (Omzet)
+      onChange({ targetUnits: Math.ceil(bepRevenue * 1.5) }); 
+    } else if (!isMulti && bepUnits > 0 && targetUnits === 0) {
+      onChange({ targetUnits: Math.ceil(bepUnits * 1.5) }); 
     }
-  }, [bepUnits, targetUnits, onChange]);
+  }, [isMulti, bepUnits, bepRevenue, targetUnits, onChange]);
 
-  const targetRevenue = targetUnits * price;
-  const targetTotalCost = fixedCosts + (targetUnits * variableCost);
+  const targetRevenue = isMulti ? targetUnits : (targetUnits * price);
+  const targetTotalCost = isMulti 
+     ? fixedCosts + (targetUnits * (1 - cmRatio)) 
+     : fixedCosts + (targetUnits * variableCost);
   const targetProfit = targetRevenue - targetTotalCost;
 
   // ROI / ROA
@@ -52,19 +91,33 @@ export function TargetAnalysis({ state, onChange }: Props) {
   // Chart Data Generator
   const generateChartData = React.useCallback(() => {
     const data = [];
-    const step = Math.max(Math.ceil(bepUnits / 5), 10);
-    const maxVal = Math.max(targetUnits + step, bepUnits * 2 + step);
-    
-    for (let u = 0; u <= maxVal; u += step) {
-      data.push({
-        unit: u,
-        pendapatan: u * price,
-        totalBiaya: fixedCosts + (u * variableCost),
-        biayaTetap: fixedCosts,
-      });
+    if (isMulti) {
+        if (cmRatio <= 0) return [];
+        const step = Math.max(Math.ceil(bepRevenue / 5), 1000000);
+        const maxVal = Math.max(targetUnits + step, bepRevenue * 2 + step);
+        for (let r = 0; r <= maxVal; r += step) {
+          data.push({
+            unit: r, // x-axis is Omzet
+            pendapatan: r,
+            totalBiaya: fixedCosts + (r * (1 - cmRatio)),
+            biayaTetap: fixedCosts,
+          });
+        }
+    } else {
+        if (contributionMargin <= 0) return [];
+        const step = Math.max(Math.ceil(bepUnits / 5), 10);
+        const maxVal = Math.max(targetUnits + step, bepUnits * 2 + step);
+        for (let u = 0; u <= maxVal; u += step) {
+          data.push({
+            unit: u, // x-axis is units
+            pendapatan: u * price,
+            totalBiaya: fixedCosts + (u * variableCost),
+            biayaTetap: fixedCosts,
+          });
+        }
     }
     return data;
-  }, [bepUnits, targetUnits, price, fixedCosts, variableCost]);
+  }, [isMulti, bepUnits, bepRevenue, targetUnits, price, fixedCosts, variableCost, cmRatio, contributionMargin]);
 
   const chartData = React.useMemo(() => generateChartData(), [generateChartData]);
 
@@ -73,7 +126,7 @@ export function TargetAnalysis({ state, onChange }: Props) {
     if (active && payload && payload.length >= 2) {
       return (
         <div className="bg-background border border-border p-3 shadow-md rounded-lg text-sm">
-          <p className="font-bold mb-2">Penjualan: {numberFormatter.format(label)} Unit</p>
+          <p className="font-bold mb-2 text-primary">{isMulti ? 'Omzet' : 'Penjualan'}: {isMulti ? formatter.format(label) : `${numberFormatter.format(label)} Unit`}</p>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center gap-2 mb-1">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
@@ -82,8 +135,8 @@ export function TargetAnalysis({ state, onChange }: Props) {
             </div>
           ))}
           <Separator className="my-2" />
-          <div className="flex items-center gap-2 font-bold text-primary">
-            <span>Laba Bersih:</span>
+          <div className="flex items-center gap-2 font-bold text-green-600 dark:text-green-400">
+            <span>Est. Laba Bersih:</span>
             <span>{formatter.format(payload[0].value - payload[1].value)}</span>
           </div>
         </div>
@@ -92,7 +145,11 @@ export function TargetAnalysis({ state, onChange }: Props) {
     return null;
   };
 
-  if (state.totalHpp === 0 || state.recommendedPrice === 0) {
+  const isInvalidState = isMulti 
+     ? state.multiProducts.length === 0 || totalPortfolioRevenue === 0
+     : state.totalHpp === 0 || state.recommendedPrice === 0;
+
+  if (isInvalidState) {
     return (
       <Card className="border-border border-dashed shadow-none bg-muted/20">
         <CardContent className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
@@ -142,20 +199,22 @@ export function TargetAnalysis({ state, onChange }: Props) {
               <Target className="h-5 w-5 text-primary" />
               Titik Impas (Break-Even Point)
             </CardTitle>
-            <CardDescription>Target minimal untuk tidak rugi.</CardDescription>
+            <CardDescription>{isMulti ? 'Minimal Omzet untuk tidak rugi.' : 'Target minimal untuk tidak rugi.'}</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-6">
-              {contributionMargin <= 0 ? (
-                <div className="text-destructive font-medium text-sm p-3 bg-destructive/10 rounded-md">
-                  Peringatan: Harga jual lebih rendah atau sama dengan HPP. Anda mengalami kerugian struktural. Naikkan harga jual atau turunkan HPP.
+              {(!isMulti && contributionMargin <= 0) || (isMulti && cmRatio <= 0) ? (
+                <div className="text-destructive font-medium text-sm p-3 bg-destructive/10 rounded-md border border-destructive/20">
+                  Peringatan: {isMulti ? 'Margin Keseluruhan Negatif. Naikkan Harga Jual per unit.' : 'Harga jual lebih rendah atau sama dengan HPP. Anda mengalami kerugian struktural. Naikkan harga jual atau turunkan HPP.'}
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-between items-end border-b border-border pb-3">
-                    <span className="text-sm font-medium text-muted-foreground">BEP Unit / Bulan</span>
-                    <span className="text-3xl font-bold text-primary">{numberFormatter.format(bepUnits)} <span className="text-base font-normal">Unit</span></span>
-                  </div>
+                  {!isMulti && (
+                    <div className="flex justify-between items-end border-b border-border pb-3">
+                      <span className="text-sm font-medium text-muted-foreground">BEP Unit / Bulan</span>
+                      <span className="text-3xl font-bold text-primary">{numberFormatter.format(bepUnits)} <span className="text-base font-normal">Unit</span></span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-end">
                     <span className="text-sm font-medium text-muted-foreground">BEP Omzet / Bulan</span>
                     <span className="text-3xl font-bold text-primary">{formatter.format(bepRevenue)}</span>

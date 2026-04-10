@@ -42,12 +42,26 @@ export type InventoryItem = {
 
 export type BusinessType = 'jasa' | 'retail' | 'manufaktur';
 
+export type PlannerProduct = {
+  id: string;
+  name: string;
+  hargaBeli: number;
+  qty: number;
+  kemasan: number;
+  hpp: number;
+  recommendedPrice: number;
+};
+
 export interface PlannerState {
   businessType: BusinessType;
   totalHpp: number;
   recommendedPrice: number;
   
   // HPP Data
+  isMultiProduct: boolean;
+  globalOngkir: number;
+  multiProducts: PlannerProduct[];
+  
   jasaData: { jamKerja: number, tarifPerJam: number, material: number };
   retailData: { hargaBeli: number, totalOngkir: number, jumlahItemOngkir: number, kemasan: number };
   manufakturData: { bahanBaku: number, tenagaKerja: number, overhead: number };

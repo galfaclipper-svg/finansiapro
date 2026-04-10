@@ -20,6 +20,12 @@ export function HppCalculator({ state, onChange }: Props) {
   const { jasaData, retailData, manufakturData } = state;
 
   React.useEffect(() => {
+    if (state.isMultiProduct && state.businessType === 'retail') {
+       // Multi-product calculations are handled dynamically in the table and pricing sections
+       onChange({ totalHpp: 0 }); // reset the single totalHpp
+       return;
+    }
+
     let total = 0;
     if (state.businessType === 'jasa') {
       total = (jasaData.jamKerja * jasaData.tarifPerJam) + jasaData.material;
@@ -29,7 +35,7 @@ export function HppCalculator({ state, onChange }: Props) {
       total = manufakturData.bahanBaku + manufakturData.tenagaKerja + manufakturData.overhead;
     }
     onChange({ totalHpp: total });
-  }, [state.businessType, jasaData, retailData, manufakturData, onChange]);
+  }, [state.businessType, state.isMultiProduct, jasaData, retailData, manufakturData, onChange]);
 
   const formatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
@@ -98,6 +104,118 @@ export function HppCalculator({ state, onChange }: Props) {
     </div>
   );
 
+  const totalQty = state.multiProducts.reduce((sum, p) => sum + p.qty, 0);
+  const ongkirPerUnit = totalQty > 0 ? (state.globalOngkir / totalQty) : 0;
+
+  const handleAddProduct = () => {
+    const newProduct = {
+      id: `prod-${Date.now()}`,
+      name: `Produk ${state.multiProducts.length + 1}`,
+      hargaBeli: 0,
+      qty: 1,
+      kemasan: 0,
+      hpp: 0,
+      recommendedPrice: 0
+    };
+    onChange({ multiProducts: [...state.multiProducts, newProduct] });
+  };
+
+  const handleUpdateProduct = (id: string, field: string, value: any) => {
+    onChange({
+      multiProducts: state.multiProducts.map(p => p.id === id ? { ...p, [field]: value } : p)
+    });
+  };
+
+  const handleRemoveProduct = (id: string) => {
+    onChange({ multiProducts: state.multiProducts.filter(p => p.id !== id) });
+  };
+
+  const renderMultiProductInputs = () => (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+      <div className="space-y-2 p-4 bg-primary/5 rounded-lg border border-primary/20">
+        <Label className="text-primary font-bold">Total Ongkos Kirim Global (Rp)</Label>
+        <CurrencyInput
+          value={state.globalOngkir || 0}
+          onValueChange={(val) => onChange({ globalOngkir: val || 0 })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Ongkos kirim ini akan dibagikan merata secara proporsional sesuai jumlah item ke semua produk di bawah.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <Label className="text-base">Daftar Produk / SKU</Label>
+          <Button type="button" size="sm" onClick={handleAddProduct} variant="outline" className="gap-2 shrink-0">
+            <PlusCircle className="w-4 h-4" /> Tambah Produk
+          </Button>
+        </div>
+
+        {state.multiProducts.length === 0 ? (
+          <div className="text-center p-8 bg-muted/20 border border-dashed rounded-lg text-muted-foreground text-sm">
+            Belum ada produk. Klik Tambah Produk untuk memulai perhitungan batch.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {state.multiProducts.map((prod, index) => {
+               const calculatedHpp = prod.hargaBeli + ongkirPerUnit + prod.kemasan;
+               return (
+                <div key={prod.id} className="p-4 border rounded-lg bg-card shadow-sm space-y-4 relative group">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-2 top-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveProduct(prod.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nama Produk</Label>
+                      <Input 
+                        value={prod.name} 
+                        onChange={(e) => handleUpdateProduct(prod.id, 'name', e.target.value)} 
+                        placeholder="Cth: Sepatu A"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Jumlah (Qty)</Label>
+                      <Input 
+                        type="number" min="1" step="1"
+                        value={prod.qty || ''} 
+                        onChange={(e) => handleUpdateProduct(prod.id, 'qty', parseInt(e.target.value) || 1)} 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Harga Beli per Unit (Rp)</Label>
+                      <CurrencyInput 
+                        value={prod.hargaBeli || 0} 
+                        onValueChange={(val) => handleUpdateProduct(prod.id, 'hargaBeli', val || 0)} 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Kemasan per Unit (Rp)</Label>
+                      <CurrencyInput 
+                        value={prod.kemasan || 0} 
+                        onValueChange={(val) => handleUpdateProduct(prod.id, 'kemasan', val || 0)} 
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-muted/30 rounded border text-sm">
+                    <span className="text-muted-foreground">Kalkulasi HPP per Unit:</span>
+                    <span className="font-bold text-primary">{formatter.format(calculatedHpp)}</span>
+                  </div>
+                </div>
+               );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+
   const renderManufakturInputs = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
       <div className="space-y-2">
@@ -156,7 +274,8 @@ export function HppCalculator({ state, onChange }: Props) {
 
               <div className="pt-2">
                 {state.businessType === 'jasa' && renderJasaInputs()}
-                {state.businessType === 'retail' && renderRetailInputs()}
+                {state.businessType === 'retail' && !state.isMultiProduct && renderRetailInputs()}
+                {state.businessType === 'retail' && state.isMultiProduct && renderMultiProductInputs()}
                 {state.businessType === 'manufaktur' && renderManufakturInputs()}
               </div>
             </div>
@@ -169,20 +288,45 @@ export function HppCalculator({ state, onChange }: Props) {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Calculator className="h-5 w-5 text-primary" />
-              Hasil HPP
+              Hasil HPP {state.isMultiProduct && state.businessType === 'retail' ? 'Batch' : ''}
             </CardTitle>
-            <CardDescription>Total Harga Pokok Penjualan (HPP) per unit.</CardDescription>
+            <CardDescription>
+              {state.isMultiProduct && state.businessType === 'retail' 
+                ? 'Rata-rata Harga Pokok Penjualan (HPP) per unit dari seluruh produk.' 
+                : 'Total Harga Pokok Penjualan (HPP) per unit.'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg bg-background p-4 border border-border shadow-inner text-center">
-              <span className="block text-sm text-muted-foreground mb-1">Total HPP per Unit</span>
-              <span className="text-3xl font-bold text-primary">
-                {formatter.format(state.totalHpp)}
-              </span>
-            </div>
+            {state.isMultiProduct && state.businessType === 'retail' ? (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-background p-4 border border-border shadow-inner text-center">
+                  <span className="block text-sm text-muted-foreground mb-1">Estimasi Total Nilai Belanja</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {formatter.format(state.multiProducts.reduce((sum, p) => sum + ((p.hargaBeli + ongkirPerUnit + p.kemasan) * p.qty), 0))}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-t pt-2">
+                  <span className="text-muted-foreground">Total Item:</span>
+                  <span className="font-bold">{totalQty} Pcs</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-t pt-2">
+                  <span className="text-muted-foreground">Ongkos Kirim/Unit:</span>
+                  <span className="font-bold">{formatter.format(ongkirPerUnit)}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg bg-background p-4 border border-border shadow-inner text-center">
+                <span className="block text-sm text-muted-foreground mb-1">Total HPP per Unit</span>
+                <span className="text-3xl font-bold text-primary">
+                  {formatter.format(state.totalHpp)}
+                </span>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="bg-primary/5 border-t border-primary/10 text-xs text-muted-foreground pt-4">
-            *Nilai HPP ini akan digunakan sebagai dasar perhitungan rekomendasi harga jual pada tab selanjutnya.
+            *{state.isMultiProduct && state.businessType === 'retail' 
+              ? 'Masing-masing nilai HPP produk akan digunakan pada tahap rekomendasi harga jual.' 
+              : 'Nilai HPP ini akan digunakan sebagai dasar perhitungan rekomendasi harga jual pada tab selanjutnya.'}
           </CardFooter>
         </Card>
       </div>
