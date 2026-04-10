@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy } from 'firebase/firestore';
-import type { CompanyProfile, Transaction, InventoryItem } from '@/lib/types';
+import type { CompanyProfile, Transaction, InventoryItem, PlannerState } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 import { useAuth } from '@/contexts/auth-provider';
@@ -25,6 +25,8 @@ interface AppContextType {
   setDateRange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
   resetData: () => Promise<void>;
   restoreBackupData: (data: any) => Promise<void>;
+  plannerState: PlannerState;
+  setPlannerState: React.Dispatch<React.SetStateAction<PlannerState>>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -36,6 +38,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [plannerState, setPlannerState] = useState<PlannerState>({
+    businessType: 'retail',
+    totalHpp: 0,
+    recommendedPrice: 0,
+    jasaData: { jamKerja: 1, tarifPerJam: 0, material: 0 },
+    retailData: { hargaBeli: 0, totalOngkir: 0, jumlahItemOngkir: 1, kemasan: 0 },
+    manufakturData: { bahanBaku: 0, tenagaKerja: 0, overhead: 0 },
+    pricingMethod: 'margin',
+    pricingPercentage: 30,
+    fixedCosts: 5000000,
+    investment: 20000000,
+    targetUnits: 0
+  });
 
   // Initialize date range
   useEffect(() => {
@@ -304,6 +319,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDateRange,
     resetData,
     restoreBackupData,
+    plannerState,
+    setPlannerState,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

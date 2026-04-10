@@ -12,12 +12,11 @@ import { Separator } from "@/components/ui/separator";
 
 interface Props {
   state: PlannerState;
+  onChange: (updates: Partial<PlannerState>) => void;
 }
 
-export function TargetAnalysis({ state }: Props) {
-  const [fixedCosts, setFixedCosts] = React.useState(5000000); // 5jt default
-  const [investment, setInvestment] = React.useState(20000000); // 20jt default
-  const [targetUnits, setTargetUnits] = React.useState(0);
+export function TargetAnalysis({ state, onChange }: Props) {
+  const { fixedCosts = 5000000, investment = 20000000, targetUnits = 0 } = state;
 
   const formatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
   const numberFormatter = new Intl.NumberFormat('id-ID');
@@ -37,10 +36,10 @@ export function TargetAnalysis({ state }: Props) {
 
   // Target Profit
   React.useEffect(() => {
-    if (bepUnits > 0) {
-      setTargetUnits(Math.ceil(bepUnits * 1.5)); // Default target 1.5x BEP
+    if (bepUnits > 0 && targetUnits === 0) {
+      onChange({ targetUnits: Math.ceil(bepUnits * 1.5) }); // Default target 1.5x BEP
     }
-  }, [bepUnits]);
+  }, [bepUnits, targetUnits, onChange]);
 
   const targetRevenue = targetUnits * price;
   const targetTotalCost = fixedCosts + (targetUnits * variableCost);
@@ -118,7 +117,7 @@ export function TargetAnalysis({ state }: Props) {
               <Label>Biaya Tetap per Bulan (Rp)</Label>
               <CurrencyInput 
                 value={fixedCosts || 0}
-                onValueChange={(val) => setFixedCosts(val || 0)}
+                onValueChange={(val) => onChange({ fixedCosts: val || 0 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Gaji bulanan, sewa tempat, internet, dll (yang tidak terpengaruh jumlah produksi).
@@ -128,7 +127,7 @@ export function TargetAnalysis({ state }: Props) {
               <Label>Total Nilai Investasi / Modal Awal (Rp)</Label>
               <CurrencyInput 
                 value={investment || 0}
-                onValueChange={(val) => setInvestment(val || 0)}
+                onValueChange={(val) => onChange({ investment: val || 0 })}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Biaya beli aset, mesin, renovasi awal. Digunakan untuk hitung ROI.
@@ -182,7 +181,7 @@ export function TargetAnalysis({ state }: Props) {
                 <Label>Simulasi Target Penjualan (Jumlah Unit / Bulan)</Label>
                 <CurrencyInput 
                   value={targetUnits || 0}
-                  onValueChange={(val) => setTargetUnits(val || 0)}
+                  onValueChange={(val) => onChange({ targetUnits: val || 0 })}
                 />
               </div>
 

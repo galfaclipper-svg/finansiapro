@@ -39,3 +39,25 @@ export type InventoryItem = {
   stock: number;
   costPerUnit: number;
 };
+
+export type BusinessType = 'jasa' | 'retail' | 'manufaktur';
+
+export interface PlannerState {
+  businessType: BusinessType;
+  totalHpp: number;
+  recommendedPrice: number;
+  
+  // HPP Data
+  jasaData: { jamKerja: number, tarifPerJam: number, material: number };
+  retailData: { hargaBeli: number, totalOngkir: number, jumlahItemOngkir: number, kemasan: number };
+  manufakturData: { bahanBaku: number, tenagaKerja: number, overhead: number };
+  
+  // Pricing Data
+  pricingMethod: 'markup' | 'margin';
+  pricingPercentage: number;
+  
+  // Analysis Data
+  fixedCosts: number;
+  investment: number;
+  targetUnits: number;
+}

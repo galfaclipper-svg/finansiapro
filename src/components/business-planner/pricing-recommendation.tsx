@@ -15,8 +15,7 @@ interface Props {
 }
 
 export function PricingRecommendation({ state, onChange }: Props) {
-  const [method, setMethod] = React.useState<'markup' | 'margin'>('margin');
-  const [percentage, setPercentage] = React.useState<number | string>(30);
+  const { pricingMethod: method, pricingPercentage: percentage } = state;
 
   const formatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 });
 
@@ -60,7 +59,7 @@ export function PricingRecommendation({ state, onChange }: Props) {
                 <Label>Metode Perhitungan</Label>
                 <RadioGroup 
                   value={method} 
-                  onValueChange={(val: 'markup' | 'margin') => setMethod(val)}
+                  onValueChange={(val: 'markup' | 'margin') => onChange({ pricingMethod: val })}
                   className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-4"
                 >
                   <div className="flex items-center space-x-2 border rounded-md p-3 flex-1 bg-background hover:bg-muted/50 cursor-pointer">
@@ -88,7 +87,7 @@ export function PricingRecommendation({ state, onChange }: Props) {
                     min="1" max={method === 'margin' ? "99" : "1000"} 
                     className="w-24 text-right"
                     value={percentage}
-                    onChange={(e) => setPercentage(e.target.value === '' ? '' : (parseFloat(e.target.value) || 0))}
+                    onChange={(e) => onChange({ pricingPercentage: e.target.value === '' ? 0 : (parseFloat(e.target.value) || 0) })}
                   />
                 </div>
                 <Slider 
@@ -96,7 +95,7 @@ export function PricingRecommendation({ state, onChange }: Props) {
                   min={1} 
                   max={method === 'margin' ? 99 : 200} 
                   step={1}
-                  onValueChange={(v) => setPercentage(v[0])}
+                  onValueChange={(v) => onChange({ pricingPercentage: v[0] })}
                   className="py-4"
                 />
               </div>

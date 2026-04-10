@@ -6,23 +6,17 @@ import { HppCalculator } from './hpp-calculator';
 import { PricingRecommendation } from './pricing-recommendation';
 import { TargetAnalysis } from './target-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-export type BusinessType = 'jasa' | 'retail' | 'manufaktur';
-
-export interface PlannerState {
-  businessType: BusinessType;
-  totalHpp: number;
-  fixedCosts: number;
-  recommendedPrice: number;
-}
+import { AppContext } from '@/contexts/app-provider';
+import { PlannerState } from '@/lib/types';
+import { Button } from "@/components/ui/button";
+import { DownloadCloud, FileText, Table } from "lucide-react";
+import { exportPlannerToExcel, exportPlannerToPdf } from '@/lib/export-planner';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export function BusinessPlanner() {
-  const [plannerState, setPlannerState] = React.useState<PlannerState>({
-    businessType: 'retail',
-    totalHpp: 0,
-    fixedCosts: 0,
-    recommendedPrice: 0,
-  });
+  const context = React.useContext(AppContext);
+  if (!context) throw new Error('AppContext required');
+  const { plannerState, setPlannerState } = context;
 
   const handleChange = React.useCallback((updates: Partial<PlannerState>) => {
     setPlannerState(prev => {
@@ -43,11 +37,28 @@ export function BusinessPlanner() {
 
   return (
     <Card className="border-border">
-      <CardHeader>
-        <CardTitle>Alat Perencana & Simulasi</CardTitle>
-        <CardDescription>
-          Hitung HPP, tentukan harga jual, dan proyeksikan keuntungan bisnis Anda.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+          <CardTitle>Alat Perencana & Simulasi</CardTitle>
+          <CardDescription>
+            Hitung HPP, tentukan harga jual, dan proyeksikan keuntungan bisnis Anda.
+          </CardDescription>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <DownloadCloud className="w-4 h-4" /> Export Hasil
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportPlannerToExcel(plannerState, context.companyProfile)} className="gap-2 cursor-pointer">
+              <Table className="w-4 h-4 text-green-600" /> Export ke Excel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportPlannerToPdf(plannerState, context.companyProfile)} className="gap-2 cursor-pointer">
+              <FileText className="w-4 h-4 text-red-600" /> Export ke PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="hpp" className="w-full">
@@ -69,7 +80,7 @@ export function BusinessPlanner() {
             />
           </TabsContent>
           <TabsContent value="analysis">
-            <TargetAnalysis state={plannerState} />
+            <TargetAnalysis state={plannerState} onChange={handleChange} />
           </TabsContent>
         </Tabs>
       </CardContent>

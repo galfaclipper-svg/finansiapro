@@ -17,9 +17,7 @@ interface Props {
 }
 
 export function HppCalculator({ state, onChange }: Props) {
-  const [jasaData, setJasaData] = React.useState({ jamKerja: 1, tarifPerJam: 0, material: 0 });
-  const [retailData, setRetailData] = React.useState({ hargaBeli: 0, totalOngkir: 0, jumlahItemOngkir: 1, kemasan: 0 });
-  const [manufakturData, setManufakturData] = React.useState({ bahanBaku: 0, tenagaKerja: 0, overhead: 0 });
+  const { jasaData, retailData, manufakturData } = state;
 
   React.useEffect(() => {
     let total = 0;
@@ -43,14 +41,14 @@ export function HppCalculator({ state, onChange }: Props) {
           <Input 
             type="number" min="0" step="0.1"
             value={jasaData.jamKerja || ''}
-            onChange={(e) => setJasaData(p => ({ ...p, jamKerja: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) => onChange({ jasaData: { ...jasaData, jamKerja: parseFloat(e.target.value) || 0 } })}
           />
         </div>
         <div className="space-y-2">
           <Label>Tarif per Jam (Rp)</Label>
           <CurrencyInput 
             value={jasaData.tarifPerJam || 0}
-            onValueChange={(val) => setJasaData(p => ({ ...p, tarifPerJam: val || 0 }))}
+            onValueChange={(val) => onChange({ jasaData: { ...jasaData, tarifPerJam: val || 0 } })}
           />
         </div>
       </div>
@@ -58,7 +56,7 @@ export function HppCalculator({ state, onChange }: Props) {
         <Label>Biaya Material Tambahan (Rp)</Label>
         <CurrencyInput 
           value={jasaData.material || 0}
-          onValueChange={(val) => setJasaData(p => ({ ...p, material: val || 0 }))}
+          onValueChange={(val) => onChange({ jasaData: { ...jasaData, material: val || 0 } })}
         />
       </div>
     </div>
@@ -70,7 +68,7 @@ export function HppCalculator({ state, onChange }: Props) {
         <Label>Harga Beli Produk (Per Unit) (Rp)</Label>
         <CurrencyInput
           value={retailData.hargaBeli || 0}
-          onValueChange={(val) => setRetailData(p => ({ ...p, hargaBeli: val || 0 }))}
+          onValueChange={(val) => onChange({ retailData: { ...retailData, hargaBeli: val || 0 } })}
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -78,7 +76,7 @@ export function HppCalculator({ state, onChange }: Props) {
           <Label>Total Ongkos Kirim (Global) (Rp)</Label>
           <CurrencyInput 
             value={retailData.totalOngkir || 0}
-            onValueChange={(val) => setRetailData(p => ({ ...p, totalOngkir: val || 0 }))}
+            onValueChange={(val) => onChange({ retailData: { ...retailData, totalOngkir: val || 0 } })}
           />
         </div>
         <div className="space-y-2">
@@ -86,7 +84,7 @@ export function HppCalculator({ state, onChange }: Props) {
           <Input 
             type="number" min="1" step="1"
             value={retailData.jumlahItemOngkir || ''}
-            onChange={(e) => setRetailData(p => ({ ...p, jumlahItemOngkir: parseInt(e.target.value) || 1 }))}
+            onChange={(e) => onChange({ retailData: { ...retailData, jumlahItemOngkir: parseInt(e.target.value) || 1 } })}
           />
         </div>
       </div>
@@ -94,7 +92,7 @@ export function HppCalculator({ state, onChange }: Props) {
         <Label>Biaya Kemasan (Per Unit) (Rp)</Label>
         <CurrencyInput 
           value={retailData.kemasan || 0}
-          onValueChange={(val) => setRetailData(p => ({ ...p, kemasan: val || 0 }))}
+          onValueChange={(val) => onChange({ retailData: { ...retailData, kemasan: val || 0 } })}
         />
       </div>
     </div>
@@ -106,21 +104,21 @@ export function HppCalculator({ state, onChange }: Props) {
         <Label>Biaya Bahan Baku (Per Unit) (Rp)</Label>
         <CurrencyInput 
           value={manufakturData.bahanBaku || 0}
-          onValueChange={(val) => setManufakturData(p => ({ ...p, bahanBaku: val || 0 }))}
+          onValueChange={(val) => onChange({ manufakturData: { ...manufakturData, bahanBaku: val || 0 } })}
         />
       </div>
       <div className="space-y-2">
         <Label>Biaya Tenaga Kerja Langsung (Per Unit) (Rp)</Label>
         <CurrencyInput 
           value={manufakturData.tenagaKerja || 0}
-          onValueChange={(val) => setManufakturData(p => ({ ...p, tenagaKerja: val || 0 }))}
+          onValueChange={(val) => onChange({ manufakturData: { ...manufakturData, tenagaKerja: val || 0 } })}
         />
       </div>
       <div className="space-y-2">
         <Label>Biaya Overhead Pabrik (Per Unit) (Rp)</Label>
         <CurrencyInput 
           value={manufakturData.overhead || 0}
-          onValueChange={(val) => setManufakturData(p => ({ ...p, overhead: val || 0 }))}
+          onValueChange={(val) => onChange({ manufakturData: { ...manufakturData, overhead: val || 0 } })}
         />
         <p className="text-xs text-muted-foreground mt-1">
           Contoh: Listrik mesin, penyusutan alat yang dibebankan per unit produksi.
