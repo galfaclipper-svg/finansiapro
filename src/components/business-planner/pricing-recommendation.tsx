@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PlannerState } from './business-planner';
+import { PlannerState } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
