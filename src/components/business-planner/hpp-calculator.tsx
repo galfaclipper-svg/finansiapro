@@ -4,6 +4,7 @@ import * as React from 'react';
 import { PlannerState, BusinessType } from './business-planner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface Props {
 
 export function HppCalculator({ state, onChange }: Props) {
   const [jasaData, setJasaData] = React.useState({ jamKerja: 1, tarifPerJam: 0, material: 0 });
-  const [retailData, setRetailData] = React.useState({ hargaBeli: 0, ongkir: 0, kemasan: 0 });
+  const [retailData, setRetailData] = React.useState({ hargaBeli: 0, totalOngkir: 0, jumlahItemOngkir: 1, kemasan: 0 });
   const [manufakturData, setManufakturData] = React.useState({ bahanBaku: 0, tenagaKerja: 0, overhead: 0 });
 
   React.useEffect(() => {
@@ -25,7 +26,7 @@ export function HppCalculator({ state, onChange }: Props) {
     if (state.businessType === 'jasa') {
       total = (jasaData.jamKerja * jasaData.tarifPerJam) + jasaData.material;
     } else if (state.businessType === 'retail') {
-      total = retailData.hargaBeli + retailData.ongkir + retailData.kemasan;
+      total = retailData.hargaBeli + (retailData.totalOngkir / (retailData.jumlahItemOngkir || 1)) + retailData.kemasan;
     } else if (state.businessType === 'manufaktur') {
       total = manufakturData.bahanBaku + manufakturData.tenagaKerja + manufakturData.overhead;
     }
@@ -47,19 +48,17 @@ export function HppCalculator({ state, onChange }: Props) {
         </div>
         <div className="space-y-2">
           <Label>Tarif per Jam (Rp)</Label>
-          <Input 
-            type="number" min="0" step="1000"
-            value={jasaData.tarifPerJam || ''}
-            onChange={(e) => setJasaData(p => ({ ...p, tarifPerJam: parseFloat(e.target.value) || 0 }))}
+          <CurrencyInput 
+            value={jasaData.tarifPerJam || 0}
+            onValueChange={(val) => setJasaData(p => ({ ...p, tarifPerJam: val || 0 }))}
           />
         </div>
       </div>
       <div className="space-y-2">
         <Label>Biaya Material Tambahan (Rp)</Label>
-        <Input 
-          type="number" min="0" step="1000"
-          value={jasaData.material || ''}
-          onChange={(e) => setJasaData(p => ({ ...p, material: parseFloat(e.target.value) || 0 }))}
+        <CurrencyInput 
+          value={jasaData.material || 0}
+          onValueChange={(val) => setJasaData(p => ({ ...p, material: val || 0 }))}
         />
       </div>
     </div>
@@ -68,30 +67,35 @@ export function HppCalculator({ state, onChange }: Props) {
   const renderRetailInputs = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
       <div className="space-y-2">
-        <Label>Harga Beli Produk (Rp)</Label>
-        <Input 
-          type="number" min="0" step="1000"
-          value={retailData.hargaBeli || ''}
-          onChange={(e) => setRetailData(p => ({ ...p, hargaBeli: parseFloat(e.target.value) || 0 }))}
+        <Label>Harga Beli Produk (Per Unit) (Rp)</Label>
+        <CurrencyInput
+          value={retailData.hargaBeli || 0}
+          onValueChange={(val) => setRetailData(p => ({ ...p, hargaBeli: val || 0 }))}
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Ongkos Kirim (Per Unit) (Rp)</Label>
-          <Input 
-            type="number" min="0" step="500"
-            value={retailData.ongkir || ''}
-            onChange={(e) => setRetailData(p => ({ ...p, ongkir: parseFloat(e.target.value) || 0 }))}
+          <Label>Total Ongkos Kirim (Global) (Rp)</Label>
+          <CurrencyInput 
+            value={retailData.totalOngkir || 0}
+            onValueChange={(val) => setRetailData(p => ({ ...p, totalOngkir: val || 0 }))}
           />
         </div>
         <div className="space-y-2">
-          <Label>Biaya Kemasan (Rp)</Label>
+          <Label>Jumlah Produk dalam Resi/Invoice</Label>
           <Input 
-            type="number" min="0" step="500"
-            value={retailData.kemasan || ''}
-            onChange={(e) => setRetailData(p => ({ ...p, kemasan: parseFloat(e.target.value) || 0 }))}
+            type="number" min="1" step="1"
+            value={retailData.jumlahItemOngkir || ''}
+            onChange={(e) => setRetailData(p => ({ ...p, jumlahItemOngkir: parseInt(e.target.value) || 1 }))}
           />
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Biaya Kemasan (Per Unit) (Rp)</Label>
+        <CurrencyInput 
+          value={retailData.kemasan || 0}
+          onValueChange={(val) => setRetailData(p => ({ ...p, kemasan: val || 0 }))}
+        />
       </div>
     </div>
   );
@@ -100,26 +104,23 @@ export function HppCalculator({ state, onChange }: Props) {
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
       <div className="space-y-2">
         <Label>Biaya Bahan Baku (Per Unit) (Rp)</Label>
-        <Input 
-          type="number" min="0" step="1000"
-          value={manufakturData.bahanBaku || ''}
-          onChange={(e) => setManufakturData(p => ({ ...p, bahanBaku: parseFloat(e.target.value) || 0 }))}
+        <CurrencyInput 
+          value={manufakturData.bahanBaku || 0}
+          onValueChange={(val) => setManufakturData(p => ({ ...p, bahanBaku: val || 0 }))}
         />
       </div>
       <div className="space-y-2">
         <Label>Biaya Tenaga Kerja Langsung (Per Unit) (Rp)</Label>
-        <Input 
-          type="number" min="0" step="1000"
-          value={manufakturData.tenagaKerja || ''}
-          onChange={(e) => setManufakturData(p => ({ ...p, tenagaKerja: parseFloat(e.target.value) || 0 }))}
+        <CurrencyInput 
+          value={manufakturData.tenagaKerja || 0}
+          onValueChange={(val) => setManufakturData(p => ({ ...p, tenagaKerja: val || 0 }))}
         />
       </div>
       <div className="space-y-2">
         <Label>Biaya Overhead Pabrik (Per Unit) (Rp)</Label>
-        <Input 
-          type="number" min="0" step="1000"
-          value={manufakturData.overhead || ''}
-          onChange={(e) => setManufakturData(p => ({ ...p, overhead: parseFloat(e.target.value) || 0 }))}
+        <CurrencyInput 
+          value={manufakturData.overhead || 0}
+          onValueChange={(val) => setManufakturData(p => ({ ...p, overhead: val || 0 }))}
         />
         <p className="text-xs text-muted-foreground mt-1">
           Contoh: Listrik mesin, penyusutan alat yang dibebankan per unit produksi.

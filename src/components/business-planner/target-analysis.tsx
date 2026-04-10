@@ -4,6 +4,7 @@ import * as React from 'react';
 import { PlannerState } from './business-planner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, ReferenceDot } from 'recharts';
 import { Target, BarChart3, Wallet } from "lucide-react";
@@ -115,10 +116,9 @@ export function TargetAnalysis({ state }: Props) {
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
               <Label>Biaya Tetap per Bulan (Rp)</Label>
-              <Input 
-                type="number" min="0" step="100000"
-                value={fixedCosts || ''}
-                onChange={(e) => setFixedCosts(parseFloat(e.target.value) || 0)}
+              <CurrencyInput 
+                value={fixedCosts || 0}
+                onValueChange={(val) => setFixedCosts(val || 0)}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Gaji bulanan, sewa tempat, internet, dll (yang tidak terpengaruh jumlah produksi).
@@ -126,10 +126,9 @@ export function TargetAnalysis({ state }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Total Nilai Investasi / Modal Awal (Rp)</Label>
-              <Input 
-                type="number" min="0" step="100000"
-                value={investment || ''}
-                onChange={(e) => setInvestment(parseFloat(e.target.value) || 0)}
+              <CurrencyInput 
+                value={investment || 0}
+                onValueChange={(val) => setInvestment(val || 0)}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Biaya beli aset, mesin, renovasi awal. Digunakan untuk hitung ROI.
@@ -180,11 +179,10 @@ export function TargetAnalysis({ state }: Props) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 space-y-6">
               <div className="space-y-2">
-                <Label>Simulasi Target Penjualan Unit / Bulan</Label>
-                <Input 
-                  type="number" min="0" step="1"
-                  value={targetUnits || ''}
-                  onChange={(e) => setTargetUnits(parseFloat(e.target.value) || 0)}
+                <Label>Simulasi Target Penjualan (Jumlah Unit / Bulan)</Label>
+                <CurrencyInput 
+                  value={targetUnits || 0}
+                  onValueChange={(val) => setTargetUnits(val || 0)}
                 />
               </div>
 
