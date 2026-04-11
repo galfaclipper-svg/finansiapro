@@ -166,47 +166,96 @@ export default function NewTransactionPage() {
   }, [isInventoryTransaction, itemFields.length, appendItem, form]);
 
 
-  const handleScan: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+  const handleScan: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsScanning(true);
 
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const imageDataUri = reader.result as string;
-      setScanPreview(imageDataUri);
-      try {
-        const result = await scanAndCategorizeTransaction({
-          imageDataUri,
-          coaCategories: CHART_OF_ACCOUNTS.map(acc => acc.name),
-        });
-        
-        form.reset({
-          ...form.getValues(),
-          date: new Date(result.date),
-          amount: result.amount,
-          description: result.description,
-          category: result.suggestedCategory,
-          type: result.type,
-        });
-        toast({
-          title: "Pindai Berhasil",
-          description: "Detail transaksi telah diisi sebelumnya.",
-        });
-      } catch (error) {
-        console.error("Scan failed:", error);
-        toast({
+    const img = document.createElement('img');
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setIsScanning(false);
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+
+      // Max dimension for compression
+      const MAX_SIZE = 800;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to compressed jpeg base64
+      const compressedDataUri = canvas.toDataURL('image/jpeg', 0.6);
+      URL.revokeObjectURL(objectUrl);
+      
+      setScanPreview(compressedDataUri);
+
+      // Run async server action
+      (async () => {
+        try {
+          const result = await scanAndCategorizeTransaction({
+            imageDataUri: compressedDataUri,
+            coaCategories: CHART_OF_ACCOUNTS.map(acc => acc.name),
+          });
+          
+          form.reset({
+            ...form.getValues(),
+            date: new Date(result.date),
+            amount: result.amount,
+            description: result.description,
+            category: result.suggestedCategory,
+            type: result.type,
+          });
+          toast({
+            title: "Pindai Berhasil",
+            description: "Detail transaksi telah diisi sebelumnya.",
+          });
+        } catch (error) {
+          console.error("Scan failed:", error);
+          toast({
+            variant: "destructive",
+            title: "Pindai Gagal",
+            description: "Terjadi kesalahan saat memproses gambar.",
+          });
+        } finally {
+          setIsScanning(false);
+        }
+      })();
+    };
+
+    img.onerror = () => {
+       setIsScanning(false);
+       URL.revokeObjectURL(objectUrl);
+       toast({
           variant: "destructive",
           title: "Pindai Gagal",
-          description: "Tidak dapat mengekstrak detail dari gambar.",
-        });
-      } finally {
-        setIsScanning(false);
-      }
+          description: "Format file gambar tidak didukung.",
+       });
     };
+    img.src = objectUrl;
   };
+
 
   const onSubmit: SubmitHandler<TransactionFormValues> = (data) => {
     addTransaction({ ...data, date: format(data.date, 'yyyy-MM-dd'), accountId: ''});
