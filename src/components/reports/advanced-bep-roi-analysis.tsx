@@ -154,6 +154,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono">{formatCurrency(bepRupiah)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Target mutlak yang harus dicapai agar tidak merugi.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Cara Hitung:</strong> Total Biaya Tetap dibagi Rasio Margin Kontribusi.
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -163,6 +166,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono">{marginOfSafetyPercent.toFixed(1)}%</div>
                         <p className="text-xs text-muted-foreground mt-1">Sisa porsi aman sebelum penjualan jeblok ke level rugi.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Cara Hitung:</strong> (Total Pendapatan Aktual - BEP Rupiah) / Total Pendapatan Aktual.
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -172,6 +178,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono">{formatCurrency(fixedCosts)}</div>
                         <p className="text-xs text-muted-foreground mt-1">Beban yang harus ditanggung lepas ada/tidaknya penjualan.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Cara Hitung:</strong> Total Semua Beban Operasional dikurangi HPP.
+                        </div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -181,6 +190,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono">{(contributionMarginRatio * 100).toFixed(1)}%</div>
                         <p className="text-xs text-muted-foreground mt-1">Daya tuas setiap 1 Rupiah penjualan terhadap laba.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Cara Hitung:</strong> (Pendapatan - Beban HPP) dibagi Pendapatan.
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -194,6 +206,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono text-slate-800">{roi.toFixed(2)}%</div>
                         <p className="text-xs text-slate-500 mt-1">Return on Investment dari total Ekuitas.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Cara Hitung:</strong> (Laba Bersih / Total Ekuitas) x 100%.
+                        </div>
                     </CardContent>
                 </Card>
                 <Card className="bg-slate-50 border-slate-200">
@@ -203,6 +218,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono text-slate-800">{roa.toFixed(2)}%</div>
                         <p className="text-xs text-slate-500 mt-1">Efektivitas total aset yang dimiliki mencetak laba.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Cara Hitung:</strong> (Laba Bersih / Total Aset) x 100%.
+                        </div>
                     </CardContent>
                 </Card>
                 <Card className="bg-slate-50 border-slate-200">
@@ -212,6 +230,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono text-slate-800">{formatCurrency(ownerEquity)}</div>
                         <p className="text-xs text-slate-500 mt-1">Nilai modal yang ditanam ke bisnis.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Sumber:</strong> Diambil langsung dari saldo Modal Pemilik awal + Laba Ditahan di Neraca.
+                        </div>
                     </CardContent>
                 </Card>
                 <Card className="bg-slate-50 border-slate-200">
@@ -221,6 +242,9 @@ export function AdvancedBEPROIAnalysis({ reportData }: DataProps) {
                     <CardContent>
                         <div className="text-2xl font-bold font-mono text-slate-800">{formatCurrency(totalAssets)}</div>
                         <p className="text-xs text-slate-500 mt-1">Total kekuatan aset saat ini.</p>
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-100/50 p-2 rounded">
+                            <strong className="text-slate-700">Sumber:</strong> Diambil dari Total Aset di Neraca.
+                        </div>
                     </CardContent>
                 </Card>
             </div>
