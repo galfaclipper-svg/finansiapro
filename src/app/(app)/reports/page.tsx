@@ -272,24 +272,32 @@ export default function ReportsPage() {
 
     // --- 1. Jurnal Umum ---
     const journalExportData: any[] = [
-      ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit"]
+      ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "HelperBukuBesar"]
     ];
-    reportData.generalJournal.journalEntries.forEach(entry => {
+    let helperCounts: Record<string, number> = {};
+    reportData.generalJournal.journalEntries.forEach((entry, index) => {
+        const rowNum = 2 + index;
+        const vAkun = entry.accountName;
+        helperCounts[vAkun] = (helperCounts[vAkun] || 0) + 1;
+        const vHelper = `${vAkun}${helperCounts[vAkun]}`;
+        
         journalExportData.push([
-            format(new Date(entry.date), 'yyyy-MM-dd'),
-            entry.id,
-            entry.accountName,
-            entry.description,
-            entry.entryType === 'Debit' ? entry.amount : 0,
-            entry.entryType === 'Credit' ? entry.amount : 0
+            { t: 's', v: format(new Date(entry.date), 'yyyy-MM-dd') },
+            { t: 's', v: entry.id },
+            { t: 's', v: vAkun },
+            { t: 's', v: entry.description },
+            { t: 'n', v: entry.entryType === 'Debit' ? entry.amount : 0 },
+            { t: 'n', v: entry.entryType === 'Credit' ? entry.amount : 0 },
+            { t: 'str', v: vHelper, f: `IF(C${rowNum}="","",C${rowNum}&COUNTIF($C$2:C${rowNum}, C${rowNum}))` }
         ]);
     });
-    for (let i = 0; i < 10; i++) {
-        journalExportData.push(["", "", "", "", 0, 0]);
+    for (let i = 0; i < 500; i++) {
+        const rowNum = 2 + reportData.generalJournal.journalEntries.length + i;
+        journalExportData.push(["", "", "", "", 0, 0, { t: 'str', f: `IF(C${rowNum}="","",C${rowNum}&COUNTIF($C$2:C${rowNum}, C${rowNum}))`}]);
     }
 
     const wsJournal = XLSX.utils.aoa_to_sheet(journalExportData);
-    wsJournal['!cols'] = [{wch: 12}, {wch: 10}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}];
+    wsJournal['!cols'] = [{wch: 12}, {wch: 10}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {hidden: true, wch: 15}];
     applyNumberFormatting(wsJournal, [4, 5]);
     XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
 
@@ -464,12 +472,8 @@ export default function ReportsPage() {
             const rowRef = 6 + i; 
             const prevRowRef = rowRef - 1;
             
-            const k = `ROW()-5`;
-            const rowArray = `ROW('${journalSheetName}'!$C$2:$C$5000)/('${journalSheetName}'!$C$2:$C$5000="${accountInfo.name}")`;
-            const agg = `AGGREGATE(15, 6, ${rowArray}, ${k})`;
-
             const createCol = (colStr: string) => 
-                `IFERROR(INDEX('${journalSheetName}'!${colStr}:${colStr}, ${agg}), "")`;
+                `IFERROR(INDEX('${journalSheetName}'!${colStr}:${colStr}, MATCH("${accountInfo.name}" & (ROW()-5), '${journalSheetName}'!G:G, 0)), "")`;
 
             let saldoFormula = "";
             if (isNormalDebit) {
