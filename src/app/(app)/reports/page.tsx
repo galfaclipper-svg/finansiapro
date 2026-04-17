@@ -265,9 +265,7 @@ export default function ReportsPage() {
       }
     };
 
-    const addBackNav = (ws: XLSX.WorkSheet, origin: string) => {
-        XLSX.utils.sheet_add_aoa(ws, [[{ v: "⬅️ MENU", l: { Target: "#'DAFTAR ISI'!A1" }, s: { font: { color: { rgb: "FFFFFF" }, bold: true }, fill: { fgColor: { rgb: "0052cc" } }, alignment: { horizontal: "center" } } }]], { origin });
-    };
+    const backMenuBtn = { v: "⬅️ MENU", l: { Target: "#'DAFTAR ISI'!A1" }, s: { font: { color: { rgb: "FFFFFF" }, bold: true }, fill: { fgColor: { rgb: "0052cc" } }, alignment: { horizontal: "center" } } };
 
     const applyTableBorders = (ws: XLSX.WorkSheet) => {
         const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
@@ -331,7 +329,7 @@ export default function ReportsPage() {
 
     // --- 1. Jurnal Umum ---
     const journalExportData: any[] = [
-      ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Cek Pengetikan", "HelperBukuBesar"]
+      ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Cek Pengetikan", "HelperBukuBesar", backMenuBtn]
     ];
     let helperCounts: Record<string, number> = {};
     reportData.generalJournal.journalEntries.forEach((entry, index) => {
@@ -365,21 +363,19 @@ export default function ReportsPage() {
     const wsJournal = XLSX.utils.aoa_to_sheet(journalExportData);
     wsJournal['!cols'] = [{wch: 12}, {wch: 15}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 40}, {hidden: true, wch: 20}, {wch: 15}];
     applyNumberFormatting(wsJournal, [4, 5]);
-    addBackNav(wsJournal, "I1");
     applyTableBorders(wsJournal);
     XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
 
     // Daftar Akun (Referensi)
-    const wsAccountList = XLSX.utils.aoa_to_sheet([["Daftar Akun Referensi (WAJIB SAMA)"], ...CHART_OF_ACCOUNTS.map(a => [a.name])]);
+    const wsAccountList = XLSX.utils.aoa_to_sheet([["Daftar Akun Referensi (WAJIB SAMA)", "", backMenuBtn], ...CHART_OF_ACCOUNTS.map(a => [a.name])]);
     wsAccountList['!cols'] = [{wch: 35}, {wch: 10}, {wch: 15}];
-    addBackNav(wsAccountList, "C1");
     applyTableBorders(wsAccountList);
     XLSX.utils.book_append_sheet(wb, wsAccountList, 'Daftar Akun');
 
     // --- 2. Laporan Laba Rugi ---
     const incomeSheetName = "Laba Rugi";
     const incomeData: any[] = [
-      [{v: companyName, s:headerStyle}],
+      [{v: companyName, s:headerStyle}, "", backMenuBtn],
       [{v: incomeSheetName, s:subHeaderStyle}],
       [{v: `Per Tanggal Cetak`, s:dateStyle}],
       [],
@@ -418,14 +414,13 @@ export default function ReportsPage() {
     const wsIncome = XLSX.utils.aoa_to_sheet(incomeData);
     wsIncome['!cols'] = [{wch: 40}, {wch: 20}, {wch: 10}, {wch: 15}];
     applyNumberFormatting(wsIncome, [1]);
-    addBackNav(wsIncome, "D1");
     applyTableBorders(wsIncome);
     XLSX.utils.book_append_sheet(wb, wsIncome, incomeSheetName);
 
     // --- 3. Neraca ---
     const balanceSheetName = "Neraca";
     const balanceSheetData: any[] = [
-      [{v: companyName, s:headerStyle}], [{v: balanceSheetName, s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
+      [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: balanceSheetName, s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
       [{v:"Aset", s:boldStyle}]
     ];
 
@@ -479,7 +474,6 @@ export default function ReportsPage() {
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
     wsBalance['!cols'] = [{wch: 40}, {wch: 20}, {wch: 10}, {wch: 15}];
     applyNumberFormatting(wsBalance, [1]);
-    addBackNav(wsBalance, "D1");
     applyTableBorders(wsBalance);
     XLSX.utils.book_append_sheet(wb, wsBalance, balanceSheetName);
 
@@ -487,7 +481,7 @@ export default function ReportsPage() {
     // --- 4. Laporan Arus Kas (Indirect Method - DYNAMIC) ---
     const cashFlowSheetName = "Arus Kas";
     const cashFlowData: any[] = [
-        [{v: companyName, s:headerStyle}], [{v: "Laporan Arus Kas (Indirect Method)", s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
+        [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: "Laporan Arus Kas (Indirect Method)", s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
         
         [{v: "Aktivitas Operasi", s: boldStyle}],
         ["  Laba Bersih", {t:'n', f:`'${incomeSheetName}'!B${netIncomeRow}`}],
@@ -531,7 +525,6 @@ export default function ReportsPage() {
     const wsCashFlow = XLSX.utils.aoa_to_sheet(cashFlowData);
     wsCashFlow['!cols'] = [{wch: 45}, {wch: 20}, {wch: 10}, {wch: 15}];
     applyNumberFormatting(wsCashFlow, [1]);
-    addBackNav(wsCashFlow, "D1");
     applyTableBorders(wsCashFlow);
     XLSX.utils.book_append_sheet(wb, wsCashFlow, cashFlowSheetName);
 
@@ -540,7 +533,7 @@ export default function ReportsPage() {
         const ledgerSheetName = sanitizeSheetName(accountInfo.name);
         const ledgerSheetData: any[] = [
             [{v: companyName, s:headerStyle}], [{v: `Buku Besar: ${accountInfo.name}`, s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
-            ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Saldo"],
+            ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Saldo", backMenuBtn],
         ];
         
         const wsLedger = XLSX.utils.aoa_to_sheet(ledgerSheetData);
@@ -604,7 +597,6 @@ export default function ReportsPage() {
         
         wsLedger['!cols'] = [{wch: 12}, {wch: 10}, {wch: 25}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}];
         applyNumberFormatting(wsLedger, [4, 5, 6]); 
-        addBackNav(wsLedger, "H1");
         applyTableBorders(wsLedger);
         XLSX.utils.book_append_sheet(wb, wsLedger, ledgerSheetName);
     });
@@ -613,7 +605,7 @@ export default function ReportsPage() {
     const auditSheetName = "Audit & Investor";
     
     const auditData: any[] = [
-       [{v: companyName, s:headerStyle}, "", ""], 
+       [{v: companyName, s:headerStyle}, "", "", "", backMenuBtn], 
        [{v: "Laporan Executive Audit & Investor", s:subHeaderStyle}, "", ""], 
        [{v: `Per Tanggal Cetak`, s:dateStyle}, "", ""], 
        [],
@@ -651,7 +643,6 @@ export default function ReportsPage() {
     percentageCells.forEach(cell => {
       if(wsAudit[cell]) wsAudit[cell].z = '0.00%';
     });
-    addBackNav(wsAudit, "E1");
     applyTableBorders(wsAudit);
 
     XLSX.utils.book_append_sheet(wb, wsAudit, auditSheetName);
