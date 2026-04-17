@@ -457,6 +457,9 @@ export default function ReportsPage() {
         const wsLedger = XLSX.utils.aoa_to_sheet(ledgerSheetData);
         
         const isNormalDebit = ['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive';
+        const filteredEntries = reportData.generalJournal.journalEntries.filter(entry => entry.accountName === accountInfo.name);
+        let runningSaldo = 0;
+
         for (let i = 0; i < 500; i++) {
             const rowRef = 6 + i; 
             const prevRowRef = rowRef - 1;
@@ -477,15 +480,39 @@ export default function ReportsPage() {
                 else saldoFormula = `IF(A${rowRef}="","",G${prevRowRef}+F${rowRef}-E${rowRef})`;
             }
             
-            const rowData = [
-                { f: createCol('A') },
-                { f: createCol('B') },
-                { f: createCol('C') },
-                { f: createCol('D') },
-                { t: 'n', f: createCol('E') },
-                { t: 'n', f: createCol('F') },
-                { t: 'n', f: saldoFormula }
-            ];
+            const entry = filteredEntries[i];
+            let rowData;
+
+            if (entry) {
+                const vTanggal = format(new Date(entry.date), 'yyyy-MM-dd');
+                const vID = entry.id;
+                const vAkun = entry.accountName;
+                const vDeskripsi = entry.description;
+                const vDebit = entry.entryType === 'Debit' ? entry.amount : 0;
+                const vKredit = entry.entryType === 'Credit' ? entry.amount : 0;
+
+                runningSaldo += isNormalDebit ? (vDebit - vKredit) : (vKredit - vDebit);
+                
+                rowData = [
+                    { t: 's', v: vTanggal, f: createCol('A') },
+                    { t: 's', v: vID, f: createCol('B') },
+                    { t: 's', v: vAkun, f: createCol('C') },
+                    { t: 's', v: vDeskripsi, f: createCol('D') },
+                    { t: 'n', v: vDebit, f: createCol('E') },
+                    { t: 'n', v: vKredit, f: createCol('F') },
+                    { t: 'n', v: runningSaldo, f: saldoFormula }
+                ];
+            } else {
+                rowData = [
+                    { f: createCol('A') },
+                    { f: createCol('B') },
+                    { f: createCol('C') },
+                    { f: createCol('D') },
+                    { t: 'n', f: createCol('E') },
+                    { t: 'n', f: createCol('F') },
+                    { t: 'n', f: saldoFormula }
+                ];
+            }
 
             XLSX.utils.sheet_add_aoa(wsLedger, [rowData], {origin: `A${rowRef}`});
         }
