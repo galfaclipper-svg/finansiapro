@@ -272,7 +272,7 @@ export default function ReportsPage() {
 
     // --- 1. Jurnal Umum ---
     const journalExportData: any[] = [
-      ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "HelperBukuBesar"]
+      ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Cek Pengetikan", "HelperBukuBesar"]
     ];
     let helperCounts: Record<string, number> = {};
     reportData.generalJournal.journalEntries.forEach((entry, index) => {
@@ -288,18 +288,30 @@ export default function ReportsPage() {
             { t: 's', v: entry.description },
             { t: 'n', v: entry.entryType === 'Debit' ? entry.amount : 0 },
             { t: 'n', v: entry.entryType === 'Credit' ? entry.amount : 0 },
+            { t: 'str', f: `IF(C${rowNum}="","",IF(ISNUMBER(MATCH(C${rowNum},'Daftar Akun'!$A$2:$A$100,0)),"✅ OK", "❌ NAMA AKUN SALAH! Lihat Daftar Akun!"))` },
             { t: 'str', v: vHelper, f: `IF(C${rowNum}="","",C${rowNum}&COUNTIF($C$2:C${rowNum}, C${rowNum}))` }
         ]);
     });
     for (let i = 0; i < 500; i++) {
         const rowNum = 2 + reportData.generalJournal.journalEntries.length + i;
-        journalExportData.push(["", "", "", "", 0, 0, { t: 'str', f: `IF(C${rowNum}="","",C${rowNum}&COUNTIF($C$2:C${rowNum}, C${rowNum}))`}]);
+        journalExportData.push([
+            "", 
+            { t: 'str', f: `IF(C${rowNum}="","",IF(A${rowNum}<>"", "TRX-"&TEXT(ROW(),"0000"), B${rowNum-1}))` }, 
+            "", "", 0, 0, 
+            { t: 'str', f: `IF(C${rowNum}="","",IF(ISNUMBER(MATCH(C${rowNum},'Daftar Akun'!$A$2:$A$100,0)),"✅ OK", "❌ NAMA AKUN SALAH! Lihat Daftar Akun!"))` }, 
+            { t: 'str', f: `IF(C${rowNum}="","",C${rowNum}&COUNTIF($C$2:C${rowNum}, C${rowNum}))`}
+        ]);
     }
 
     const wsJournal = XLSX.utils.aoa_to_sheet(journalExportData);
-    wsJournal['!cols'] = [{wch: 12}, {wch: 10}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {hidden: true, wch: 15}];
+    wsJournal['!cols'] = [{wch: 12}, {wch: 15}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 40}, {hidden: true, wch: 20}];
     applyNumberFormatting(wsJournal, [4, 5]);
     XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
+
+    // Daftar Akun (Referensi)
+    const wsAccountList = XLSX.utils.aoa_to_sheet([["Daftar Akun Referensi (WAJIB SAMA)"], ...CHART_OF_ACCOUNTS.map(a => [a.name])]);
+    wsAccountList['!cols'] = [{wch: 35}];
+    XLSX.utils.book_append_sheet(wb, wsAccountList, 'Daftar Akun');
 
     // --- 2. Laporan Laba Rugi ---
     const incomeSheetName = "Laba Rugi";
@@ -473,7 +485,7 @@ export default function ReportsPage() {
             const prevRowRef = rowRef - 1;
             
             const createCol = (colStr: string) => 
-                `IFERROR(INDEX('${journalSheetName}'!${colStr}:${colStr}, MATCH("${accountInfo.name}" & (ROW()-5), '${journalSheetName}'!G:G, 0)), "")`;
+                `IFERROR(INDEX('${journalSheetName}'!${colStr}:${colStr}, MATCH("${accountInfo.name}" & (ROW()-5), '${journalSheetName}'!H:H, 0)), "")`;
 
             let saldoFormula = "";
             if (isNormalDebit) {
