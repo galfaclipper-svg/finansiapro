@@ -456,13 +456,18 @@ export default function ReportsPage() {
         
         const wsLedger = XLSX.utils.aoa_to_sheet(ledgerSheetData);
         
-        XLSX.utils.sheet_add_aoa(wsLedger, [[{ t: 'str', f: `FILTER('${journalSheetName}'!A:F, '${journalSheetName}'!C:C="${accountInfo.name}", "")`} ]], {origin: "A6"}); 
-
         const isNormalDebit = ['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive';
         for (let i = 0; i < 500; i++) {
             const rowRef = 6 + i; 
             const prevRowRef = rowRef - 1;
             
+            const k = `ROW()-5`;
+            const rowArray = `ROW('${journalSheetName}'!$C$2:$C$5000)/('${journalSheetName}'!$C$2:$C$5000="${accountInfo.name}")`;
+            const agg = `AGGREGATE(15, 6, ${rowArray}, ${k})`;
+
+            const createCol = (colStr: string) => 
+                `IFERROR(INDEX('${journalSheetName}'!${colStr}:${colStr}, ${agg}), "")`;
+
             let saldoFormula = "";
             if (isNormalDebit) {
                 if (i === 0) saldoFormula = `IF(A${rowRef}="","",E${rowRef}-F${rowRef})`;
@@ -472,9 +477,17 @@ export default function ReportsPage() {
                 else saldoFormula = `IF(A${rowRef}="","",G${prevRowRef}+F${rowRef}-E${rowRef})`;
             }
             
-            XLSX.utils.sheet_add_aoa(wsLedger, [[ {t:'n', f: saldoFormula} ]], {origin: `G${rowRef}`});
-            
-            // Format Saldo row manually since our function might miss it if it renders 0 first? No, we set applyNumberFormatting 1 to 500.
+            const rowData = [
+                { f: createCol('A') },
+                { f: createCol('B') },
+                { f: createCol('C') },
+                { f: createCol('D') },
+                { t: 'n', f: createCol('E') },
+                { t: 'n', f: createCol('F') },
+                { t: 'n', f: saldoFormula }
+            ];
+
+            XLSX.utils.sheet_add_aoa(wsLedger, [rowData], {origin: `A${rowRef}`});
         }
         
         wsLedger['!cols'] = [{wch: 12}, {wch: 10}, {wch: 25}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 15}];
