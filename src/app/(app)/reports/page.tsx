@@ -377,7 +377,7 @@ export default function ReportsPage() {
     const incomeData: any[] = [
       [{v: companyName, s:headerStyle}, "", backMenuBtn],
       [{v: incomeSheetName, s:subHeaderStyle}],
-      [{v: `Per Tanggal Cetak`, s:dateStyle}],
+      [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}],
       [],
     ];
     
@@ -420,7 +420,7 @@ export default function ReportsPage() {
     // --- 3. Neraca ---
     const balanceSheetName = "Neraca";
     const balanceSheetData: any[] = [
-      [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: balanceSheetName, s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
+      [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: balanceSheetName, s:subHeaderStyle}], [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}], [],
       [{v:"Aset", s:boldStyle}]
     ];
 
@@ -481,7 +481,7 @@ export default function ReportsPage() {
     // --- 4. Laporan Arus Kas (Indirect Method - DYNAMIC) ---
     const cashFlowSheetName = "Arus Kas";
     const cashFlowData: any[] = [
-        [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: "Laporan Arus Kas (Indirect Method)", s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
+        [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: "Laporan Arus Kas (Indirect Method)", s:subHeaderStyle}], [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}], [],
         
         [{v: "Aktivitas Operasi", s: boldStyle}],
         ["  Laba Bersih", {t:'n', f:`'${incomeSheetName}'!B${netIncomeRow}`}],
@@ -532,7 +532,7 @@ export default function ReportsPage() {
     CHART_OF_ACCOUNTS.forEach(accountInfo => {
         const ledgerSheetName = sanitizeSheetName(accountInfo.name);
         const ledgerSheetData: any[] = [
-            [{v: companyName, s:headerStyle}], [{v: `Buku Besar: ${accountInfo.name}`, s:subHeaderStyle}], [{v: `Per Tanggal Cetak`, s:dateStyle}], [],
+            [{v: companyName, s:headerStyle}], [{v: `Buku Besar: ${accountInfo.name}`, s:subHeaderStyle}], [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}], [],
             ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Saldo", backMenuBtn],
         ];
         
@@ -607,7 +607,7 @@ export default function ReportsPage() {
     const auditData: any[] = [
        [{v: companyName, s:headerStyle}, "", "", "", backMenuBtn], 
        [{v: "Laporan Executive Audit & Investor", s:subHeaderStyle}, "", ""], 
-       [{v: `Per Tanggal Cetak`, s:dateStyle}, "", ""], 
+       [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}, "", ""], 
        [],
        [{v: "Kesimpulan Analisis Sistem", s:boldStyle}, "", "Keterangan"],
        
