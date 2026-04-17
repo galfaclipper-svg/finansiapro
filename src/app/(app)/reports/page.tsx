@@ -270,6 +270,39 @@ export default function ReportsPage() {
     const dateStyle = {font:{italic:true}};
     const boldStyle = {font:{bold:true}};
 
+    // --- 0. DAFTAR ISI (TOC) ---
+    const tocData: any[] = [
+        [{ v: "DAFTAR ISI LAPORAN KEUANGAN", s: { font: { bold: true, sz: 18 } } }],
+        [{ v: companyName, s: { font: { sz: 14 } } }],
+        [{ v: `Periode/Cetak: ${today}`, s: { font: { italic: true } } }],
+        [],
+        [{ v: "Silakan KLIK pada baris manapun di bawah untuk melompat langsung ke lembar (sheet) yang bersangkutan:", s: { font: { italic: true } } }],
+        [],
+        [{ v: "1. Utama & Transaksi", s: { font: { bold: true, sz: 14 } } }],
+        [{ v: "➡️ Jurnal Umum", l: { Target: "#'Jurnal Umum'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [{ v: "➡️ Daftar Akun (Referensi)", l: { Target: "#'Daftar Akun'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [],
+        [{ v: "2. Laporan Utama", s: { font: { bold: true, sz: 14 } } }],
+        [{ v: "➡️ Laba Rugi", l: { Target: "#'Laba Rugi'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [{ v: "➡️ Perubahan Modal", l: { Target: "#'Perubahan Modal'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [{ v: "➡️ Neraca", l: { Target: "#'Neraca'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [{ v: "➡️ Neraca Lajur (Trial Balance)", l: { Target: "#'Neraca Lajur'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [],
+        [{ v: "3. Alat Investigasi Khusus", s: { font: { bold: true, sz: 14 } } }],
+        [{ v: "➡️ Audit & Investor", l: { Target: "#'Audit & Investor'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [],
+        [{ v: "4. Buku Besar (Per Akun)", s: { font: { bold: true, sz: 14 } } }]
+    ];
+    
+    CHART_OF_ACCOUNTS.forEach(accountInfo => {
+        const safeName = sanitizeSheetName(accountInfo.name);
+        tocData.push([{ v: `      📓 BB: ${safeName}`, l: { Target: `#'${safeName}'!A1` }, s: { font: { color: { rgb: "3c78d8" }, underline: true } } }]);
+    });
+
+    const wsTOC = XLSX.utils.aoa_to_sheet(tocData);
+    wsTOC['!cols'] = [{ wch: 80 }];
+    XLSX.utils.book_append_sheet(wb, wsTOC, "DAFTAR ISI");
+
     // --- 1. Jurnal Umum ---
     const journalExportData: any[] = [
       ["Tanggal", "ID", "Akun", "Deskripsi", "Debit", "Kredit", "Cek Pengetikan", "HelperBukuBesar"]
