@@ -17,7 +17,7 @@ import { useAppState } from '@/hooks/use-app-state';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { useMemo } from 'react';
 import { CHART_OF_ACCOUNTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -255,7 +255,7 @@ export default function ReportsPage() {
 
     const applyNumberFormatting = (ws: XLSX.WorkSheet, cols: number[]) => {
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      for (let R = range.s.r + 1; R <= Math.max(range.e.r, 500); ++R) { 
+      for (let R = Math.max(range.s.r, 1); R <= Math.max(range.e.r, 500); ++R) { 
         for (const C of cols) {
           const cell_address = {c: C, r: R};
           const cell_ref = XLSX.utils.encode_cell(cell_address);
@@ -263,6 +263,33 @@ export default function ReportsPage() {
           ws[cell_ref].z = `_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)`;
         }
       }
+    };
+
+    const addBackNav = (ws: XLSX.WorkSheet, origin: string) => {
+        XLSX.utils.sheet_add_aoa(ws, [[{ v: "⬅️ MENU", l: { Target: "#'DAFTAR ISI'!A1" }, s: { font: { color: { rgb: "FFFFFF" }, bold: true }, fill: { fgColor: { rgb: "0052cc" } }, alignment: { horizontal: "center" } } }]], { origin });
+    };
+
+    const applyTableBorders = (ws: XLSX.WorkSheet) => {
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        const borderStyle = { style: "thin", color: { rgb: "D3D3D3" } };
+        const borders = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
+        for (let R = range.s.r; R <= range.e.r; ++R) { 
+            let rowHasData = false;
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell = ws[XLSX.utils.encode_cell({c: C, r: R})];
+                if (cell && cell.v !== undefined && cell.v !== "") rowHasData = true; 
+            }
+            if(!rowHasData) continue;
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cell_ref = XLSX.utils.encode_cell({c: C, r: R});
+                let cell = ws[cell_ref];
+                if (!cell) { ws[cell_ref] = { t: 's', v: '' }; cell = ws[cell_ref]; }
+                cell.s = cell.s || {};
+                if (cell.v !== "⬅️ MENU") {
+                    cell.s.border = borders;
+                }
+            }
+        }
     };
     
     const headerStyle = {font:{bold:true, sz:16}};
@@ -284,9 +311,8 @@ export default function ReportsPage() {
         [],
         [{ v: "2. Laporan Utama", s: { font: { bold: true, sz: 14 } } }],
         [{ v: "➡️ Laba Rugi", l: { Target: "#'Laba Rugi'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
-        [{ v: "➡️ Perubahan Modal", l: { Target: "#'Perubahan Modal'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
         [{ v: "➡️ Neraca", l: { Target: "#'Neraca'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
-        [{ v: "➡️ Neraca Lajur (Trial Balance)", l: { Target: "#'Neraca Lajur'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
+        [{ v: "➡️ Arus Kas", l: { Target: "#'Arus Kas'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
         [],
         [{ v: "3. Alat Investigasi Khusus", s: { font: { bold: true, sz: 14 } } }],
         [{ v: "➡️ Audit & Investor", l: { Target: "#'Audit & Investor'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
@@ -337,13 +363,17 @@ export default function ReportsPage() {
     }
 
     const wsJournal = XLSX.utils.aoa_to_sheet(journalExportData);
-    wsJournal['!cols'] = [{wch: 12}, {wch: 15}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 40}, {hidden: true, wch: 20}];
+    wsJournal['!cols'] = [{wch: 12}, {wch: 15}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 40}, {hidden: true, wch: 20}, {wch: 15}];
     applyNumberFormatting(wsJournal, [4, 5]);
+    addBackNav(wsJournal, "I1");
+    applyTableBorders(wsJournal);
     XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
 
     // Daftar Akun (Referensi)
     const wsAccountList = XLSX.utils.aoa_to_sheet([["Daftar Akun Referensi (WAJIB SAMA)"], ...CHART_OF_ACCOUNTS.map(a => [a.name])]);
-    wsAccountList['!cols'] = [{wch: 35}];
+    wsAccountList['!cols'] = [{wch: 35}, {wch: 10}, {wch: 15}];
+    addBackNav(wsAccountList, "C1");
+    applyTableBorders(wsAccountList);
     XLSX.utils.book_append_sheet(wb, wsAccountList, 'Daftar Akun');
 
     // --- 2. Laporan Laba Rugi ---
@@ -386,8 +416,10 @@ export default function ReportsPage() {
     const netIncomeRow = incomeData.length;
     
     const wsIncome = XLSX.utils.aoa_to_sheet(incomeData);
-    wsIncome['!cols'] = [{wch: 40}, {wch: 20}];
+    wsIncome['!cols'] = [{wch: 40}, {wch: 20}, {wch: 10}, {wch: 15}];
     applyNumberFormatting(wsIncome, [1]);
+    addBackNav(wsIncome, "D1");
+    applyTableBorders(wsIncome);
     XLSX.utils.book_append_sheet(wb, wsIncome, incomeSheetName);
 
     // --- 3. Neraca ---
@@ -445,8 +477,10 @@ export default function ReportsPage() {
     balanceSheetData.push([ {v: "Total Kewajiban & Ekuitas", s:boldStyle}, { t: 'n', f: `${totalLiabilitiesFormula}${totalEquityFormula}`, s:boldStyle} ]);
 
     const wsBalance = XLSX.utils.aoa_to_sheet(balanceSheetData);
-    wsBalance['!cols'] = [{wch: 40}, {wch: 20}];
+    wsBalance['!cols'] = [{wch: 40}, {wch: 20}, {wch: 10}, {wch: 15}];
     applyNumberFormatting(wsBalance, [1]);
+    addBackNav(wsBalance, "D1");
+    applyTableBorders(wsBalance);
     XLSX.utils.book_append_sheet(wb, wsBalance, balanceSheetName);
 
 
@@ -495,8 +529,10 @@ export default function ReportsPage() {
     cashFlowData.push(["[Pengecekan ke Neraca Kas+Bank]", {t:'n', f:`'${balanceSheetName}'!B${r_Kas}+'${balanceSheetName}'!B${r_Bank}`, s: dateStyle}]);
 
     const wsCashFlow = XLSX.utils.aoa_to_sheet(cashFlowData);
-    wsCashFlow['!cols'] = [{wch: 45}, {wch: 20}];
+    wsCashFlow['!cols'] = [{wch: 45}, {wch: 20}, {wch: 10}, {wch: 15}];
     applyNumberFormatting(wsCashFlow, [1]);
+    addBackNav(wsCashFlow, "D1");
+    applyTableBorders(wsCashFlow);
     XLSX.utils.book_append_sheet(wb, wsCashFlow, cashFlowSheetName);
 
     // --- 5. Buku Besar ---
@@ -566,8 +602,10 @@ export default function ReportsPage() {
             XLSX.utils.sheet_add_aoa(wsLedger, [rowData], {origin: `A${rowRef}`});
         }
         
-        wsLedger['!cols'] = [{wch: 12}, {wch: 10}, {wch: 25}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 15}];
+        wsLedger['!cols'] = [{wch: 12}, {wch: 10}, {wch: 25}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}];
         applyNumberFormatting(wsLedger, [4, 5, 6]); 
+        addBackNav(wsLedger, "H1");
+        applyTableBorders(wsLedger);
         XLSX.utils.book_append_sheet(wb, wsLedger, ledgerSheetName);
     });
 
@@ -607,12 +645,14 @@ export default function ReportsPage() {
     ];
 
     const wsAudit = XLSX.utils.aoa_to_sheet(auditData);
-    wsAudit['!cols'] = [{wch: 40}, {wch: 25}, {wch: 45}]; 
+    wsAudit['!cols'] = [{wch: 40}, {wch: 25}, {wch: 45}, {wch: 10}, {wch: 15}]; 
     applyNumberFormatting(wsAudit, [1]); 
     const percentageCells = ['B14', 'B19', 'B27', 'B28'];
     percentageCells.forEach(cell => {
       if(wsAudit[cell]) wsAudit[cell].z = '0.00%';
     });
+    addBackNav(wsAudit, "E1");
+    applyTableBorders(wsAudit);
 
     XLSX.utils.book_append_sheet(wb, wsAudit, auditSheetName);
 
