@@ -198,11 +198,13 @@ export default function ReportsPage() {
       
       const amount = t.type === 'cash-in' ? t.amount : -t.amount;
       
-      if (['Revenue', 'Expenses'].includes(account.type) || ['Persediaan Barang Dagang', 'Piutang Usaha', 'Utang Usaha'].includes(account.name)) {
-        operatingFlows.push({ name: t.description, amount: amount });
-      } else if (account.type === 'Assets' && !['Kas', 'Bank', 'Persediaan Barang Dagang', 'Piutang Usaha'].includes(account.name)) {
+      if (['Current Assets', 'Current Liabilities'].includes(account.category) || ['Revenue', 'Expenses'].includes(account.type)) {
+        if (!['Kas', 'Bank'].includes(account.name)) {
+           operatingFlows.push({ name: t.description, amount: amount });
+        }
+      } else if (['Fixed Assets', 'Intangible Assets'].includes(account.category)) {
         investingFlows.push({ name: t.description, amount: amount });
-      } else if (['Liabilities', 'Equity'].includes(account.type) && !['Utang Usaha'].includes(account.name)) {
+      } else if (['Long-term Liabilities', 'Owner Equity'].includes(account.category)) {
          financingFlows.push({ name: t.description, amount: amount });
       }
     });
@@ -424,18 +426,15 @@ export default function ReportsPage() {
       [{v:"Aset", s:boldStyle}]
     ];
 
-    let r_Kas = 0, r_Bank = 0, r_Peralatan = 0, r_AsetTakBerwujud = 0, r_Piutang = 0, r_Persediaan = 0;
-    let r_UtangUsaha = 0, r_UtangBank = 0;
+    let r_Kas = 0, r_Bank = 0;
+    const bsRows: Record<string, number> = {};
 
     const assetStartRow = balanceSheetData.length + 1;
     CHART_OF_ACCOUNTS.filter(a => a.type === 'Assets').forEach(acc => {
         const rowNum = balanceSheetData.length + 1;
+        bsRows[acc.name] = rowNum;
         if(acc.name === 'Kas') r_Kas = rowNum;
         if(acc.name === 'Bank') r_Bank = rowNum;
-        if(acc.name === 'Peralatan') r_Peralatan = rowNum;
-        if(acc.name === 'Aset Tak Berwujud') r_AsetTakBerwujud = rowNum;
-        if(acc.name === 'Piutang Usaha') r_Piutang = rowNum;
-        if(acc.name === 'Persediaan Barang Dagang') r_Persediaan = rowNum;
         
         balanceSheetData.push([ `  ${acc.name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)` }]);
     });
@@ -449,8 +448,7 @@ export default function ReportsPage() {
     const liabilityStartRow = balanceSheetData.length + 1;
     CHART_OF_ACCOUNTS.filter(a => a.type === 'Liabilities').forEach(acc => {
         const rowNum = balanceSheetData.length + 1;
-        if(acc.name === 'Utang Usaha') r_UtangUsaha = rowNum;
-        if(acc.name === 'Utang Bank') r_UtangBank = rowNum;
+        bsRows[acc.name] = rowNum;
         balanceSheetData.push([`    ${acc.name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)` }]);
     });
     const liabilityEndRow = balanceSheetData.length;
@@ -458,11 +456,14 @@ export default function ReportsPage() {
     balanceSheetData.push([{v:"  Ekuitas", s:boldStyle}]);
     const equityStartRow = balanceSheetData.length + 1;
     const r_Modal = balanceSheetData.length + 1;
+    bsRows['Modal Pemilik'] = r_Modal;
     balanceSheetData.push([`    Modal Pemilik`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)` }]);
     const r_LabaDitahan = balanceSheetData.length + 1;
+    bsRows['Laba Ditahan'] = r_LabaDitahan;
     balanceSheetData.push([`    Laba Ditahan`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!E:E)` }]);
     balanceSheetData.push([`    Laba Bersih (Periode Berjalan)`, { t: 'n', f: `'${incomeSheetName}'!B${netIncomeRow}` }]);
     const r_Prive = balanceSheetData.length + 1;
+    bsRows['Prive'] = r_Prive;
     balanceSheetData.push([`    Prive`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)` }]);
     const equityEndRow = balanceSheetData.length;
     
@@ -485,12 +486,20 @@ export default function ReportsPage() {
         
         [{v: "Aktivitas Operasi", s: boldStyle}],
         ["  Laba Bersih", {t:'n', f:`'${incomeSheetName}'!B${netIncomeRow}`}],
-        ["  Penyesuaian Penyusutan", {t:'n', f: r_BebanPenyusutan ? `'${incomeSheetName}'!B${r_BebanPenyusutan}` : `0`}],
-        ["  Penyesuaian Amortisasi", {t:'n', f: r_BebanAmortisasi ? `'${incomeSheetName}'!B${r_BebanAmortisasi}` : `0`}],
-        ["  Penurunan / (Kenaikan) Piutang Usaha", {t:'n', f:`-'${balanceSheetName}'!B${r_Piutang}`}],
-        ["  Penurunan / (Kenaikan) Persediaan", {t:'n', f:`-'${balanceSheetName}'!B${r_Persediaan}`}],
-        ["  Kenaikan / (Penurunan) Utang Usaha", {t:'n', f:`'${balanceSheetName}'!B${r_UtangUsaha}`}],
     ];
+
+    if (r_BebanPenyusutan) cashFlowData.push(["  Penyesuaian Penyusutan", {t:'n', f: `'${incomeSheetName}'!B${r_BebanPenyusutan}` }]);
+    if (r_BebanAmortisasi) cashFlowData.push(["  Penyesuaian Amortisasi", {t:'n', f: `'${incomeSheetName}'!B${r_BebanAmortisasi}` }]);
+
+    CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Assets' && !['Kas', 'Bank'].includes(a.name)).forEach(acc => {
+        const ref = bsRows[acc.name];
+        if (ref) cashFlowData.push([`  Penurunan / (Kenaikan) ${acc.name}`, {t:'n', f:`-'${balanceSheetName}'!B${ref}`}]);
+    });
+    CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Liabilities').forEach(acc => {
+        const ref = bsRows[acc.name];
+        if (ref) cashFlowData.push([`  Kenaikan / (Penurunan) ${acc.name}`, {t:'n', f:`'${balanceSheetName}'!B${ref}`}]);
+    });
+
     const r_OpStart = 6;
     const r_OpEnd = cashFlowData.length;
     cashFlowData.push([{v: "Kas Bersih dari Aktivitas Operasi", s: boldStyle}, {t:'n', f:`SUM(B${r_OpStart}:B${r_OpEnd})`}]);
@@ -499,28 +508,46 @@ export default function ReportsPage() {
     cashFlowData.push([]); 
     cashFlowData.push([{v: "Aktivitas Investasi", s: boldStyle}]); 
     const r_InvStart = cashFlowData.length + 1;
-    cashFlowData.push(["  Pembelian Peralatan", {t:'n', f:`-'${balanceSheetName}'!B${r_Peralatan}`}]); 
-    cashFlowData.push(["  Pembelian Aset Tak Berwujud", {t:'n', f:`-'${balanceSheetName}'!B${r_AsetTakBerwujud}`}]); 
+    CHART_OF_ACCOUNTS.filter(a => ['Fixed Assets', 'Intangible Assets'].includes(a.category) && !a.name.startsWith('Akumulasi')).forEach(acc => {
+        const ref = bsRows[acc.name];
+        if (ref) cashFlowData.push([`  Pembelian / (Penjualan) ${acc.name}`, {t:'n', f:`-'${balanceSheetName}'!B${ref}`}]);
+    });
     const r_InvEnd = cashFlowData.length;
-    cashFlowData.push([{v: "Kas Bersih dari Aktivitas Investasi", s: boldStyle}, {t:'n', f:`SUM(B${r_InvStart}:B${r_InvEnd})`}]); 
+    const invSumF = r_InvStart > r_InvEnd ? "0" : `SUM(B${r_InvStart}:B${r_InvEnd})`;
+    cashFlowData.push([{v: "Kas Bersih dari Aktivitas Investasi", s: boldStyle}, {t:'n', f:invSumF}]); 
     const r_InvTotal = cashFlowData.length;
 
     cashFlowData.push([]); 
     cashFlowData.push([{v: "Aktivitas Pendanaan", s: boldStyle}]); 
     const r_FinStart = cashFlowData.length + 1;
-    cashFlowData.push(["  Penerimaan Pinjaman Bank", {t:'n', f:`'${balanceSheetName}'!B${r_UtangBank}`}]); 
-    cashFlowData.push(["  Tambahan Modal Disetor", {t:'n', f:`'${balanceSheetName}'!B${r_Modal}`}]); 
-    cashFlowData.push(["  Laba Ditahan (Masa Lalu)", {t:'n', f:`'${balanceSheetName}'!B${r_LabaDitahan}`}]); 
-    cashFlowData.push(["  (Penarikan Prive)", {t:'n', f:`-'${balanceSheetName}'!B${r_Prive}`}]); 
+    CHART_OF_ACCOUNTS.filter(a => a.category === 'Long-term Liabilities').forEach(acc => {
+        const ref = bsRows[acc.name];
+        if (ref) cashFlowData.push([`  Penerimaan / (Pelunasan) ${acc.name}`, {t:'n', f:`'${balanceSheetName}'!B${ref}`}]);
+    });
+    CHART_OF_ACCOUNTS.filter(a => a.category === 'Owner Equity').forEach(acc => {
+        const ref = bsRows[acc.name];
+        if (ref) {
+            if (acc.name === 'Prive') {
+                cashFlowData.push([`  (Penarikan Prive)`, {t:'n', f:`-'${balanceSheetName}'!B${ref}`}]);
+            } else {
+                cashFlowData.push([`  Penambahan ${acc.name}`, {t:'n', f:`'${balanceSheetName}'!B${ref}`}]);
+            }
+        }
+    });
+
     const r_FinEnd = cashFlowData.length;
-    cashFlowData.push([{v: "Kas Bersih dari Aktivitas Pendanaan", s: boldStyle}, {t:'n', f:`SUM(B${r_FinStart}:B${r_FinEnd})`}]); 
+    const finSumF = r_FinStart > r_FinEnd ? "0" : `SUM(B${r_FinStart}:B${r_FinEnd})`;
+    cashFlowData.push([{v: "Kas Bersih dari Aktivitas Pendanaan", s: boldStyle}, {t:'n', f:finSumF}]); 
     const r_FinTotal = cashFlowData.length;
 
     cashFlowData.push([]); 
     cashFlowData.push([{v: "Kenaikan (Penurunan) Bersih Kas", s:boldStyle}, {t:'n', f:`B${r_OpTotal}+B${r_InvTotal}+B${r_FinTotal}`}]); 
     cashFlowData.push(["Saldo Kas & Bank Awal", {t:'n', v: 0}]); 
     cashFlowData.push([{v: "Saldo Kas & Bank Akhir", s:boldStyle}, {t:'n', f:`B${cashFlowData.length-1}+B${cashFlowData.length}`}]); 
-    cashFlowData.push(["[Pengecekan ke Neraca Kas+Bank]", {t:'n', f:`'${balanceSheetName}'!B${r_Kas}+'${balanceSheetName}'!B${r_Bank}`, s: dateStyle}]);
+    
+    const fKas = r_Kas ? `'${balanceSheetName}'!B${r_Kas}` : "0";
+    const fBank = r_Bank ? `'${balanceSheetName}'!B${r_Bank}` : "0";
+    cashFlowData.push(["[Pengecekan ke Neraca Kas+Bank]", {t:'n', f:`${fKas}+${fBank}`, s: dateStyle}]);
 
     const wsCashFlow = XLSX.utils.aoa_to_sheet(cashFlowData);
     wsCashFlow['!cols'] = [{wch: 45}, {wch: 20}, {wch: 10}, {wch: 15}];
