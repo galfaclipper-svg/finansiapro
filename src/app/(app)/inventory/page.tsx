@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, AlertCircle, CheckCircle2, FileSpreadsheet, FileText } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, AlertCircle, CheckCircle2, FileSpreadsheet, FileText, ArrowRightLeft } from 'lucide-react';
 import { ItemForm } from '@/components/inventory/item-form';
+import { StockAdjustmentForm, type AdjustmentFormValues } from '@/components/inventory/stock-adjustment-form';
 import { useToast } from '@/hooks/use-toast';
 import type { InventoryItem } from '@/lib/types';
 import * as XLSX from 'xlsx';
@@ -28,6 +29,10 @@ export default function InventoryPage() {
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    // Adjustment State
+    const [isAdjDialogOpen, setIsAdjDialogOpen] = useState(false);
+    const [itemToAdjust, setItemToAdjust] = useState<InventoryItem | null>(null);
+    
     // --- New Calculations ---
     const totalPcs = useMemo(() => inventory.reduce((sum, item) => sum + item.stock, 0), [inventory]);
     const totalValue = useMemo(() => inventory.reduce((sum, item) => sum + (item.stock * item.costPerUnit), 0), [inventory]);
@@ -35,6 +40,16 @@ export default function InventoryPage() {
     const neracaBalance = useMemo(() => {
         let balance = 0;
         transactions.forEach(t => {
+            const isNonCashAdj = t.description?.startsWith('[NON-CASH-ADJ]');
+            if (isNonCashAdj) {
+                 if (t.category === 'Beban Barang Rusak/Hilang') {
+                      balance -= t.amount;
+                 } else if (t.category === 'Persediaan Barang Dagang') {
+                      balance += t.amount;
+                 }
+                 return; // skip normal logic
+            }
+
             // Purchases of inventory recorded directly to 'Persediaan Barang Dagang'
             if (t.category === 'Persediaan Barang Dagang') {
                 if (t.type === 'cash-out') {
@@ -254,6 +269,49 @@ export default function InventoryPage() {
         }
     };
 
+    const handleOpenAdjustment = (item: InventoryItem) => {
+        setItemToAdjust(item);
+        setIsAdjDialogOpen(true);
+    };
+
+    const handleAdjustmentSubmit = async (values: AdjustmentFormValues) => {
+        if (!itemToAdjust) return;
+        setIsSubmitting(true);
+        try {
+            const delta = values.actualStock - itemToAdjust.stock;
+            if (delta === 0) {
+                toast({ title: "Tidak ada perubahan", description: "Stok fisik sama dengan stok sistem." });
+                setIsAdjDialogOpen(false);
+                setItemToAdjust(null);
+                return;
+            }
+
+            const amountValue = Math.abs(delta) * itemToAdjust.costPerUnit;
+            const category = delta < 0 ? 'Beban Barang Rusak/Hilang' : 'Persediaan Barang Dagang';
+            const notes = values.notes ? ` - ${values.notes}` : '';
+            const desc = `[NON-CASH-ADJ] Penyesuaian Stock Opname (Sistem: ${itemToAdjust.stock}, Fisik: ${values.actualStock})${notes}`;
+
+            await addTransaction({
+                date: new Date().toISOString().split('T')[0], // yyyy-MM-dd
+                description: desc,
+                amount: amountValue,
+                type: 'cash-out', // Required field, but won't affect Kas because of [NON-CASH-ADJ]
+                accountId: '', 
+                category: category,
+                itemId: itemToAdjust.id,
+                quantity: Math.abs(delta)
+            });
+
+            toast({ title: "Stok Disesuaikan", description: `Stok ${itemToAdjust.name} berhasil diperbarui menjadi ${values.actualStock}.` });
+            setIsAdjDialogOpen(false);
+            setItemToAdjust(null);
+        } catch (error) {
+            toast({ variant: 'destructive', title: "Terjadi Kesalahan", description: "Tidak dapat menyesuaikan stok." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
   return (
     <>
     <div className="space-y-8">
@@ -351,6 +409,9 @@ export default function InventoryPage() {
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onSelect={() => handleOpenAdjustment(item)}>
+                                                <ArrowRightLeft className="mr-2 h-4 w-4" /> Sesuaikan Stok
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem onSelect={() => handleOpenDialog(item)}>Ubah</DropdownMenuItem>
                                             <DropdownMenuItem onSelect={() => handleOpenAlert(item.id)} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
                                                 Hapus
@@ -386,6 +447,26 @@ export default function InventoryPage() {
                     initialData={itemToEdit}
                     isSubmitting={isSubmitting}
                 />
+            </div>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog open={isAdjDialogOpen} onOpenChange={(open) => { if (!isSubmitting) setIsAdjDialogOpen(open)}}>
+        <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+                <DialogTitle>Penyesuaian Stok Barang</DialogTitle>
+                <DialogDescription>
+                    Perbarui jumlah fisik riil di gudang untuk menyinkronkan data.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                {itemToAdjust && (
+                    <StockAdjustmentForm 
+                        onSubmit={handleAdjustmentSubmit}
+                        item={itemToAdjust}
+                        isSubmitting={isSubmitting}
+                    />
+                )}
             </div>
         </DialogContent>
     </Dialog>

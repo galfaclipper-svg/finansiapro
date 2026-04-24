@@ -88,6 +88,15 @@ export default function ReportsPage() {
         ];
       }
 
+      const isNonCashAdj = t.description?.startsWith('[NON-CASH-ADJ]');
+      if (isNonCashAdj) {
+          if (t.category === 'Beban Barang Rusak/Hilang') {
+             return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: t.amount }];
+          } else if (t.category === 'Persediaan Barang Dagang') {
+             return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Pendapatan Lain-lain', amount: t.amount }];
+          }
+      }
+
       // Standard cash transactions
       if (t.type === 'cash-in') {
           return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
