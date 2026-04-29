@@ -140,8 +140,8 @@ export default function TransactionsPage() {
               head: [['No', 'Tanggal', 'Deskripsi', 'Tipe', 'Kategori', 'Jumlah']],
               body: tableData,
               theme: 'grid',
-              headStyles: { fillColor: [41, 128, 185], halign: 'center' },
-              styles: { fontSize: 9, cellPadding: 3 },
+              headStyles: { fillColor: [41, 128, 185], halign: 'center', valign: 'middle' },
+              styles: { fontSize: 9, cellPadding: { top: 4, right: 4, bottom: 4, left: 4 }, valign: 'middle' },
               columnStyles: {
                   0: { halign: 'center', cellWidth: 10 },   
                   1: { halign: 'center', cellWidth: 25 },   

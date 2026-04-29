@@ -210,7 +210,8 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
       head: [['Produk', 'Qty', 'Beli', 'Ongkir/Unit', 'HPP/Unit', 'Harga Jual', 'Laba']],
       body: formattedHppData,
       theme: 'grid',
-      headStyles: { fillColor: headerColor },
+      styles: { valign: 'middle', cellPadding: { top: 4, right: 4, bottom: 4, left: 4 } },
+      headStyles: { fillColor: headerColor, valign: 'middle' },
       margin: { left: 40, right: 40 },
     });
 
@@ -238,7 +239,8 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
       head: [['Analisis & Target', 'Nilai', 'Keterangan']],
       body: analysisValRows,
       theme: 'grid',
-      headStyles: { fillColor: headerColor },
+      styles: { valign: 'middle', cellPadding: { top: 4, right: 4, bottom: 4, left: 4 } },
+      headStyles: { fillColor: headerColor, valign: 'middle' },
       margin: { left: 40, right: 40 },
     });
 
@@ -277,7 +279,8 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
       head: [['Komponen HPP', 'Nilai', 'Rumus / Keterangan']],
       body: formattedHppData,
       theme: 'grid',
-      headStyles: { fillColor: headerColor },
+      styles: { valign: 'middle', cellPadding: { top: 4, right: 4, bottom: 4, left: 4 } },
+      headStyles: { fillColor: headerColor, valign: 'middle' },
       margin: { left: 40, right: 40 },
     });
 
@@ -296,7 +299,8 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
       head: [['Strategi Pricing', 'Nilai', 'Rumus / Keterangan']],
       body: pricingValRows,
       theme: 'grid',
-      headStyles: { fillColor: headerColor },
+      styles: { valign: 'middle', cellPadding: { top: 4, right: 4, bottom: 4, left: 4 } },
+      headStyles: { fillColor: headerColor, valign: 'middle' },
       margin: { left: 40, right: 40 },
     });
 
@@ -324,7 +328,8 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
       head: [['Analisis & Target', 'Nilai', 'Rumus / Keterangan']],
       body: analysisValRows,
       theme: 'grid',
-      headStyles: { fillColor: headerColor },
+      styles: { valign: 'middle', cellPadding: { top: 4, right: 4, bottom: 4, left: 4 } },
+      headStyles: { fillColor: headerColor, valign: 'middle' },
       margin: { left: 40, right: 40 },
     });
   }

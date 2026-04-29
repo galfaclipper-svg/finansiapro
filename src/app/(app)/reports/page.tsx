@@ -733,15 +733,16 @@ export default function ReportsPage() {
         head: [['Deskripsi', 'Jumlah']],
         body: [
             [{content: 'Pendapatan', styles: {fontStyle: 'bold'}}],
-            ...Object.entries(reportData.incomeStatement.revenues).map(([cat, amt]) => [{content: `  ${cat}`, styles: {cellPadding: {left: 5}}}, {content: formatCurrency(amt), styles: {halign: 'right'}}]),
+            ...Object.entries(reportData.incomeStatement.revenues).map(([cat, amt]) => [{content: `  ${cat}`, styles: {cellPadding: { top: 4, right: 4, bottom: 4, left: 10 }}}, {content: formatCurrency(amt), styles: {halign: 'right'}}]),
             [{content:'Total Pendapatan', styles: {fontStyle: 'bold'}}, {content: formatCurrency(reportData.incomeStatement.totalRevenue), styles: {halign: 'right', fontStyle: 'bold'}}],
             [{content: 'Beban', styles: {fontStyle: 'bold'}}],
-            ...Object.entries(reportData.incomeStatement.expenses).map(([cat, amt]) => [{content: `  ${cat}`, styles: {cellPadding: {left: 5}}}, {content: formatCurrency(amt), styles: {halign: 'right'}}]),
+            ...Object.entries(reportData.incomeStatement.expenses).map(([cat, amt]) => [{content: `  ${cat}`, styles: {cellPadding: { top: 4, right: 4, bottom: 4, left: 10 }}}, {content: formatCurrency(amt), styles: {halign: 'right'}}]),
             [{content:'Total Beban', styles: {fontStyle: 'bold'}}, {content: formatCurrency(reportData.incomeStatement.totalExpenses), styles: {halign: 'right', fontStyle: 'bold'}}],
         ],
         foot: [[{content:'Laba Bersih', styles: {fontStyle: 'bold'}}, {content: formatCurrency(reportData.incomeStatement.netIncome), styles: {halign: 'right', fontStyle: 'bold'}}]],
         theme: 'striped',
-        headStyles: { fillColor: primaryColor },
+        styles: { valign: 'middle' },
+        headStyles: { fillColor: primaryColor, valign: 'middle' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Laba Rugi'),
     });
     
@@ -760,7 +761,8 @@ export default function ReportsPage() {
         body: sortedAssetEntries.map(([name, amount]) => [name, {content: formatCurrency(amount as number), styles: {halign: 'right'}}]),
         foot: [[{content:'Total Aset', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalAssets), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
-        headStyles: { fillColor: primaryColor },
+        styles: { valign: 'middle' },
+        headStyles: { fillColor: primaryColor, valign: 'middle' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
     });
 
@@ -774,7 +776,8 @@ export default function ReportsPage() {
         ],
         foot: [[{content:'Total Kewajiban dan Ekuitas', styles:{fontStyle:'bold'}}, {content: formatCurrency(reportData.balanceSheet.totalLiabilitiesAndEquity), styles: {halign: 'right', fontStyle:'bold'}}]],
         theme: 'striped',
-        headStyles: { fillColor: primaryColor },
+        styles: { valign: 'middle' },
+        headStyles: { fillColor: primaryColor, valign: 'middle' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
     });
 
@@ -799,29 +802,30 @@ export default function ReportsPage() {
           mainEntries.forEach((entry, index) => {
              rows.push([
                 index === 0 ? format(new Date(entry.date), 'd MMM y', { locale: id }) : '',
-                { content: entry.accountName, styles: { cellPadding: {left: entry.entryType === 'Credit' ? 8 : 2 }}},
+                { content: entry.accountName, styles: { cellPadding: { top: 4, right: 4, bottom: 4, left: entry.entryType === 'Credit' ? 12 : 4 }}},
                 { content: entry.entryType === 'Debit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } },
                 { content: entry.entryType === 'Credit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } }
              ]);
           });
-          rows.push(['', {content: `(${firstEntry.description})`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: {left: 8}}}]);
+          rows.push(['', {content: `(${firstEntry.description})`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: { top: 4, right: 4, bottom: 4, left: 12 }}}]);
           
            if (cogsEntries.length > 0) {
                 cogsEntries.forEach((entry) => {
                     rows.push([
                         '',
-                        { content: entry.accountName, styles: { cellPadding: {left: entry.entryType === 'Credit' ? 8 : 2 }}},
+                        { content: entry.accountName, styles: { cellPadding: { top: 4, right: 4, bottom: 4, left: entry.entryType === 'Credit' ? 12 : 4 }}},
                         { content: entry.entryType === 'Debit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } },
                         { content: entry.entryType === 'Credit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } }
                     ]);
                 });
-                rows.push(['', {content: `(Mencatat HPP untuk penjualan)`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: {left: 8}}}]);
+                rows.push(['', {content: `(Mencatat HPP untuk penjualan)`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: { top: 4, right: 4, bottom: 4, left: 12 }}}]);
            }
 
           return rows;
         }),
         theme: 'striped',
-        headStyles: { fillColor: primaryColor },
+        styles: { valign: 'middle' },
+        headStyles: { fillColor: primaryColor, valign: 'middle' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Jurnal Umum'),
     });
 
@@ -833,7 +837,7 @@ export default function ReportsPage() {
         head: [['Deskripsi', 'Jumlah']],
         body: [
           [{ content: 'Aktivitas Operasi', styles: { fontStyle: 'bold' } }, ''],
-          ...reportData.cashFlow.operatingFlows.map(flow => [{ content: `  ${flow.name}`, styles: { cellPadding: { left: 5 } } }, { content: flow.amount < 0 ? `(${formatCurrency(Math.abs(flow.amount))})` : formatCurrency(flow.amount), styles: { halign: 'right' } }]),
+          ...reportData.cashFlow.operatingFlows.map(flow => [{ content: `  ${flow.name}`, styles: { cellPadding: { top: 4, right: 4, bottom: 4, left: 10 } } }, { content: flow.amount < 0 ? `(${formatCurrency(Math.abs(flow.amount))})` : formatCurrency(flow.amount), styles: { halign: 'right' } }]),
           [{ content: 'Total Arus Kas dari Aktivitas Operasi', styles: { fontStyle: 'bold' } }, { content: reportData.cashFlow.totalOperating < 0 ? `(${formatCurrency(Math.abs(reportData.cashFlow.totalOperating))})` : formatCurrency(reportData.cashFlow.totalOperating), styles: { halign: 'right', fontStyle: 'bold' } }],
         ],
         foot: [
@@ -841,8 +845,9 @@ export default function ReportsPage() {
           ['Saldo Kas Akhir', { content: formatCurrency(reportData.cashFlow.endingCash), styles: { halign: 'right', fontStyle: 'bold' } }]
         ],
         theme: 'striped',
-        headStyles: { fillColor: primaryColor },
-        footStyles: { fontStyle: 'bold' },
+        styles: { valign: 'middle' },
+        headStyles: { fillColor: primaryColor, valign: 'middle' },
+        footStyles: { fontStyle: 'bold', valign: 'middle' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Arus Kas'),
     });
 
@@ -854,7 +859,8 @@ export default function ReportsPage() {
             startY: 40,
             margin: { top: 40 },
             theme: 'striped',
-            headStyles: { fillColor: primaryColor },
+            styles: { valign: 'middle' },
+            headStyles: { fillColor: primaryColor, valign: 'middle' },
             head: [['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']],
             body: account.entries.map((entry: any) => [
                 format(new Date(entry.date), 'd MMM y', { locale: id }),
@@ -912,8 +918,8 @@ export default function ReportsPage() {
             ['Return on Asset (ROA)', { content: `${roaPDF.toFixed(2)} %`, styles: { halign: 'right' } }]
         ],
         theme: 'striped',
-        headStyles: { fillColor: primaryColor },
-        styles: { cellPadding: 4 },
+        styles: { cellPadding: 4, valign: 'middle' },
+        headStyles: { fillColor: primaryColor, valign: 'middle' },
         columnStyles: { 0: { cellWidth: 70 } },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Audit & Investor Executive Dashboard'),
     });
