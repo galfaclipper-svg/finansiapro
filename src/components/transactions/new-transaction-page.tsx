@@ -11,7 +11,7 @@ import {
 } from "@/ai/flows/scan-and-categorize-transaction-flow";
 
 import { useAppState } from "@/hooks/use-app-state";
-import { CHART_OF_ACCOUNTS } from "@/lib/constants";
+import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -65,14 +65,38 @@ const transactionSchema = z.object({
   }),
   amount: z.coerce.number().positive("Jumlah harus positif."),
   description: z.string().min(2, "Deskripsi terlalu pendek."),
-  type: z.enum(["cash-in", "cash-out"], { required_error: "Tipe harus diisi." }),
-  category: z.string({ required_error: "Silakan pilih kategori." }),
+  type: z.enum(["cash-in", "cash-out", "transfer"], { required_error: "Tipe harus diisi." }),
+  accountId: z.string().min(1, "Silakan pilih atau ketik sumber/tujuan dana."),
+  toAccountId: z.string().optional(),
+  category: z.string().optional(),
   items: z.array(z.object({
     itemId: z.string().min(1, "Silakan pilih barang."),
     quantity: z.coerce.number().positive("Kuantitas harus positif."),
   })).optional(),
   usefulLifeInMonths: z.coerce.number().optional(),
   salvageValue: z.coerce.number().optional(),
+}).superRefine((data, ctx) => {
+  if (data.type !== 'transfer' && !data.category) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Silakan pilih kategori.",
+      path: ["category"],
+    });
+  }
+  if (data.type === 'transfer' && !data.toAccountId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Silakan pilih atau ketik tujuan dana.",
+      path: ["toAccountId"],
+    });
+  }
+  if (data.type === 'transfer' && data.accountId === data.toAccountId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Sumber dan tujuan tidak boleh sama.",
+      path: ["toAccountId"],
+    });
+  }
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
@@ -104,6 +128,7 @@ export default function NewTransactionPage() {
     defaultValues: {
       description: "",
       type: "cash-out",
+      accountId: "Kas Bank BCA",
       amount: undefined,
     },
   });
@@ -120,6 +145,7 @@ export default function NewTransactionPage() {
   // Reset category when transaction type changes
   useEffect(() => {
       form.resetField("category");
+      form.resetField("toAccountId");
   }, [watchedType, form]);
 
   const filteredCategories = useMemo(() => {
@@ -258,7 +284,11 @@ export default function NewTransactionPage() {
 
 
   const onSubmit: SubmitHandler<TransactionFormValues> = (data) => {
-    addTransaction({ ...data, date: format(data.date, 'yyyy-MM-dd'), accountId: ''});
+    addTransaction({ 
+       ...data, 
+       date: format(data.date, 'yyyy-MM-dd'),
+       category: data.category || 'Mutasi Kas',
+    });
     toast({
       title: "Transaksi Ditambahkan",
       description: "Transaksi Anda telah berhasil dicatat.",
@@ -272,6 +302,12 @@ export default function NewTransactionPage() {
         title="Transaksi Baru"
         description="Tambahkan transaksi baru secara manual atau dengan memindai struk."
       />
+
+      <datalist id="cash-accounts-list">
+        {CASH_ACCOUNTS.map((acc) => (
+          <option key={acc} value={acc} />
+        ))}
+      </datalist>
 
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
@@ -339,6 +375,7 @@ export default function NewTransactionPage() {
                               <SelectContent>
                               <SelectItem value="cash-in">Uang Masuk</SelectItem>
                               <SelectItem value="cash-out">Uang Keluar</SelectItem>
+                              <SelectItem value="transfer">Mutasi Kas (Pindah Buku)</SelectItem>
                               </SelectContent>
                           </Select>
                           <FormMessage />
@@ -391,26 +428,58 @@ export default function NewTransactionPage() {
 
                 <FormField
                   control={form.control}
-                  name="category"
+                  name="accountId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Kategori Transaksi</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih kategori" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {filteredCategories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>{watchedType === 'cash-in' ? 'Tujuan Dana (Kas/Bank)' : 'Sumber Dana (Kas/Bank)'}</FormLabel>
+                      <FormControl>
+                        <Input list="cash-accounts-list" placeholder="Pilih atau ketik nama kas/bank..." {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {watchedType === 'transfer' && (
+                  <FormField
+                    control={form.control}
+                    name="toAccountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tujuan Dana (Kas/Bank)</FormLabel>
+                        <FormControl>
+                          <Input list="cash-accounts-list" placeholder="Pilih atau ketik tujuan kas/bank..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {watchedType !== 'transfer' && (
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Kategori Transaksi</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih kategori" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {filteredCategories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}

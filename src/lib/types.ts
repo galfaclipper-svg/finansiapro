@@ -22,8 +22,9 @@ export type Transaction = {
   date: string;
   description: string;
   amount: number;
-  type: 'cash-in' | 'cash-out';
+  type: 'cash-in' | 'cash-out' | 'transfer';
   accountId: string;
+  toAccountId?: string;
   category: string;
   itemId?: string;
   quantity?: number;

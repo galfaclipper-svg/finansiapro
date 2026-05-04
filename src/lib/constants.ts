@@ -3,8 +3,15 @@ import type { Account, CompanyProfile } from './types';
 
 export const CHART_OF_ACCOUNTS: Account[] = [
   // Aset (Assets) - 1xxx
-  { id: '1010', name: 'Kas', type: 'Assets', category: 'Current Assets' },
-  { id: '1020', name: 'Bank', type: 'Assets', category: 'Current Assets' },
+  { id: '1011', name: 'Kas Fisik', type: 'Assets', category: 'Current Assets' },
+  { id: '1021', name: 'Kas Bank BCA', type: 'Assets', category: 'Current Assets' },
+  { id: '1022', name: 'Bank BRI', type: 'Assets', category: 'Current Assets' },
+  { id: '1023', name: 'Bank Mandiri', type: 'Assets', category: 'Current Assets' },
+  { id: '1024', name: 'Bank Seabank', type: 'Assets', category: 'Current Assets' },
+  { id: '1031', name: 'Dana', type: 'Assets', category: 'Current Assets' },
+  { id: '1032', name: 'ShopeePay', type: 'Assets', category: 'Current Assets' },
+  { id: '1033', name: 'GoPay', type: 'Assets', category: 'Current Assets' },
+  { id: '1034', name: 'OVO', type: 'Assets', category: 'Current Assets' },
   { id: '1030', name: 'Piutang Usaha', type: 'Assets', category: 'Current Assets' },
   { id: '1040', name: 'Piutang Karyawan', type: 'Assets', category: 'Current Assets' },
   { id: '1050', name: 'Persediaan Barang Dagang', type: 'Assets', category: 'Current Assets' },
@@ -69,6 +76,18 @@ export const CHART_OF_ACCOUNTS: Account[] = [
 
 
 export const COA_CATEGORIES = CHART_OF_ACCOUNTS.map(account => account.name);
+
+export const CASH_ACCOUNTS = [
+  'Kas Bank BCA',
+  'Kas Fisik',
+  'Bank BRI',
+  'Bank Mandiri',
+  'Bank Seabank',
+  'Dana',
+  'ShopeePay',
+  'GoPay',
+  'OVO',
+];
 
 export const INITIAL_COMPANY_PROFILE: CompanyProfile = {
   name: 'Nama Perusahaan Anda',

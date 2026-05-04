@@ -51,8 +51,8 @@ export default function TransactionsPage() {
                   index + 1,
                   new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
                   t.description,
-                  t.type === 'cash-in' ? 'Uang Masuk' : 'Uang Keluar',
-                  t.category,
+                  t.type === 'cash-in' ? 'Uang Masuk' : t.type === 'transfer' ? 'Mutasi Kas' : 'Uang Keluar',
+                  t.type === 'transfer' ? `${t.accountId || 'Kas Bank BCA'} -> ${t.toAccountId}` : t.category,
                   t.amount
               ]);
               rowIndex++;
@@ -126,8 +126,8 @@ export default function TransactionsPage() {
               index + 1,
               new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
               t.description,
-              t.type === 'cash-in' ? 'Masuk' : 'Keluar',
-              t.category,
+              t.type === 'cash-in' ? 'Masuk' : t.type === 'transfer' ? 'Mutasi' : 'Keluar',
+              t.type === 'transfer' ? `${t.accountId || 'Kas Bank BCA'} -> ${t.toAccountId}` : t.category,
               formatCurrency(t.amount)
           ]);
 

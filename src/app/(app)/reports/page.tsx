@@ -19,7 +19,7 @@ import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx-js-style';
 import { useMemo } from 'react';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -68,11 +68,38 @@ export default function ReportsPage() {
 
     const augmentedTransactions = [...transactions, ...virtualDepreciations];
 
+    // --- 0.5 Build Extended Chart of Accounts ---
+    const extendedCOA = [...CHART_OF_ACCOUNTS];
+    const knownAccountNames = new Set(extendedCOA.map(a => a.name));
+    
+    // Add dynamically input Kas accounts
+    augmentedTransactions.forEach(t => {
+      const addIfMissing = (accName: string) => {
+        if (accName && !knownAccountNames.has(accName)) {
+          extendedCOA.push({
+            id: `10XX-${accName.substring(0,4).toUpperCase()}`, // Temp ID
+            name: accName,
+            type: 'Assets',
+            category: 'Current Assets'
+          });
+          knownAccountNames.add(accName);
+        }
+      };
+      
+      const acc = t.accountId || 'Kas Bank BCA';
+      addIfMissing(acc);
+      if (t.toAccountId) {
+        addIfMissing(t.toAccountId);
+      }
+    });
+
+    const allCashAccounts = new Set([...CASH_ACCOUNTS, ...extendedCOA.filter(a => !CHART_OF_ACCOUNTS.some(ca => ca.name === a.name)).map(a => a.name)]);
+
     // --- 1. Universal Journal Entry Generation ---
     let baseJournalEntries = augmentedTransactions.flatMap(t => {
-      const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+      const account = extendedCOA.find(a => a.name === t.category);
       const accountType = account?.type;
-      const cashAccountName = "Kas";
+      const cashAccountName = t.accountId || "Kas Bank BCA";
 
       // Special handling for non-cash entries
       if (t.category === 'Beban Penyusutan') {
@@ -97,11 +124,19 @@ export default function ReportsPage() {
           }
       }
 
+      if (t.type === 'transfer') {
+        const toAccount = t.toAccountId || "Kas Bank BCA";
+        return [
+          { ...t, entryType: 'Debit', accountName: toAccount, amount: t.amount },
+          { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }
+        ];
+      }
+
       // Standard cash transactions
       if (t.type === 'cash-in') {
           return [ { ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
       } else { // cash-out
-          if (accountType === 'Assets' && t.category !== cashAccountName) {
+          if (accountType === 'Assets' && !allCashAccounts.has(t.category)) {
               return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
           }
           return [ { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
@@ -142,10 +177,10 @@ export default function ReportsPage() {
 
     // --- 3. Calculate Final Account Balances ---
     const accountBalances: { [key: string]: number } = {};
-    CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
+    extendedCOA.forEach(acc => { accountBalances[acc.name] = 0; });
 
     allJournalEntries.forEach(entry => {
-        const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+        const accountInfo = extendedCOA.find(a => a.name === entry.accountName);
         if (!accountInfo) return;
         const amount = entry.amount;
         if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
@@ -161,7 +196,7 @@ export default function ReportsPage() {
     const revenues: { [key: string]: number } = {};
     const expenses: { [key: string]: number } = {};
     Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+      const accountInfo = extendedCOA.find(a => a.name === accountName);
       if (!accountInfo) return;
       if (accountInfo.type === 'Revenue' && balance !== 0) revenues[accountName] = balance;
       if (accountInfo.type === 'Expenses' && balance !== 0) expenses[accountName] = balance;
@@ -174,7 +209,7 @@ export default function ReportsPage() {
     const assets: { [key: string]: number } = {};
     const liabilities: { [key: string]: number } = {};
     Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+      const accountInfo = extendedCOA.find(a => a.name === accountName);
       if (accountInfo?.type === 'Assets' && balance !== 0) assets[accountName] = balance;
       if (accountInfo?.type === 'Liabilities' && balance !== 0) liabilities[accountName] = balance;
     });
@@ -199,16 +234,16 @@ export default function ReportsPage() {
     const investingFlows: { name: string, amount: number }[] = [];
     const financingFlows: { name: string, amount: number }[] = [];
     
-    const cashTransactions = augmentedTransactions.filter(t => !['Beban Penyusutan', 'Beban Amortisasi'].includes(t.category));
+    const cashTransactions = augmentedTransactions.filter(t => !['Beban Penyusutan', 'Beban Amortisasi'].includes(t.category) && t.type !== 'transfer');
     
     cashTransactions.forEach(t => {
-      const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
-      if (!account || t.category === 'Kas') return;
+      const account = extendedCOA.find(a => a.name === t.category);
+      if (!account || allCashAccounts.has(t.category)) return;
       
       const amount = t.type === 'cash-in' ? t.amount : -t.amount;
       
       if (['Current Assets', 'Current Liabilities'].includes(account.category) || ['Revenue', 'Expenses'].includes(account.type)) {
-        if (!['Kas', 'Bank'].includes(account.name)) {
+        if (!allCashAccounts.has(account.name)) {
            operatingFlows.push({ name: t.description, amount: amount });
         }
       } else if (['Fixed Assets', 'Intangible Assets'].includes(account.category)) {
@@ -222,7 +257,7 @@ export default function ReportsPage() {
     const totalInvesting = investingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     const totalFinancing = financingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     
-    const endingCash = accountBalances['Kas'] || 0;
+    const endingCash = Array.from(allCashAccounts).reduce((sum, accName) => sum + (accountBalances[accName] || 0), 0);
     const netCashFlow = totalOperating + totalInvesting + totalFinancing;
     const beginningCash = endingCash - netCashFlow;
 
@@ -230,7 +265,7 @@ export default function ReportsPage() {
     const allJournalEntriesForLedger = allJournalEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const ledgerAccountsData: { [key: string]: { entries: any[], balance: number, accountInfo: any } } = {};
     
-    CHART_OF_ACCOUNTS.forEach(accountInfo => {
+    extendedCOA.forEach(accountInfo => {
         const entriesForAccount = allJournalEntriesForLedger.filter(entry => entry.accountName === accountInfo.name);
         let runningBalance = 0;
         const entriesWithBalance = entriesForAccount.map(entry => {
@@ -632,6 +667,47 @@ export default function ReportsPage() {
         }
         
         wsLedger['!cols'] = [{wch: 12}, {wch: 10}, {wch: 25}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 15}];
+        
+        if (accountInfo.name === 'Piutang Karyawan') {
+            const extractName = (desc: string) => {
+               const match = desc.match(/a\/?n\.?\s*(.+)/i);
+               return match ? match[1].trim() : desc.trim();
+            };
+            const uniqueNames = Array.from(new Set(filteredEntries.map(e => extractName(e.description)))).filter(Boolean);
+            
+            if (uniqueNames.length > 0) {
+                const summaryData: any[] = [
+                    [{v: "Ringkasan Piutang Karyawan", s: boldStyle}],
+                    [{v: "Nama Karyawan", s: boldStyle}, {v: "Total Pinjaman", s: boldStyle}, {v: "Total Pembayaran", s: boldStyle}, {v: "Sisa Piutang", s: boldStyle}]
+                ];
+                
+                uniqueNames.forEach((name, idx) => {
+                    const row = 7 + idx;
+                    summaryData.push([
+                        name,
+                        { t: 'n', f: `SUMIF(D:D, "*${name}*", E:E)` },
+                        { t: 'n', f: `SUMIF(D:D, "*${name}*", F:F)` },
+                        { t: 'n', f: `J${row}-K${row}` }
+                    ]);
+                });
+                
+                const totalRow = 7 + uniqueNames.length;
+                summaryData.push([
+                    {v: "TOTAL", s: boldStyle},
+                    { t: 'n', f: `SUM(J7:J${totalRow-1})` },
+                    { t: 'n', f: `SUM(K7:K${totalRow-1})` },
+                    { t: 'n', f: `SUM(L7:L${totalRow-1})` }
+                ]);
+
+                XLSX.utils.sheet_add_aoa(wsLedger, summaryData, {origin: "I5"});
+                applyNumberFormatting(wsLedger, [9, 10, 11]); 
+                wsLedger['!cols'][8] = {wch: 25}; // I
+                wsLedger['!cols'][9] = {wch: 15}; // J
+                wsLedger['!cols'][10] = {wch: 15}; // K
+                wsLedger['!cols'][11] = {wch: 15}; // L
+            }
+        }
+
         applyNumberFormatting(wsLedger, [4, 5, 6]); 
         applyTableBorders(wsLedger);
         XLSX.utils.book_append_sheet(wb, wsLedger, ledgerSheetName);
