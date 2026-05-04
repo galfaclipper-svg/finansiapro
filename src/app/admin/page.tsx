@@ -55,18 +55,16 @@ export default function AdminPage() {
     toast({ title: 'Tersalin', description: 'Kode lisensi disalin ke clipboard.' });
   };
 
-  const handleDelete = async (code: string, usedByUserId: string | null) => {
+  const handleDelete = async (license: LicenseData) => {
     if (!user?.email) return;
-    if (!confirm('Apakah Anda yakin ingin menghapus lisensi ini? Jika sudah digunakan, akses pengguna terkait juga akan dicabut seketika (cocok untuk akun demo).')) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus kode akses ini?\n\nJika ini adalah akun demo yang sedang dipakai, akses penggunanya akan langsung dicabut (logout otomatis).')) return;
     
     try {
-      setIsLoading(true);
-      await licenseService.deleteLicense(code, user.email, usedByUserId);
-      toast({ title: 'Lisensi Dihapus', description: 'Lisensi dan aksesnya telah dicabut.' });
+      await licenseService.deleteLicense(license.code, user.email, license.usedByUserId);
+      toast({ title: 'Akses Dihapus', description: `Kode ${license.code} berhasil dihapus dan akses dicabut.` });
       await fetchLicenses();
     } catch (err: any) {
       toast({ title: 'Gagal menghapus', description: err.message, variant: 'destructive' });
-      setIsLoading(false);
     }
   };
 
@@ -189,13 +187,12 @@ export default function AdminPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => copyToClipboard(license.code)}
-                            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
-                            title="Salin Kode"
+                            className="h-8 text-gray-500 hover:text-gray-900"
                           >
                             {copiedCode === license.code ? (
                               <Check className="h-4 w-4 text-green-500" />
@@ -207,9 +204,9 @@ export default function AdminPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(license.code, license.usedByUserId)}
-                            className="h-8 w-8 p-0 text-red-400 hover:text-red-700 hover:bg-red-50"
-                            title="Hapus Lisensi / Cabut Akses"
+                            onClick={() => handleDelete(license)}
+                            className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            title="Hapus / Cabut Akses"
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>

@@ -99,6 +99,23 @@ export const licenseService = {
     return true;
   },
 
+  // Delete a license code and revoke access if used
+  async deleteLicense(code: string, adminEmail: string, usedByUserId: string | null): Promise<void> {
+    if (adminEmail !== ADMIN_EMAIL) {
+      throw new Error('Unauthorized');
+    }
+
+    if (usedByUserId) {
+      const userLicenseRef = doc(db, `users/${usedByUserId}/accountInfo`, 'license');
+      await setDoc(userLicenseRef, {
+        hasActiveLicense: false,
+        licenseCode: null,
+      }, { merge: true });
+    }
+
+    await deleteDoc(doc(db, 'licenses', code));
+  },
+
   // Retrieve all generated licenses (Admin only)
   async getAllLicenses(adminEmail: string): Promise<LicenseData[]> {
     if (adminEmail !== ADMIN_EMAIL) {
@@ -108,26 +125,5 @@ export const licenseService = {
     const q = query(collection(db, 'licenses'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => doc.data() as LicenseData).sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-  },
-
-  // Delete a license (and revoke if claimed)
-  async deleteLicense(code: string, adminEmail: string, usedByUserId: string | null): Promise<void> {
-    if (adminEmail !== ADMIN_EMAIL) {
-      throw new Error('Unauthorized');
-    }
-
-    // Remove the license document
-    await deleteDoc(doc(db, 'licenses', code));
-
-    // If it was already claimed by a user, we must also revoke their active status
-    if (usedByUserId) {
-      const userLicenseRef = doc(db, `users/${usedByUserId}/accountInfo`, 'license');
-      await updateDoc(userLicenseRef, {
-        hasActiveLicense: false,
-        licenseCode: null
-      }).catch(err => {
-        console.warn('Gagal mencabut lisensi dari user, mungkin document tidak ada:', err);
-      });
-    }
   }
 };

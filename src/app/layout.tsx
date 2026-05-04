@@ -7,7 +7,6 @@ import { LicenseProvider } from '@/contexts/license-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { Balancer as ProivderBalancer } from 'react-wrap-balancer';
-import { SecurityEnforcer } from '@/components/security-enforcer';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -29,9 +28,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className={cn('min-h-screen bg-background font-body antialiased select-none', inter.variable)}>
+      <body className={cn('min-h-screen bg-background font-body antialiased', inter.variable)}>
         <ProivderBalancer>
-          <SecurityEnforcer />
           <AuthProvider>
             <LicenseProvider>
               <AppProvider>
@@ -41,13 +39,30 @@ export default function RootLayout({
                 <div className="fixed bottom-2 right-2 text-[10px] md:text-xs font-black text-slate-800 opacity-[0.04] pointer-events-none select-none z-[9999] tracking-widest uppercase origin-bottom-right">
                   Wisesa Niskala - Proprietary
                 </div>
-                {/* Copyright Console Trace */}
+                {/* Copyright Console Trace & Anti-Piracy */}
                 <script
                   dangerouslySetInnerHTML={{
-                    __html: `console.log("%cFinansiaPro SaaS Hak Cipta dilindungi. Proprietary Software milik Wisesa Niskala.", "color: #247BA0; font-size: 14px; font-weight: bold; border: 1px solid #247BA0; padding: 10px; border-radius: 5px;");`
+                    __html: `
+                      console.log("%cFinansiaPro SaaS Hak Cipta dilindungi. Proprietary Software milik Wisesa Niskala.", "color: #247BA0; font-size: 14px; font-weight: bold; border: 1px solid #247BA0; padding: 10px; border-radius: 5px;");
+                      
+                      // Anti-Piracy Protection
+                      if (typeof window !== 'undefined') {
+                        document.addEventListener('contextmenu', function(e) {
+                           e.preventDefault();
+                        });
+                        document.addEventListener('keydown', function(e) {
+                          if (
+                            e.key === 'F12' || 
+                            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'C' || e.key === 'c' || e.key === 'J' || e.key === 'j')) || 
+                            (e.ctrlKey && (e.key === 'U' || e.key === 'u'))
+                          ) {
+                            e.preventDefault();
+                          }
+                        });
+                      }
+                    `
                   }}
                 />
-                
                 {/* Google Translate Integration */}
                 <div id="google_translate_element" className="hidden" aria-hidden="true"></div>
                 <script
