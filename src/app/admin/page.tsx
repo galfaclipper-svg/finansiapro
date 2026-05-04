@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-provider';
 import { licenseService, LicenseData } from '@/lib/license-service';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Plus, Key, Clock, User, LogOut, Loader2, Copy, Check } from 'lucide-react';
+import { Shield, Plus, Key, Clock, User, LogOut, Loader2, Copy, Check, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AdminPage() {
@@ -53,6 +53,21 @@ export default function AdminPage() {
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
     toast({ title: 'Tersalin', description: 'Kode lisensi disalin ke clipboard.' });
+  };
+
+  const handleDelete = async (code: string, usedByUserId: string | null) => {
+    if (!user?.email) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus lisensi ini? Jika sudah digunakan, akses pengguna terkait juga akan dicabut seketika (cocok untuk akun demo).')) return;
+    
+    try {
+      setIsLoading(true);
+      await licenseService.deleteLicense(code, user.email, usedByUserId);
+      toast({ title: 'Lisensi Dihapus', description: 'Lisensi dan aksesnya telah dicabut.' });
+      await fetchLicenses();
+    } catch (err: any) {
+      toast({ title: 'Gagal menghapus', description: err.message, variant: 'destructive' });
+      setIsLoading(false);
+    }
   };
 
   // Safe date formatter explicitly handling Timestamp, JS Date, or undefined
@@ -174,19 +189,32 @@ export default function AdminPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(license.code)}
-                          className="h-8 text-gray-500 hover:text-gray-900"
-                        >
-                          {copiedCode === license.code ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                          <span className="sr-only">Copy</span>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(license.code)}
+                            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
+                            title="Salin Kode"
+                          >
+                            {copiedCode === license.code ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                            <span className="sr-only">Copy</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(license.code, license.usedByUserId)}
+                            className="h-8 w-8 p-0 text-red-400 hover:text-red-700 hover:bg-red-50"
+                            title="Hapus Lisensi / Cabut Akses"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
