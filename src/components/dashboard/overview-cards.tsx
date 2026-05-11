@@ -5,7 +5,7 @@ import { DollarSign, ReceiptText, TrendingUp, Wallet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAppState } from '@/hooks/use-app-state';
 import { useMemo } from 'react';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from '@/lib/constants';
 
 export function OverviewCards() {
   const { transactions, inventory, dateRange } = useAppState();
@@ -31,7 +31,9 @@ export function OverviewCards() {
         let baseJournalEntries = transactionSet.flatMap(t => {
             const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
             const accountType = account?.type;
-            const cashAccountName = "Kas";
+            // Resolve actual cash account from accountId, fallback to 'Kas Fisik'
+            const cashAccount = CHART_OF_ACCOUNTS.find(a => a.id === t.accountId);
+            const cashAccountName = cashAccount?.name ?? 'Kas Fisik';
 
             if (t.category === 'Beban Penyusutan') {
                 return [{ ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }];
@@ -42,7 +44,7 @@ export function OverviewCards() {
             if (t.type === 'cash-in') {
                 return [{ ...t, entryType: 'Debit', accountName: cashAccountName, amount: t.amount }, { ...t, entryType: 'Credit', accountName: t.category, amount: t.amount }];
             } else {
-                if (accountType === 'Assets' && t.category !== cashAccountName) {
+                if (accountType === 'Assets' && !CASH_ACCOUNTS.includes(t.category)) {
                     return [{ ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
                 }
                 return [{ ...t, entryType: 'Debit', accountName: t.category, amount: t.amount }, { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }];
@@ -108,7 +110,8 @@ export function OverviewCards() {
     }, 0);
 
     const netIncome = totalRevenue - totalExpenses;
-    const cashBalance = finalBalances['Kas'] || 0;
+    // Sum all cash accounts (Kas Fisik + all bank & e-wallet accounts)
+    const cashBalance = CASH_ACCOUNTS.reduce((sum, accName) => sum + (finalBalances[accName] ?? 0), 0);
 
     return { totalRevenue, netIncome, cashBalance, totalTransactions: periodTransactions.length };
   }, [transactions, inventory, dateRange]);
