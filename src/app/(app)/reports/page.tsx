@@ -542,7 +542,7 @@ export default function ReportsPage() {
       [{v:"Aset", s:boldStyle}]
     ];
 
-    let r_Kas = 0, r_Bank = 0;
+    let r_Kas = 0, r_Bank = 0; // kept for compatibility but replaced below
     const bsRows: Record<string, number> = {};
 
     const assetStartRow = balanceSheetData.length + 1;
@@ -607,7 +607,8 @@ export default function ReportsPage() {
     if (r_BebanPenyusutan) cashFlowData.push(["  Penyesuaian Penyusutan", {t:'n', f: `'${incomeSheetName}'!B${r_BebanPenyusutan}` }]);
     if (r_BebanAmortisasi) cashFlowData.push(["  Penyesuaian Amortisasi", {t:'n', f: `'${incomeSheetName}'!B${r_BebanAmortisasi}` }]);
 
-    CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Assets' && !['Kas', 'Bank'].includes(a.name)).forEach(acc => {
+    // Exclude all cash accounts from working capital adjustments
+    CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Assets' && !CASH_ACCOUNTS.includes(a.name)).forEach(acc => {
         const ref = bsRows[acc.name];
         if (ref) cashFlowData.push([`  Penurunan / (Kenaikan) ${acc.name}`, {t:'n', f:`-'${balanceSheetName}'!B${ref}`}]);
     });
@@ -659,11 +660,14 @@ export default function ReportsPage() {
     cashFlowData.push([]); 
     cashFlowData.push([{v: "Kenaikan (Penurunan) Bersih Kas", s:boldStyle}, {t:'n', f:`B${r_OpTotal}+B${r_InvTotal}+B${r_FinTotal}`}]); 
     cashFlowData.push(["Saldo Kas & Bank Awal", {t:'n', v: 0}]); 
+    // Saldo Kas & Bank Akhir = sum of all CASH_ACCOUNTS from Neraca
+    const fEndingCash = CASH_ACCOUNTS
+        .filter(accName => bsRows[accName])
+        .map(accName => `'${balanceSheetName}'!B${bsRows[accName]}`)
+        .join('+') || "0";
+    // Saldo Kas Akhir di Arus Kas = Kenaikan Bersih Kas + Saldo Awal
     cashFlowData.push([{v: "Saldo Kas & Bank Akhir", s:boldStyle}, {t:'n', f:`B${cashFlowData.length-1}+B${cashFlowData.length}`}]); 
-    
-    const fKas = r_Kas ? `'${balanceSheetName}'!B${r_Kas}` : "0";
-    const fBank = r_Bank ? `'${balanceSheetName}'!B${r_Bank}` : "0";
-    cashFlowData.push(["[Pengecekan ke Neraca Kas+Bank]", {t:'n', f:`${fKas}+${fBank}`, s: dateStyle}]);
+    cashFlowData.push(["[Pengecekan ke Neraca Kas+Bank]", {t:'n', f: fEndingCash, s: dateStyle}]);
 
     const wsCashFlow = XLSX.utils.aoa_to_sheet(cashFlowData);
     wsCashFlow['!cols'] = [{wch: 45}, {wch: 20}, {wch: 10}, {wch: 15}];
