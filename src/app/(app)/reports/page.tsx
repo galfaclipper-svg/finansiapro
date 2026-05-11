@@ -350,6 +350,7 @@ export default function ReportsPage() {
         [{ v: "Silakan KLIK pada baris manapun di bawah untuk melompat langsung ke lembar (sheet) yang bersangkutan:", s: { font: { italic: true } } }],
         [],
         [{ v: "1. Utama & Transaksi", s: { font: { bold: true, sz: 14 } } }],
+        [{ v: "➡️ Input Tambahan (Entri Manual Excel)", l: { Target: "#'Input Tambahan'!A1" }, s: { font: { color: { rgb: "006400" }, underline: true, bold: true } } }],
         [{ v: "➡️ Jurnal Umum", l: { Target: "#'Jurnal Umum'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
         [{ v: "➡️ Daftar Akun (Referensi)", l: { Target: "#'Daftar Akun'!A1" }, s: { font: { color: { rgb: "0000FF" }, underline: true } } }],
         [],
@@ -406,6 +407,39 @@ export default function ReportsPage() {
         ]);
     }
 
+    // --- Input Tambahan: auto-journal formula rows (200 input rows = 400 journal lines) ---
+    // Input Tambahan data starts at Excel row 6 (header rows 1-5)
+    const INPUT_SHEET_DATA_START = 6;
+    const MAX_MANUAL_INPUTS = 200;
+    for (let i = 1; i <= MAX_MANUAL_INPUTS; i++) {
+        const IR = INPUT_SHEET_DATA_START + i - 1; // Excel row in 'Input Tambahan'
+        const debitRow = journalExportData.length + 1;
+        const creditRow = debitRow + 1;
+        const hasData = `'Input Tambahan'!B${IR}<>""`;
+        // Debit line: cash-in→debit Akun Kas; cash-out→debit Akun Lawan
+        journalExportData.push([
+            { t: 'str', f: `IF(${hasData},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")` },
+            { t: 'str', f: `IF(${hasData},"ADJ-${String(i).padStart(3,'0')}-D","")` },
+            { t: 'str', f: `IF(${hasData},IF('Input Tambahan'!D${IR}="cash-in",'Input Tambahan'!E${IR},'Input Tambahan'!F${IR}),"")` },
+            { t: 'str', f: `IF(${hasData},'Input Tambahan'!C${IR},"")` },
+            { t: 'n',   f: `IF(${hasData},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)` },
+            { t: 'n', v: 0 },
+            { t: 'str', f: `IF(C${debitRow}="","",IF(ISNUMBER(MATCH(C${debitRow},'Daftar Akun'!$A$2:$A$100,0)),"✅ OK","❌ NAMA AKUN SALAH!"))` },
+            { t: 'str', f: `IF(C${debitRow}="","",C${debitRow}&COUNTIF($C$2:C${debitRow},C${debitRow}))` }
+        ]);
+        // Credit line: cash-in→credit Akun Lawan; cash-out→credit Akun Kas
+        journalExportData.push([
+            { t: 'str', f: `IF(${hasData},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")` },
+            { t: 'str', f: `IF(${hasData},"ADJ-${String(i).padStart(3,'0')}-K","")` },
+            { t: 'str', f: `IF(${hasData},IF('Input Tambahan'!D${IR}="cash-in",'Input Tambahan'!F${IR},'Input Tambahan'!E${IR}),"")` },
+            { t: 'str', f: `IF(${hasData},'Input Tambahan'!C${IR},"")` },
+            { t: 'n', v: 0 },
+            { t: 'n',   f: `IF(${hasData},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)` },
+            { t: 'str', f: `IF(C${creditRow}="","",IF(ISNUMBER(MATCH(C${creditRow},'Daftar Akun'!$A$2:$A$100,0)),"✅ OK","❌ NAMA AKUN SALAH!"))` },
+            { t: 'str', f: `IF(C${creditRow}="","",C${creditRow}&COUNTIF($C$2:C${creditRow},C${creditRow}))` }
+        ]);
+    }
+
     const wsJournal = XLSX.utils.aoa_to_sheet(journalExportData);
     wsJournal['!cols'] = [{wch: 12}, {wch: 15}, {wch: 30}, {wch: 40}, {wch: 15}, {wch: 15}, {wch: 40}, {hidden: true, wch: 20}, {wch: 15}];
     applyNumberFormatting(wsJournal, [4, 5]);
@@ -417,6 +451,44 @@ export default function ReportsPage() {
     wsAccountList['!cols'] = [{wch: 35}, {wch: 10}, {wch: 15}];
     applyTableBorders(wsAccountList);
     XLSX.utils.book_append_sheet(wb, wsAccountList, 'Daftar Akun');
+
+    // --- Input Tambahan Sheet ---
+    const cashAccountOptions = CASH_ACCOUNTS.join(', ');
+    const inputSheetData: any[] = [
+        [{ v: companyName, s: headerStyle }, '', backMenuBtn],
+        [{ v: '📝 Sheet Input Tambahan — Entri Transaksi Langsung di Excel', s: subHeaderStyle }],
+        [{ v: '⚠️ PETUNJUK: Isi kolom B–G. Tipe isi: cash-in atau cash-out. Nama akun HARUS persis sama dengan Daftar Akun. Data akan otomatis masuk ke Jurnal & laporan lainnya.', s: { font: { italic: true, color: { rgb: '888888' } } } }],
+        [{ v: `Akun Kas tersedia: ${cashAccountOptions}`, s: { font: { italic: true, color: { rgb: '0052cc' } } } }],
+        [
+            { v: 'No', s: boldStyle },
+            { v: 'Tanggal *', s: boldStyle },
+            { v: 'Deskripsi *', s: boldStyle },
+            { v: 'Tipe * (cash-in / cash-out)', s: boldStyle },
+            { v: 'Akun Kas *', s: boldStyle },
+            { v: 'Akun Lawan / Kategori *', s: boldStyle },
+            { v: 'Nominal *', s: boldStyle },
+            { v: 'Cek Akun Lawan', s: boldStyle },
+        ],
+    ];
+    for (let i = 1; i <= MAX_MANUAL_INPUTS; i++) {
+        const rn = 5 + i; // Excel row number for this input row
+        inputSheetData.push([
+            { t: 'n', f: `IF(B${rn}="","",${i})` },
+            '',
+            '',
+            '',
+            '',
+            '',
+            { t: 'n', v: 0 },
+            { t: 'str', f: `IF(F${rn}="","",IF(ISNUMBER(MATCH(F${rn},'Daftar Akun'!$A$2:$A$100,0)),"✅ OK","❌ Nama akun salah!"))` },
+        ]);
+    }
+    const wsInput = XLSX.utils.aoa_to_sheet(inputSheetData);
+    wsInput['!cols'] = [{wch:5},{wch:13},{wch:35},{wch:22},{wch:20},{wch:30},{wch:18},{wch:25}];
+    applyNumberFormatting(wsInput, [6]);
+    applyTableBorders(wsInput);
+    XLSX.utils.book_append_sheet(wb, wsInput, 'Input Tambahan');
+
 
     // --- 2. Laporan Laba Rugi ---
     const incomeSheetName = "Laba Rugi";
