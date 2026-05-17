@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: 'FinansiaPro',
   description:
     'Manajemen keuangan cerdas untuk bisnis perdagangan online.',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({
