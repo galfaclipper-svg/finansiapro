@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppState } from "@/hooks/use-app-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, PlusCircle, FileText, CheckCircle, Trash2, Printer } from "lucide-react";
+import { MoreHorizontal, PlusCircle, FileText, CheckCircle, Trash2, Printer, Search } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +23,41 @@ export default function InvoicesPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
 
+  // Search and Sort states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "amount-desc" | "amount-asc">("date-desc");
+
   const getClientName = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client ? client.name : "Pelanggan Tidak Diketahui";
   };
+
+  const filteredAndSortedInvoices = useMemo(() => {
+    let result = [...invoices];
+
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter(inv => {
+        const cName = getClientName(inv.clientId).toLowerCase();
+        return inv.number.toLowerCase().includes(lowerQuery) || cName.includes(lowerQuery);
+      });
+    }
+
+    result.sort((a, b) => {
+      if (sortBy === "date-desc") {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortBy === "date-asc") {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else if (sortBy === "amount-desc") {
+        return b.totalAmount - a.totalAmount;
+      } else if (sortBy === "amount-asc") {
+        return a.totalAmount - b.totalAmount;
+      }
+      return 0;
+    });
+
+    return result;
+  }, [invoices, clients, searchQuery, sortBy]);
 
   const getStatusBadge = (status: InvoiceStatus) => {
     switch (status) {
@@ -100,6 +133,31 @@ export default function InvoicesPage() {
           </Button>
         </PageHeader>
 
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari nomor tagihan atau pelanggan..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Urutkan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-desc">Terbaru</SelectItem>
+                <SelectItem value="date-asc">Terlama</SelectItem>
+                <SelectItem value="amount-desc">Total Terbesar</SelectItem>
+                <SelectItem value="amount-asc">Total Terkecil</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -124,8 +182,8 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.length > 0 ? (
-                  invoices.map((invoice) => (
+                {filteredAndSortedInvoices.length > 0 ? (
+                  filteredAndSortedInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">{invoice.number}</TableCell>
                       <TableCell>{getClientName(invoice.clientId)}</TableCell>
@@ -167,7 +225,7 @@ export default function InvoicesPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Belum ada tagihan. Klik 'Buat Tagihan Baru' untuk memulai.
+                      {searchQuery ? "Tidak ada tagihan yang cocok dengan pencarian." : "Belum ada tagihan. Klik 'Buat Tagihan Baru' untuk memulai."}
                     </TableCell>
                   </TableRow>
                 )}

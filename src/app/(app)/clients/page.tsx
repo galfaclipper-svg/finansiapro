@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAppState } from "@/hooks/use-app-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, PlusCircle, Users } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Users, Search } from "lucide-react";
 import { ClientForm } from "@/components/clients/client-form";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/lib/types";
@@ -25,6 +27,41 @@ export default function ClientsPage() {
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Search and Sort states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "newest">("newest");
+
+  const filteredAndSortedClients = useMemo(() => {
+    let result = [...clients];
+
+    // Filter
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter(client => 
+        client.name.toLowerCase().includes(lowerQuery) || 
+        (client.email && client.email.toLowerCase().includes(lowerQuery)) ||
+        (client.phone && client.phone.includes(searchQuery))
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      if (sortBy === "name-asc") {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === "name-desc") {
+        return b.name.localeCompare(a.name);
+      } else {
+        // newest (assuming id contains timestamp or relying on original array order which is usually sorted by creation in Firestore if indexed, but here we can just reverse to simulate newest if original is chronological, wait, firestore snapshot is whatever we ordered it by. By default it is just the query result order. Let's just return 0 to keep original order which is from Firestore)
+        // If we want actual newest, we'd need a createdAt field. For now, ID contains timestamp CLI0001-12345678
+        const timeA = parseInt(a.id.split('-')[1] || "0");
+        const timeB = parseInt(b.id.split('-')[1] || "0");
+        return timeB - timeA;
+      }
+    });
+
+    return result;
+  }, [clients, searchQuery, sortBy]);
 
   const handleOpenDialog = (client: Client | null = null) => {
     setClientToEdit(client);
@@ -78,6 +115,30 @@ export default function ClientsPage() {
           </Button>
         </PageHeader>
 
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari nama, email, atau telepon..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="w-full sm:w-48">
+            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Urutkan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Paling Baru</SelectItem>
+                <SelectItem value="name-asc">Nama (A-Z)</SelectItem>
+                <SelectItem value="name-desc">Nama (Z-A)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -100,8 +161,8 @@ export default function ClientsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.length > 0 ? (
-                  clients.map((client) => (
+                {filteredAndSortedClients.length > 0 ? (
+                  filteredAndSortedClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell>{client.email || "-"}</TableCell>
@@ -133,7 +194,7 @@ export default function ClientsPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      Belum ada pelanggan. Klik 'Tambah Pelanggan' untuk memulai.
+                      {searchQuery ? "Tidak ada pelanggan yang cocok dengan pencarian." : "Belum ada pelanggan. Klik 'Tambah Pelanggan' untuk memulai."}
                     </TableCell>
                   </TableRow>
                 )}
