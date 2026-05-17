@@ -76,3 +76,39 @@ export interface PlannerState {
   investment: number;
   targetUnits: number;
 }
+
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
+
+export type InvoiceItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+};
+
+export type Client = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+};
+
+export type Invoice = {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  clientId: string;
+  clientName: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  taxRate: number; // percentage
+  taxAmount: number;
+  discount: number; // nominal
+  total: number;
+  status: InvoiceStatus;
+  notes?: string;
+  terms?: string;
+};

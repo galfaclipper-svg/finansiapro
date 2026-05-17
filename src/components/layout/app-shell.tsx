@@ -17,7 +17,7 @@ import { useAppState } from '@/hooks/use-app-state';
 import { SidebarNav } from './sidebar-nav';
 import { Header } from './header';
 import Link from 'next/link';
-import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator, Users, FileText } from 'lucide-react';
 import { SecretAdminGate } from '@/components/secret-admin-gate';
 
 type NavItem = { title: string; href: string; icon: React.ReactNode; };
@@ -44,17 +44,26 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Package size={20} />,
   },
   {
-    title: 'Pengaturan',
-    href: '/settings',
-    icon: <Settings size={20} />,
+    title: 'Pelanggan',
+    href: '/clients',
+    icon: <Users size={20} />,
+  },
+  {
+    title: 'Tagihan',
+    href: '/invoices',
+    icon: <FileText size={20} />,
   },
   {
     title: 'Perencana Bisnis',
     href: '/business-planner',
     icon: <Calculator size={20} />,
   },
+  {
+    title: 'Pengaturan',
+    href: '/settings',
+    icon: <Settings size={20} />,
+  },
 ];
-
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { companyProfile } = useAppState();

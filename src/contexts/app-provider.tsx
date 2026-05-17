@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy } from 'firebase/firestore';
-import type { CompanyProfile, Transaction, InventoryItem, PlannerState } from '@/lib/types';
+import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 import { useAuth } from '@/contexts/auth-provider';
@@ -27,6 +27,16 @@ interface AppContextType {
   restoreBackupData: (data: any) => Promise<void>;
   plannerState: PlannerState;
   setPlannerState: React.Dispatch<React.SetStateAction<PlannerState>>;
+  clients: Client[];
+  setClients: React.Dispatch<React.SetStateAction<Client[]>>;
+  addClient: (client: Omit<Client, 'id'>) => Promise<void>;
+  updateClient: (client: Client) => Promise<void>;
+  deleteClient: (clientId: string) => Promise<void>;
+  invoices: Invoice[];
+  setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
+  addInvoice: (invoice: Omit<Invoice, 'id'>) => Promise<void>;
+  updateInvoice: (invoiceId: string, invoice: Omit<Invoice, 'id'>) => Promise<void>;
+  deleteInvoice: (invoiceId: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -37,6 +47,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(INITIAL_COMPANY_PROFILE);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [plannerState, setPlannerState] = useState<PlannerState>({
     businessType: 'retail',
@@ -69,6 +81,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCompanyProfile(INITIAL_COMPANY_PROFILE);
       setTransactions([]);
       setInventory([]);
+      setClients([]);
+      setInvoices([]);
       return;
     }
 
@@ -96,10 +110,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInventory(invs);
     });
 
+    // Clients subscription
+    const clientRef = fsCollection(db, `users/${user.uid}/clients`);
+    const unsubClient = fsOnSnapshot(clientRef, (snapshot) => {
+      const cls = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Client));
+      setClients(cls);
+    });
+
+    // Invoices subscription
+    const invcRef = fsCollection(db, `users/${user.uid}/invoices`,);
+    const unsubInvc = fsOnSnapshot(fsQuery(invcRef, fsOrderBy('issueDate', 'desc')), (snapshot) => {
+      const invcs = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Invoice));
+      setInvoices(invcs);
+    });
+
     return () => {
       unsubCompany();
       unsubTx();
       unsubInv();
+      unsubClient();
+      unsubInvc();
     };
   }, [user]);
 
@@ -253,6 +283,88 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addClient = async (client: Omit<Client, 'id'>) => {
+    if (!user) return;
+    const newId = `CLI${String(clients.length + 1).padStart(4, '0')}-${Date.now()}`;
+    const cleanItem = Object.fromEntries(
+      Object.entries({ ...client, id: newId }).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/clients`, newId), cleanItem);
+    } catch (err) {
+      console.error('Error adding client', err);
+    }
+  };
+
+  const updateClient = async (updatedClient: Client) => {
+    if (!user) return;
+    const cleanItem = Object.fromEntries(
+      Object.entries(updatedClient).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/clients`, updatedClient.id), cleanItem);
+    } catch (err) {
+      console.error('Error updating client', err);
+    }
+  };
+
+  const deleteClient = async (clientId: string) => {
+    if (!user) return;
+    try {
+      await fsDeleteDoc(fsDoc(db, `users/${user.uid}/clients`, clientId));
+    } catch (err) {
+      console.error('Error deleting client', err);
+    }
+  };
+
+  const addInvoice = async (invoice: Omit<Invoice, 'id'>) => {
+    if (!user) return;
+    const newId = `INV-${Date.now()}`;
+    const cleanItem = Object.fromEntries(
+      Object.entries({ ...invoice, id: newId }).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, newId), cleanItem);
+    } catch (err) {
+      console.error('Error adding invoice', err);
+    }
+  };
+
+  const updateInvoice = async (invoiceId: string, updatedInvoice: Omit<Invoice, 'id'>) => {
+    if (!user) return;
+    const cleanItem = Object.fromEntries(
+      Object.entries({ ...updatedInvoice, id: invoiceId }).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      const oldInvoice = invoices.find(i => i.id === invoiceId);
+      
+      // Automatic Transaction for Paid Invoices
+      if (oldInvoice && oldInvoice.status !== 'paid' && updatedInvoice.status === 'paid') {
+        await addTransaction({
+          date: new Date().toISOString().split('T')[0],
+          description: `Pembayaran Invoice #${updatedInvoice.invoiceNumber} - ${updatedInvoice.clientName}`,
+          amount: updatedInvoice.total,
+          type: 'cash-in',
+          accountId: 'Kas Bank BCA', // Default, should be selectable if we update UI later
+          category: 'Pendapatan Jasa', // Assuming default revenue account
+        });
+      }
+
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, invoiceId), cleanItem);
+    } catch (err) {
+      console.error('Error updating invoice', err);
+    }
+  };
+
+  const deleteInvoice = async (invoiceId: string) => {
+    if (!user) return;
+    try {
+      await fsDeleteDoc(fsDoc(db, `users/${user.uid}/invoices`, invoiceId));
+    } catch (err) {
+      console.error('Error deleting invoice', err);
+    }
+  };
+
   const resetData = async () => {
     if (!user) return;
     try {
@@ -268,6 +380,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const invSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))));
       const invDeletes = invSnapshot.docs.map(doc => fsDeleteDoc(doc.ref));
       await Promise.all(invDeletes);
+
+      // 4. Clear clients and invoices
+      const clSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))));
+      await Promise.all(clSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
+
+      const ivSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))));
+      await Promise.all(ivSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
 
     } catch (err) {
        console.error('Error resetting data', err);
@@ -299,6 +418,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         await Promise.all(invPromises);
       }
+
+      // 4. Restore Clients
+      if (data.clients && Array.isArray(data.clients)) {
+        const clPromises = data.clients.map((cl: any) => {
+           const cleanCl = Object.fromEntries(Object.entries(cl).filter(([_, v]) => v !== undefined));
+           return fsSetDoc(fsDoc(db, `users/${user.uid}/clients`, cl.id), cleanCl);
+        });
+        await Promise.all(clPromises);
+      }
+
+      // 5. Restore Invoices
+      if (data.invoices && Array.isArray(data.invoices)) {
+        const ivPromises = data.invoices.map((iv: any) => {
+           const cleanIv = Object.fromEntries(Object.entries(iv).filter(([_, v]) => v !== undefined));
+           return fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, iv.id), cleanIv);
+        });
+        await Promise.all(ivPromises);
+      }
     } catch (err) {
       console.error('Error restoring backup data', err);
       throw err;
@@ -324,6 +461,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     restoreBackupData,
     plannerState,
     setPlannerState,
+    clients,
+    setClients,
+    addClient,
+    updateClient,
+    deleteClient,
+    invoices,
+    setInvoices,
+    addInvoice,
+    updateInvoice,
+    deleteInvoice,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
