@@ -41,6 +41,7 @@ export default function LoginPage() {
     <div className="flex h-screen w-full items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
         <div className="text-center">
+          <img src="/icon.png" alt="FinansiaPro Logo" className="w-20 h-20 mx-auto mb-2 object-contain" />
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">
             FinansiaPro
           </h2>

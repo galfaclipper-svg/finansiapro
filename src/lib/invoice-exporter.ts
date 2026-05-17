@@ -56,36 +56,45 @@ export const exportInvoiceToExcel = async (
     right: { style: "thin" },
   };
 
-  // Row 2: Header (Perusahaan & INVOICE)
-  printSheet.mergeCells("B2:C2");
-  const companyNameCell = printSheet.getCell("B2");
-  companyNameCell.value = companyProfile.name;
-  companyNameCell.font = headerFont;
-  companyNameCell.alignment = { vertical: "middle", horizontal: "left" };
+  // Fetch logo
+  let logoId: number | null = null;
+  try {
+    const response = await fetch('/icon.png');
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      logoId = workbook.addImage({
+        buffer: arrayBuffer,
+        extension: 'png',
+      });
+    }
+  } catch (err) {
+    console.error("Error loading logo for excel:", err);
+  }
 
+  if (logoId !== null) {
+    printSheet.addImage(logoId, {
+      tl: { col: 1, row: 1 }, // B2
+      ext: { width: 100, height: 100 }
+    });
+  }
+
+  // Row 2-4: INVOICE title & info on the right
   printSheet.mergeCells("D2:E2");
   const titleCell = printSheet.getCell("D2");
   titleCell.value = "INVOICE";
   titleCell.font = titleFont;
   titleCell.alignment = { vertical: "middle", horizontal: "right" };
 
-  // Row 3-5: Info Perusahaan & Detail Tagihan
-  printSheet.mergeCells("B3:C3");
-  printSheet.getCell("B3").value = companyProfile.address;
   printSheet.mergeCells("D3:E3");
   printSheet.getCell("D3").value = `No. Tagihan: ${invoice.number}`;
   printSheet.getCell("D3").alignment = { horizontal: "right" };
   printSheet.getCell("D3").font = boldFont;
 
-  printSheet.mergeCells("B4:C4");
-  printSheet.getCell("B4").value = companyProfile.phone;
   printSheet.mergeCells("D4:E4");
   const tglFmt = format(new Date(invoice.date), "dd MMMM yyyy", { locale: dateFnsId });
   printSheet.getCell("D4").value = `Tanggal: ${tglFmt}`;
   printSheet.getCell("D4").alignment = { horizontal: "right" };
 
-  printSheet.mergeCells("B5:C5");
-  printSheet.getCell("B5").value = companyProfile.email;
   printSheet.mergeCells("D5:E5");
   const dueFmt = format(new Date(invoice.dueDate), "dd MMMM yyyy", { locale: dateFnsId });
   printSheet.getCell("D5").value = `Jatuh Tempo: ${dueFmt}`;
@@ -106,18 +115,34 @@ export const exportInvoiceToExcel = async (
     statusCell.alignment = { horizontal: "right" };
   }
 
-  // Row 8-11: Kepada Pelanggan
-  printSheet.getCell("B8").value = "Ditagihkan Kepada:";
-  printSheet.getCell("B8").font = { size: 10, italic: true, color: { argb: "FF666666" } };
-  
-  printSheet.getCell("B9").value = client.name;
-  printSheet.getCell("B9").font = boldFont;
-  
-  printSheet.getCell("B10").value = client.address;
-  printSheet.getCell("B11").value = client.phone;
+  // Row 7-10: Info Perusahaan (di bawah logo)
+  printSheet.mergeCells("B7:C7");
+  const companyNameCell = printSheet.getCell("B7");
+  companyNameCell.value = companyProfile.name;
+  companyNameCell.font = headerFont;
+  companyNameCell.alignment = { vertical: "middle", horizontal: "left" };
 
-  // Table Headers (Row 13)
-  const headerRowIdx = 13;
+  printSheet.mergeCells("B8:C8");
+  printSheet.getCell("B8").value = companyProfile.address;
+  
+  printSheet.mergeCells("B9:C9");
+  printSheet.getCell("B9").value = companyProfile.phone;
+  
+  printSheet.mergeCells("B10:C10");
+  printSheet.getCell("B10").value = companyProfile.email;
+
+  // Row 12-15: Kepada Pelanggan
+  printSheet.getCell("B12").value = "Ditagihkan Kepada:";
+  printSheet.getCell("B12").font = { size: 10, italic: true, color: { argb: "FF666666" } };
+  
+  printSheet.getCell("B13").value = client.name;
+  printSheet.getCell("B13").font = boldFont;
+  
+  printSheet.getCell("B14").value = client.address;
+  printSheet.getCell("B15").value = client.phone;
+
+  // Table Headers (Row 17)
+  const headerRowIdx = 17;
   const headers = ["Deskripsi", "Kuantitas", "Harga Satuan", "Total"];
   const colKeys = ["B", "C", "D", "E"];
 
