@@ -130,9 +130,18 @@ export default function InvoicePreviewPage() {
         </div>
       </div>
 
-      <div id="print-area" className="bg-white text-black p-8 sm:p-12 min-h-[297mm] shadow-lg print:shadow-none print:m-0 print:p-0" ref={printRef}>
+      <div id="print-area" className="relative bg-white text-black p-8 sm:p-12 min-h-[297mm] shadow-lg print:shadow-none print:m-0 print:p-0 overflow-hidden" ref={printRef}>
+        {/* Paid Stamp */}
+        {invoice.status === "paid" && (
+          <div className="absolute top-64 left-1/2 -translate-x-1/2 -rotate-12 opacity-20 pointer-events-none z-10 flex flex-col items-center justify-center">
+            <div className="border-[12px] border-green-600 text-green-600 text-8xl md:text-9xl font-black uppercase px-12 py-6 tracking-widest rounded-3xl">
+              LUNAS
+            </div>
+          </div>
+        )}
+
         {/* Header */}
-        <div className="flex justify-between items-start border-b pb-8 mb-8">
+        <div className="flex justify-between items-start border-b pb-8 mb-8 relative z-20">
           <div>
             {companyProfile.logoUrl ? (
               <img src={companyProfile.logoUrl} alt={companyProfile.name} className="h-16 object-contain mb-4" />
