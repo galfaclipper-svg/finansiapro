@@ -330,27 +330,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateInvoice = async (invoiceId: string, updatedInvoice: Omit<Invoice, 'id'>) => {
+  const updateInvoice = async (updatedInvoice: Invoice) => {
     if (!user) return;
     const cleanItem = Object.fromEntries(
-      Object.entries({ ...updatedInvoice, id: invoiceId }).filter(([_, v]) => v !== undefined)
+      Object.entries(updatedInvoice).filter(([_, v]) => v !== undefined)
     );
     try {
-      const oldInvoice = invoices.find(i => i.id === invoiceId);
+      const oldInvoice = invoices.find(i => i.id === updatedInvoice.id);
       
       // Automatic Transaction for Paid Invoices
       if (oldInvoice && oldInvoice.status !== 'paid' && updatedInvoice.status === 'paid') {
+        const client = clients.find(c => c.id === updatedInvoice.clientId);
+        const clientName = client ? client.name : "Pelanggan Tidak Diketahui";
         await addTransaction({
           date: new Date().toISOString().split('T')[0],
-          description: `Pembayaran Invoice #${updatedInvoice.invoiceNumber} - ${updatedInvoice.clientName}`,
-          amount: updatedInvoice.total,
+          description: `Pembayaran Invoice #${updatedInvoice.number} - ${clientName}`,
+          amount: updatedInvoice.totalAmount,
           type: 'cash-in',
           accountId: 'Kas Bank BCA', // Default, should be selectable if we update UI later
           category: 'Pendapatan Jasa', // Assuming default revenue account
         });
       }
 
-      await fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, invoiceId), cleanItem);
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, updatedInvoice.id), cleanItem);
     } catch (err) {
       console.error('Error updating invoice', err);
     }
