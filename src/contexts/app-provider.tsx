@@ -118,8 +118,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     // Invoices subscription
-    const invcRef = fsCollection(db, `users/${user.uid}/invoices`,);
-    const unsubInvc = fsOnSnapshot(fsQuery(invcRef, fsOrderBy('issueDate', 'desc')), (snapshot) => {
+    const invcRef = fsCollection(db, `users/${user.uid}/invoices`);
+    const unsubInvc = fsOnSnapshot(fsQuery(invcRef, fsOrderBy('date', 'desc')), (snapshot) => {
       const invcs = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Invoice));
       setInvoices(invcs);
     });
