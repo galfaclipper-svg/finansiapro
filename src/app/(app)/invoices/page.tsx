@@ -88,6 +88,18 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleCancelInvoice = async (invoiceId: string) => {
+    try {
+      const invoice = invoices.find(inv => inv.id === invoiceId);
+      if (invoice) {
+        await updateInvoice({ ...invoice, status: "cancelled" });
+        toast({ title: "Tagihan Dibatalkan", description: `Tagihan ${invoice.number} telah diubah menjadi Dibatalkan.` });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Terjadi Kesalahan", description: "Tidak dapat mengubah status tagihan." });
+    }
+  };
+
   const handleOpenAlert = (invoiceId: string) => {
     setInvoiceToDelete(invoiceId);
     setIsAlertOpen(true);
@@ -205,9 +217,14 @@ export default function InvoicesPage() {
                                 <Printer className="mr-2 h-4 w-4" /> Cetak / Lihat PDF
                               </Link>
                             </DropdownMenuItem>
-                            {invoice.status !== "paid" && (
+                            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
                               <DropdownMenuItem onSelect={() => handleMarkAsPaid(invoice.id)}>
                                 <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Tandai Lunas
+                              </DropdownMenuItem>
+                            )}
+                            {invoice.status !== "cancelled" && (
+                              <DropdownMenuItem onSelect={() => handleCancelInvoice(invoice.id)}>
+                                <Trash2 className="mr-2 h-4 w-4 text-yellow-600" /> Batalkan
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
