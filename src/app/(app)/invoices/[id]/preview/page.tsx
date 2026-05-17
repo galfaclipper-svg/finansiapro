@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Download, Printer, Loader2 } from "lucide-react";
 import Link from "next/link";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { exportInvoiceToExcel } from "@/lib/invoice-exporter";
 import { useToast } from "@/hooks/use-toast";
 import type { Invoice, Client } from "@/lib/types";
 
@@ -47,41 +46,23 @@ export default function InvoicePreviewPage() {
     window.print();
   };
 
-  const handleDownloadPDF = async () => {
-    if (!printRef.current || !invoice) return;
+  const handleDownloadExcel = async () => {
+    if (!invoice || !client) return;
     
     setIsGenerating(true);
     try {
-      const element = printRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2, // Higher resolution
-        useCORS: true,
-        logging: false,
-      });
-      
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${invoice.number}.pdf`);
+      await exportInvoiceToExcel(invoice, client, companyProfile);
       
       toast({
-        title: "PDF Berhasil Diunduh",
-        description: `File ${invoice.number}.pdf telah tersimpan.`,
+        title: "Excel Berhasil Diunduh",
+        description: `File Invoice_${invoice.number}.xlsx telah tersimpan.`,
       });
     } catch (error) {
-      console.error("Error generating PDF", error);
+      console.error("Error generating Excel", error);
       toast({
         variant: "destructive",
-        title: "Gagal Membuat PDF",
-        description: "Terjadi kesalahan saat mengekspor dokumen ke PDF.",
+        title: "Gagal Membuat Excel",
+        description: "Terjadi kesalahan saat mengekspor dokumen ke Excel.",
       });
     } finally {
       setIsGenerating(false);
@@ -123,9 +104,9 @@ export default function InvoicePreviewPage() {
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" /> Cetak (Print)
           </Button>
-          <Button onClick={handleDownloadPDF} disabled={isGenerating}>
+          <Button onClick={handleDownloadExcel} disabled={isGenerating}>
             {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Unduh PDF
+            Unduh Excel (XLSX)
           </Button>
         </div>
       </div>
