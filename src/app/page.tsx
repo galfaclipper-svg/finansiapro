@@ -21,25 +21,25 @@ export default function LandingPage() {
             href="#features"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
-            Features
+            Fitur
           </Link>
           <Link
             href="#pricing"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
-            Pricing
+            Harga
           </Link>
           <Link
             href="#about"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
-            About
+            Tentang
           </Link>
           <Link
             href="#contact"
             className="text-sm font-medium hover:underline underline-offset-4"
           >
-            Contact
+            Kontak
           </Link>
         </nav>
       </header>
@@ -51,25 +51,25 @@ export default function LandingPage() {
                 <div className="space-y-2">
                   <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none text-primary font-headline">
                     <Balancer>
-                      Intelligent Finance for Modern E-Commerce
+                      Kecerdasan Finansial Tanpa Batas untuk Bisnis E-Commerce Modern
                     </Balancer>
                   </h1>
                   <p className="max-w-[600px] text-foreground/80 md:text-xl">
                     <Balancer>
-                      FinansiaPro offers smart transaction inputs, automated reporting, and AI-powered insights to streamline your online business finances.
+                      FinansiaPro menghadirkan input transaksi cerdas, pelaporan otomatis, dan wawasan berbasis AI untuk mengakselerasi efisiensi keuangan bisnis online Anda ke tingkat selanjutnya.
                     </Balancer>
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Button asChild size="lg" className="group">
                     <Link href="/dashboard">
-                      Go to Dashboard
+                      Akses Dashboard
                       <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="lg">
-                    <Link href="/dashboard">
-                      Learn More
+                    <Link href="#features">
+                      Pelajari Lebih Lanjut
                     </Link>
                   </Button>
                 </div>
@@ -90,13 +90,13 @@ export default function LandingPage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <div className="inline-block rounded-lg bg-primary/10 px-3 py-1 text-sm text-primary">
-                  Key Features
+                  Fitur Unggulan
                 </div>
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                  Simplify Your Financial Workflow
+                  Revolusi Alur Kerja Finansial Anda
                 </h2>
                 <p className="max-w-[900px] text-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  From transaction entry to insightful dashboards, FinansiaPro has everything your online business needs to thrive.
+                  Dari pencatatan transaksi terotomatisasi hingga dasbor wawasan yang komprehensif, FinansiaPro membekali bisnis online Anda dengan teknologi canggih untuk terus berkembang.
                 </p>
               </div>
             </div>
@@ -105,27 +105,27 @@ export default function LandingPage() {
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
                     <BarChart className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-bold font-headline">Automated Reporting</h3>
+                <h3 className="text-xl font-bold font-headline">Pelaporan Otomatis Cerdas</h3>
                 <p className="text-sm text-foreground/80">
-                  Real-time generation of essential financial statements, from general journals to balance sheets.
+                  Hasilkan laporan keuangan esensial secara real-time dengan akurasi presisi tinggi, dari jurnal umum hingga neraca.
                 </p>
               </div>
               <div className="grid gap-1 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
                     <FileText className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-bold font-headline">AI-Powered Scanning</h3>
+                <h3 className="text-xl font-bold font-headline">Pemindaian Berbasis AI</h3>
                 <p className="text-sm text-foreground/80">
-                  Scan receipts and proofs of transfer to automatically categorize transactions and reduce manual data entry.
+                  Pindai struk dan bukti transfer dengan teknologi pengenalan AI yang secara instan mengategorikan transaksi, meminimalisir input manual.
                 </p>
               </div>
               <div className="grid gap-1 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground mb-4">
                     <Package className="h-8 w-8" />
                 </div>
-                <h3 className="text-xl font-bold font-headline">Inventory Management</h3>
+                <h3 className="text-xl font-bold font-headline">Manajemen Inventaris Terintegrasi</h3>
                 <p className="text-sm text-foreground/80">
-                  Keep track of your merchandise stock levels automatically with every sale and purchase.
+                  Pantau pergerakan dan ketersediaan stok barang secara otomatis dan akurat pada setiap siklus penjualan dan pembelian.
                 </p>
               </div>
             </div>
@@ -136,10 +136,10 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                Pricing Plans
+                Paket Layanan
               </h2>
               <p className="max-w-[700px] text-foreground/80 md:text-xl/relaxed">
-                Simple, transparent pricing for growing businesses. Start optimizing your finances today.
+                Harga yang transparan dan fleksibel untuk bisnis yang dinamis. Mulai optimalkan infrastruktur keuangan Anda hari ini.
               </p>
             </div>
             {/* Add pricing table here if needed */}
@@ -150,10 +150,10 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6">
              <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                About FinansiaPro
+                Tentang FinansiaPro
               </h2>
               <p className="max-w-[700px] text-foreground/80 md:text-xl/relaxed">
-                Built to solve the real financial headaches of modern e-commerce entrepreneurs. We believe good accounting shouldn't require a finance degree.
+                Dikembangkan khusus untuk mengeliminasi kompleksitas finansial para pengusaha e-commerce modern. Kami percaya akuntansi profesional yang mutakhir dapat diakses tanpa perlu keahlian khusus di bidang keuangan.
               </p>
             </div>
           </div>
@@ -162,14 +162,14 @@ export default function LandingPage() {
         <section id="contact" className="w-full py-12 md:py-24 lg:py-32 bg-background">
             <div className="container px-4 md:px-6 text-center">
                  <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline mb-4">
-                    Get in Touch
+                    Hubungi Kami
                  </h2>
                  <p className="max-w-[700px] mx-auto text-foreground/80 md:text-xl/relaxed mb-8">
-                    Have questions? Our support team is ready to help you set up your financial workflows.
+                    Memiliki pertanyaan? Tim dukungan eksklusif kami siap membantu Anda mengintegrasikan alur kerja finansial yang canggih ini ke dalam bisnis Anda.
                  </p>
                  <Button asChild size="lg">
                     <Link href="mailto:support@finansiapro.com">
-                        Contact Support
+                        Hubungi Dukungan
                     </Link>
                  </Button>
             </div>
@@ -179,10 +179,10 @@ export default function LandingPage() {
         <p className="text-xs text-foreground/60">&copy; 2024 FinansiaPro. All rights reserved.</p>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link href="/" className="text-xs hover:underline underline-offset-4">
-            Terms of Service
+            Syarat dan Ketentuan
           </Link>
           <Link href="/" className="text-xs hover:underline underline-offset-4">
-            Privacy
+            Kebijakan Privasi
           </Link>
         </nav>
       </footer>
