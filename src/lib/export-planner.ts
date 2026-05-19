@@ -130,7 +130,7 @@ export const exportPlannerToExcel = (state: PlannerState, profile: CompanyProfil
 
   const wsData = [
     ['LAPORAN PERENCANAAN BISNIS'],
-    [`Perusahaan: ${profile?.name || 'FinansiaPro'}`],
+    [`Perusahaan: ${profile?.name || 'FinansiaProf'}`],
     [`Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}`],
     [`Jenis Bisnis: ${state.businessType.toUpperCase()} ${isMulti ? '(MULTI PRODUK)' : ''}`],
     [],
@@ -168,7 +168,7 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-  doc.text(`Perusahaan: ${profile?.name || 'FinansiaPro'}`, 40, currentY);
+  doc.text(`Perusahaan: ${profile?.name || 'FinansiaProf'}`, 40, currentY);
   doc.text(`Bisnis: ${state.businessType.toUpperCase()}${isMulti ? ' (Multi)' : ''}`, 350, currentY);
   currentY += 15;
   doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')}`, 40, currentY);
@@ -339,7 +339,7 @@ export const exportPlannerToPdf = (state: PlannerState, profile: CompanyProfile 
   doc.setTextColor(150, 150, 150);
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.text(`Dicetak dengan FinansiaPro - Halaman ${i} dari ${pageCount}`, 40, doc.internal.pageSize.getHeight() - 30);
+    doc.text(`Dicetak dengan FinansiaProf - Halaman ${i} dari ${pageCount}`, 40, doc.internal.pageSize.getHeight() - 30);
   }
 
   doc.save(`Perencanaan_Bisnis_${profile?.name || 'Export'}_${new Date().toISOString().split('T')[0]}.pdf`);

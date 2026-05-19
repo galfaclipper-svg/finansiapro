@@ -835,7 +835,7 @@ export default function ReportsPage() {
 
     XLSX.utils.book_append_sheet(wb, wsAudit, auditSheetName);
 
-    XLSX.writeFile(wb, "Laporan Keuangan FinansiaPro (Automated).xlsx");
+    XLSX.writeFile(wb, "Laporan Keuangan FinansiaProf (Automated).xlsx");
   };
 
   const handlePrintPDF = async () => {
@@ -1107,7 +1107,7 @@ export default function ReportsPage() {
       (doc as any).putTotalPages(totalPagesExp);
     }
 
-    doc.save('Laporan Keuangan FinansiaPro.pdf');
+    doc.save('Laporan Keuangan FinansiaProf.pdf');
   };
 
   return (

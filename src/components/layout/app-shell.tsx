@@ -100,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
             </SecretAdminGate>
             <span className="font-bold text-lg text-primary truncate">
-              FinansiaPro
+              FinansiaProf
             </span>
           </Link>
         </SidebarHeader>

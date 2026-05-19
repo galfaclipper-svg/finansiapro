@@ -15,7 +15,7 @@ export default function LandingPage() {
       <header className="px-4 lg:px-12 h-20 flex items-center bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5 w-full">
         <div className="flex items-center justify-center gap-3">
           <Logo className="h-8 w-8 text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
-          <span className="font-extrabold text-xl tracking-tight text-white">FinansiaPro</span>
+          <span className="font-extrabold text-xl tracking-tight text-white">FinansiaProf</span>
         </div>
         <nav className="ml-auto flex items-center gap-4 md:gap-6">
           <Link href="#masalah" className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden md:block">
@@ -107,7 +107,7 @@ export default function LandingPage() {
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">Solusi Menyeluruh di Tangan Anda</h2>
-              <p className="text-slate-400 max-w-2xl mx-auto text-lg">FinansiaPro didesain untuk otomatisasi maksimal. Tinggalkan cara lama Anda hari ini.</p>
+              <p className="text-slate-400 max-w-2xl mx-auto text-lg">FinansiaProf didesain untuk otomatisasi maksimal. Tinggalkan cara lama Anda hari ini.</p>
             </div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -198,7 +198,7 @@ export default function LandingPage() {
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                 </div>
-                <p className="text-slate-300 italic mb-6">"Dulu saya butuh 3 hari di akhir bulan hanya untuk merekap nota dan mencocokkan stok dengan uang di laci. Sejak pakai FinansiaPro, klik 'Export', Excel-nya langsung jadi beserta semua rumusnya. Gila, sangat menghemat waktu!"</p>
+                <p className="text-slate-300 italic mb-6">"Dulu saya butuh 3 hari di akhir bulan hanya untuk merekap nota dan mencocokkan stok dengan uang di laci. Sejak pakai FinansiaProf, klik 'Export', Excel-nya langsung jadi beserta semua rumusnya. Gila, sangat menghemat waktu!"</p>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl">D</div>
                   <div>
@@ -251,7 +251,7 @@ export default function LandingPage() {
         <div className="container px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-6 mx-auto">
           <div className="flex items-center gap-2">
             <Logo className="h-6 w-6 text-slate-500" />
-            <span className="font-bold text-slate-500">FinansiaPro &copy; {new Date().getFullYear()}</span>
+            <span className="font-bold text-slate-500">FinansiaProf &copy; {new Date().getFullYear()}</span>
           </div>
           <p className="text-sm text-slate-600 text-center md:text-left">
             Proprietary Software milik Wisesa Niskala. All rights reserved.

@@ -91,7 +91,7 @@ export default function AdminPage() {
           </div>
           <div>
             <h1 className="font-bold text-xl text-gray-900 tracking-tight">Admin Portal</h1>
-            <p className="text-sm text-gray-500">Manajemen Lisensi FinansiaPro</p>
+            <p className="text-sm text-gray-500">Manajemen Lisensi FinansiaProf</p>
           </div>
         </div>
         <div className="flex items-center gap-4">

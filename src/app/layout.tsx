@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'FinansiaPro',
+  title: 'FinansiaProf',
   description:
     'Manajemen keuangan cerdas untuk bisnis perdagangan online.',
   icons: {
@@ -46,7 +46,7 @@ export default function RootLayout({
                 <script
                   dangerouslySetInnerHTML={{
                     __html: `
-                      console.log("%cFinansiaPro SaaS Hak Cipta dilindungi. Proprietary Software milik Wisesa Niskala.", "color: #247BA0; font-size: 14px; font-weight: bold; border: 1px solid #247BA0; padding: 10px; border-radius: 5px;");
+                      console.log("%cFinansiaProf SaaS Hak Cipta dilindungi. Proprietary Software milik Wisesa Niskala.", "color: #247BA0; font-size: 14px; font-weight: bold; border: 1px solid #247BA0; padding: 10px; border-radius: 5px;");
                       
                       // Anti-Piracy Protection
                       if (typeof window !== 'undefined') {

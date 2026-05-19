@@ -41,9 +41,9 @@ export default function LoginPage() {
     <div className="flex h-screen w-full items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
         <div className="text-center">
-          <img src="/icon.png" alt="FinansiaPro Logo" className="w-20 h-20 mx-auto mb-2 object-contain" />
+          <img src="/icon.png" alt="FinansiaProf Logo" className="w-20 h-20 mx-auto mb-2 object-contain" />
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-            FinansiaPro
+            FinansiaProf
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {isRegister ? 'Buat akun baru Anda' : 'Sign in ke akun Anda'}

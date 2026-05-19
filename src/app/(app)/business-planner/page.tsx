@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { BusinessPlanner } from '@/components/business-planner/business-planner';
 
 export const metadata: Metadata = {
-  title: 'Perencana Bisnis | FinansiaPro',
+  title: 'Perencana Bisnis | FinansiaProf',
   description: 'Alat bantu perencanaan bisnis, kalkulator HPP, simulasi harga, dan analisis BEP.',
 };
 

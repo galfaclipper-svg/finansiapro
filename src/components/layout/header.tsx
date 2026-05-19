@@ -70,7 +70,7 @@ export function Header() {
             <Link href="/settings">Pengaturan</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="cursor-pointer">
-            <a href="mailto:wisesaniskala@gmail.com?subject=Dukungan%20FinansiaPro">Dukungan</a>
+            <a href="mailto:wisesaniskala@gmail.com?subject=Dukungan%20FinansiaProf">Dukungan</a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => logout()} className="cursor-pointer text-red-600 focus:text-red-600">Keluar</DropdownMenuItem>

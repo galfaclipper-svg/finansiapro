@@ -63,7 +63,7 @@ export default function EnterLicensePage() {
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Akun Belum Aktif</h1>
           <p className="text-primary-foreground/80 mt-2 text-sm">
-            Silakan masukkan kode lisensi untuk menggunakan FinansiaPro.
+            Silakan masukkan kode lisensi untuk menggunakan FinansiaProf.
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export default function EnterLicensePage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
                 <a 
-                  href={`https://wa.me/62881010129990?text=${encodeURIComponent(`Halo admin, saya ingin mengonfirmasi pembayaran aplikasi FinansiaPro.\n\nEmail Akun: ${user?.email || '...'}\nNominal Transfer: Rp [Isi Nominal]\nBank Tujuan: [Isi Bank]\n\nMohon segera dikirimkan kode lisensinya. Terima kasih.`)}`}
+                  href={`https://wa.me/62881010129990?text=${encodeURIComponent(`Halo admin, saya ingin mengonfirmasi pembayaran aplikasi FinansiaProf.\n\nEmail Akun: ${user?.email || '...'}\nNominal Transfer: Rp [Isi Nominal]\nBank Tujuan: [Isi Bank]\n\nMohon segera dikirimkan kode lisensinya. Terima kasih.`)}`}
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-[#25D366] text-white hover:bg-[#20bd5a] shadow-sm h-10 px-4 py-2 w-full sm:w-auto"
@@ -127,7 +127,7 @@ export default function EnterLicensePage() {
                   Konfirmasi via WhatsApp
                 </a>
                 <a 
-                  href={`mailto:wisesaniskala@gmail.com?subject=Konfirmasi Pembayaran FinansiaPro&body=${encodeURIComponent(`Halo admin,\n\nSaya ingin mengonfirmasi pembayaran untuk pembelian lisensi FinansiaPro.\n\nEmail Akun: ${user?.email || '...'}\nNominal Transfer: Rp [Isi Nominal]\nBank Tujuan: [Isi Bank]\n\nMohon dicek dan kirimkan kode lisensinya. (Silakan lampirkan bukti transfer pada email ini)\n\nTerima kasih.`)}`}
+                  href={`mailto:wisesaniskala@gmail.com?subject=Konfirmasi Pembayaran FinansiaProf&body=${encodeURIComponent(`Halo admin,\n\nSaya ingin mengonfirmasi pembayaran untuk pembelian lisensi FinansiaProf.\n\nEmail Akun: ${user?.email || '...'}\nNominal Transfer: Rp [Isi Nominal]\nBank Tujuan: [Isi Bank]\n\nMohon dicek dan kirimkan kode lisensinya. (Silakan lampirkan bukti transfer pada email ini)\n\nTerima kasih.`)}`}
                   className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-300 text-slate-700 hover:bg-slate-100 shadow-sm h-10 px-4 py-2 w-full sm:w-auto"
                 >
                   <Mail className="mr-2 h-4 w-4" />

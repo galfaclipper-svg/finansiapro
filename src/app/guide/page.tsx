@@ -9,7 +9,7 @@ export default function GuidePage() {
       <header className="px-4 lg:px-6 h-16 flex items-center bg-white border-b sticky top-0 z-50 shadow-sm">
         <div className="flex items-center justify-center gap-2">
           <Logo className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg text-slate-800">FinansiaPro</span>
+          <span className="font-bold text-lg text-slate-800">FinansiaProf</span>
         </div>
         <div className="ml-auto">
           <Button asChild size="sm">
@@ -26,10 +26,10 @@ export default function GuidePage() {
             <BookOpen className="h-8 w-8" />
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
-            Panduan Lengkap Penggunaan FinansiaPro
+            Panduan Lengkap Penggunaan FinansiaProf
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Selamat datang di FinansiaPro! Ikuti langkah-langkah di bawah ini untuk menguasai aplikasi dan mengatur keuangan bisnis Anda dengan sangat mudah, bahkan bagi orang awam sekalipun.
+            Selamat datang di FinansiaProf! Ikuti langkah-langkah di bawah ini untuk menguasai aplikasi dan mengatur keuangan bisnis Anda dengan sangat mudah, bahkan bagi orang awam sekalipun.
           </p>
         </div>
 
@@ -89,7 +89,7 @@ export default function GuidePage() {
                 <h3 className="font-bold text-lg">Manajemen Stok (Inventory)</h3>
               </div>
               <p className="text-slate-600 text-sm mb-3">
-                Jika Anda menjual barang fisik, catat barang Anda di sini. FinansiaPro akan <strong>menambah/mengurangi stok secara otomatis</strong> setiap kali ada transaksi Penjualan atau Pembelian Barang.
+                Jika Anda menjual barang fisik, catat barang Anda di sini. FinansiaProf akan <strong>menambah/mengurangi stok secara otomatis</strong> setiap kali ada transaksi Penjualan atau Pembelian Barang.
               </p>
               <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
                 <li>Masuk ke menu <strong>Inventaris</strong>.</li>
@@ -196,7 +196,7 @@ export default function GuidePage() {
         <div className="mt-20 text-center border-t border-slate-200 pt-12 pb-8">
           <h2 className="text-2xl font-bold text-slate-800 mb-4">Siap untuk Memulai?</h2>
           <p className="text-slate-600 mb-8 max-w-lg mx-auto">
-            Anda telah mempelajari seluruh alur kerja FinansiaPro. Sekarang, mari aplikasikan pada bisnis Anda dan nikmati kemudahan mencatat keuangan secara instan.
+            Anda telah mempelajari seluruh alur kerja FinansiaProf. Sekarang, mari aplikasikan pada bisnis Anda dan nikmati kemudahan mencatat keuangan secara instan.
           </p>
           <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all" asChild>
             <Link href="/dashboard">
