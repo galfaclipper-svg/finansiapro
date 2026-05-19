@@ -131,7 +131,7 @@ export function ShareReportDialog({ open, onOpenChange, type, data, onDownloadXL
     } else if (sendMethod === 'email' && recipient.email) {
       const subject = type === 'financial' ? `Laporan Keuangan - ${companyProfile.name}` : `Invoice ${data?.invoiceNumber} - ${companyProfile.name}`;
       const url = `mailto:${recipient.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(messagePreview)}`;
-      window.open(url, '_blank');
+      window.location.href = url;
     }
 
     if (autoDownload === 'pdf' && onDownloadPDF) {
