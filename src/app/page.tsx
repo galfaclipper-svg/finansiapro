@@ -12,7 +12,7 @@ export default function LandingPage() {
         <div className="absolute bottom-1/4 right-1/4 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-indigo-600/10 rounded-full blur-[120px] md:blur-[150px] mix-blend-screen"></div>
       </div>
 
-      <header className="px-4 lg:px-12 h-20 flex items-center bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5 w-full max-w-[100vw]">
+      <header className="px-4 lg:px-12 h-20 flex items-center bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5 w-full">
         <div className="flex items-center justify-center gap-3">
           <Logo className="h-8 w-8 text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
           <span className="font-extrabold text-xl tracking-tight text-white">FinansiaPro</span>
@@ -31,7 +31,7 @@ export default function LandingPage() {
             Masuk
           </Link>
           <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] rounded-full px-4 md:px-6">
-            <Link href="/register">
+            <Link href="/login">
               Mulai Sekarang
             </Link>
           </Button>
@@ -62,7 +62,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up" style={{animationDelay: "0.3s"}}>
               <Button asChild size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.5)] rounded-full h-14 px-8 text-lg font-semibold transition-all hover:scale-105">
-                <Link href="/register">
+                <Link href="/login">
                   Dapatkan Kode Akses Anda
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -238,7 +238,7 @@ export default function LandingPage() {
                 Waktu Anda terlalu berharga untuk dihabiskan mengurus rumus dan rekapitulasi. Klaim akses Anda hari ini dan biarkan sistem kami yang bekerja untuk Anda.
               </p>
               <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.6)] rounded-full h-16 px-10 text-xl font-bold transition-transform hover:scale-105">
-                <Link href="/register">
+                <Link href="/login">
                   Dapatkan Akses Eksklusif Sekarang
                 </Link>
               </Button>
