@@ -1,8 +1,16 @@
+export type ReportRecipient = {
+  id: string;
+  name: string;
+  whatsapp?: string;
+  email?: string;
+};
+
 export type CompanyProfile = {
   name: string;
   address: string;
   logoUrl?: string;
   contact?: string;
+  reportRecipients?: ReportRecipient[];
 };
 
 export type Account = {

@@ -13,6 +13,7 @@ import { BalanceSheet } from '@/components/reports/balance-sheet';
 import { CashFlowStatement } from '@/components/reports/cash-flow-statement';
 import { GeneralLedger } from '@/components/reports/general-ledger';
 import { AdvancedBEPROIAnalysis } from '@/components/reports/advanced-bep-roi-analysis';
+import { ShareReportDialog } from '@/components/reports/share-report-dialog';
 import { useAppState } from '@/hooks/use-app-state';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -23,9 +24,12 @@ import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { Send } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ReportsPage() {
   const { transactions, inventory, companyProfile } = useAppState();
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const reportData = useMemo(() => {
     // --- 0. Generate Virtual Depreciation Transactions ---
@@ -1116,6 +1120,10 @@ export default function ReportsPage() {
         title="Laporan Keuangan"
         description="Hasilkan dan lihat laporan keuangan bisnis Anda."
       >
+        <Button variant="outline" className="border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
+          <Send className="mr-2 h-4 w-4" />
+          Kirim Laporan
+        </Button>
         <Button variant="outline" onClick={handleExportXLSX}>
           <Download className="mr-2 h-4 w-4" />
           Ekspor Semua (XLSX)
@@ -1154,6 +1162,17 @@ export default function ReportsPage() {
             <AdvancedBEPROIAnalysis reportData={reportData} />
         </TabsContent>
       </Tabs>
+
+      <ShareReportDialog 
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        type="financial"
+        data={{
+          labaRugi: reportData.incomeStatement,
+          neraca: reportData.balanceSheet,
+          arusKas: reportData.cashFlow
+        }}
+      />
     </div>
   );
 }

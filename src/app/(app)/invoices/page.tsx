@@ -81,7 +81,7 @@ export default function InvoicesPage() {
       const invoice = invoices.find(inv => inv.id === invoiceId);
       if (invoice) {
         await updateInvoice({ ...invoice, status: "paid" });
-        toast({ title: "Tagihan Lunas", description: `Tagihan ${invoice.number} telah ditandai lunas dan masuk ke jurnal.` });
+        toast({ title: "Tagihan Lunas", description: `Tagihan ${invoice.invoiceNumber} telah ditandai lunas dan masuk ke jurnal.` });
       }
     } catch (error) {
       toast({ variant: "destructive", title: "Terjadi Kesalahan", description: "Tidak dapat mengubah status tagihan." });
@@ -93,7 +93,7 @@ export default function InvoicesPage() {
       const invoice = invoices.find(inv => inv.id === invoiceId);
       if (invoice) {
         await updateInvoice({ ...invoice, status: "cancelled" });
-        toast({ title: "Tagihan Dibatalkan", description: `Tagihan ${invoice.number} telah diubah menjadi Dibatalkan.` });
+        toast({ title: "Tagihan Dibatalkan", description: `Tagihan ${invoice.invoiceNumber} telah diubah menjadi Dibatalkan.` });
       }
     } catch (error) {
       toast({ variant: "destructive", title: "Terjadi Kesalahan", description: "Tidak dapat mengubah status tagihan." });
@@ -197,11 +197,11 @@ export default function InvoicesPage() {
                 {filteredAndSortedInvoices.length > 0 ? (
                   filteredAndSortedInvoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">{invoice.number}</TableCell>
+                      <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
                       <TableCell>{getClientName(invoice.clientId)}</TableCell>
-                      <TableCell>{formatDate(invoice.date)}</TableCell>
+                      <TableCell>{formatDate(invoice.issueDate)}</TableCell>
                       <TableCell>{formatDate(invoice.dueDate)}</TableCell>
-                      <TableCell>{formatCurrency(invoice.totalAmount)}</TableCell>
+                      <TableCell>{formatCurrency(invoice.total)}</TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

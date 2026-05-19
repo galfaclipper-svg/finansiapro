@@ -19,7 +19,7 @@ import * as XLSX from 'xlsx';
 import type { Transaction } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { INITIAL_COMPANY_PROFILE } from '@/lib/constants';
-
+import { ReportRecipientsManager } from '@/components/settings/report-recipients';
 
 const profileSchema = z.object({
   name: z.string().min(3, "Nama perusahaan minimal 3 karakter."),
@@ -304,6 +304,8 @@ export default function SettingsPage() {
             </form>
             </Form>
         </Card>
+        
+        <ReportRecipientsManager />
 
         <div className="space-y-8">
             <Card>

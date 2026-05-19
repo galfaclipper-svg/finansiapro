@@ -10,6 +10,8 @@ import Link from "next/link";
 import { exportInvoiceToExcel } from "@/lib/invoice-exporter";
 import { useToast } from "@/hooks/use-toast";
 import type { Invoice, Client } from "@/lib/types";
+import { ShareReportDialog } from "@/components/reports/share-report-dialog";
+import { Send } from "lucide-react";
 
 export default function InvoicePreviewPage() {
   const params = useParams();
@@ -19,6 +21,7 @@ export default function InvoicePreviewPage() {
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [client, setClient] = useState<Client | null>(null);
 
@@ -55,7 +58,7 @@ export default function InvoicePreviewPage() {
       
       toast({
         title: "Excel Berhasil Diunduh",
-        description: `File Invoice_${invoice.number}.xlsx telah tersimpan.`,
+        description: `File Invoice_${invoice.invoiceNumber}.xlsx telah tersimpan.`,
       });
     } catch (error) {
       console.error("Error generating Excel", error);
@@ -101,6 +104,9 @@ export default function InvoicePreviewPage() {
           </Link>
         </Button>
         <div className="flex gap-2">
+          <Button variant="outline" className="border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
+            <Send className="mr-2 h-4 w-4" /> Kirim
+          </Button>
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" /> Cetak (Print)
           </Button>
@@ -137,8 +143,8 @@ export default function InvoicePreviewPage() {
           </div>
           <div className="text-right">
             <h2 className="text-4xl font-bold text-gray-200 mb-2">INVOICE</h2>
-            <p className="text-sm font-medium text-gray-700">No: {invoice.number}</p>
-            <p className="text-sm text-gray-500">Tanggal: {formatDate(invoice.date)}</p>
+            <p className="text-sm font-medium text-gray-700">No: {invoice.invoiceNumber}</p>
+            <p className="text-sm text-gray-500">Tanggal: {formatDate(invoice.issueDate)}</p>
             <p className="text-sm text-gray-500">Jatuh Tempo: {formatDate(invoice.dueDate)}</p>
           </div>
         </div>
@@ -171,7 +177,7 @@ export default function InvoicePreviewPage() {
                   <td className="py-4 px-4">{item.description}</td>
                   <td className="py-4 px-4 text-right">{item.quantity}</td>
                   <td className="py-4 px-4 text-right">{formatCurrency(item.unitPrice)}</td>
-                  <td className="py-4 px-4 text-right font-medium">{formatCurrency(item.total)}</td>
+                  <td className="py-4 px-4 text-right font-medium">{formatCurrency(item.amount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -183,7 +189,7 @@ export default function InvoicePreviewPage() {
           <div className="w-full sm:w-1/2 md:w-1/3">
             <div className="flex justify-between py-2 text-sm text-gray-600 border-b">
               <span>Subtotal</span>
-              <span>{formatCurrency(invoice.subTotal)}</span>
+              <span>{formatCurrency(invoice.subtotal)}</span>
             </div>
             {invoice.taxRate > 0 && (
               <div className="flex justify-between py-2 text-sm text-gray-600 border-b">
@@ -193,7 +199,7 @@ export default function InvoicePreviewPage() {
             )}
             <div className="flex justify-between py-4 text-lg font-bold text-gray-800">
               <span>Total Tagihan</span>
-              <span>{formatCurrency(invoice.totalAmount)}</span>
+              <span>{formatCurrency(invoice.total)}</span>
             </div>
           </div>
         </div>
@@ -225,6 +231,13 @@ export default function InvoicePreviewPage() {
           @page { size: auto;  margin: 0mm; }
         }
       `}} />
+
+      <ShareReportDialog 
+        open={isShareOpen}
+        onOpenChange={setIsShareOpen}
+        type="invoice"
+        data={invoice}
+      />
     </div>
   );
 }
