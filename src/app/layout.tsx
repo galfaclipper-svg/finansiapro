@@ -6,7 +6,7 @@ import { AuthProvider } from '@/contexts/auth-provider';
 import { LicenseProvider } from '@/contexts/license-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import { Balancer as ProivderBalancer } from 'react-wrap-balancer';
+
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -33,7 +33,6 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased overflow-x-hidden', inter.variable)}>
-        <ProivderBalancer>
           <AuthProvider>
             <LicenseProvider>
               <AppProvider>
@@ -86,7 +85,6 @@ export default function RootLayout({
               </AppProvider>
             </LicenseProvider>
           </AuthProvider>
-        </ProivderBalancer>
       </body>
     </html>
   );
