@@ -28,7 +28,7 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
 
   const [selectedRecipientId, setSelectedRecipientId] = useState<string>('');
   const [sendMethod, setSendMethod] = useState<'whatsapp' | 'email'>('whatsapp');
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(['laba-rugi', 'neraca', 'arus-kas']);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(['laba-rugi', 'neraca', 'arus-kas', 'buku-besar']);
   const [messagePreview, setMessagePreview] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -83,6 +83,16 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
         text += `- Kas Awal: ${formatCurrency(data?.arusKas?.beginningCash || 0)}\n`;
         text += `- Arus Kas Bersih: ${formatCurrency(data?.arusKas?.netCashFlow || 0)}\n`;
         text += `- Saldo Kas Akhir: ${formatCurrency(data?.arusKas?.endingCash || 0)}\n\n`;
+      }
+
+      if (selectedOptions.includes('buku-besar')) {
+        text += `📔 *BUKU BESAR & JURNAL UMUM*\n`;
+        text += `- Daftar rincian seluruh riwayat transaksi (General Ledger & Journal) tersedia di dokumen lampiran.\n\n`;
+      }
+      
+      if (selectedOptions.includes('audit-investor')) {
+        text += `📑 *KEBUTUHAN AUDIT & INVESTOR*\n`;
+        text += `- Dokumen pendukung komprehensif untuk peninjauan khusus telah dilampirkan.\n\n`;
       }
     } else if (type === 'invoice') {
       const inv = data as Invoice;
@@ -207,6 +217,22 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
                       onCheckedChange={() => toggleOption('arus-kas')}
                     />
                     <Label htmlFor="opt-kas" className="text-sm cursor-pointer">Arus Kas</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="opt-bukubesar" 
+                      checked={selectedOptions.includes('buku-besar')}
+                      onCheckedChange={() => toggleOption('buku-besar')}
+                    />
+                    <Label htmlFor="opt-bukubesar" className="text-sm cursor-pointer">Buku Besar</Label>
+                  </div>
+                  <div className="flex items-center space-x-2 col-span-2">
+                    <Checkbox 
+                      id="opt-audit" 
+                      checked={selectedOptions.includes('audit-investor')}
+                      onCheckedChange={() => toggleOption('audit-investor')}
+                    />
+                    <Label htmlFor="opt-audit" className="text-sm cursor-pointer">Kebutuhan Audit & Investor</Label>
                   </div>
                 </div>
               </div>
