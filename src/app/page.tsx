@@ -5,7 +5,6 @@ import { Logo } from '@/components/logo';
 
 export default function LandingPage() {
   return (
-    {/* Added overflow-x-hidden here to prevent horizontal scroll issues */}
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-50 overflow-x-hidden font-sans w-full relative">
       {/* Background Decor - ensuring they don't break viewport width */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
