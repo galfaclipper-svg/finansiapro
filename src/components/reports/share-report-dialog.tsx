@@ -61,23 +61,28 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
       
       if (selectedOptions.includes('laba-rugi')) {
         text += `📊 *LABA RUGI*\n`;
-        text += `- Total Pendapatan: ${formatCurrency(data?.labaRugi?.totalPendapatan || 0)}\n`;
-        text += `- Total Beban: ${formatCurrency(data?.labaRugi?.totalBeban || 0)}\n`;
-        text += `- Laba Bersih: ${formatCurrency(data?.labaRugi?.labaBersih || 0)}\n\n`;
+        text += `- Total Pendapatan: ${formatCurrency(data?.labaRugi?.totalRevenue || 0)}\n`;
+        text += `- Total Beban: ${formatCurrency(data?.labaRugi?.totalExpenses || 0)}\n`;
+        text += `- Laba Bersih: ${formatCurrency(data?.labaRugi?.netIncome || 0)}\n\n`;
       }
       
       if (selectedOptions.includes('neraca')) {
+        const totalLiabilities = Object.values(data?.neraca?.liabilities || {}).reduce((a: any, b: any) => a + b, 0) as number;
+        const totalEquity = Object.values(data?.neraca?.equity || {}).reduce((a: any, b: any) => a + b, 0) as number;
+        // Prive is a contra-equity account (subtraction), handled already in equity calculation.
+        // Wait, the equity values in data.neraca.equity are raw values. I can just use totalLiabilitiesAndEquity - totalLiabilities
+        const calculatedEquity = (data?.neraca?.totalLiabilitiesAndEquity || 0) - totalLiabilities;
         text += `⚖️ *NERACA (POSISI KEUANGAN)*\n`;
-        text += `- Total Aset: ${formatCurrency(data?.neraca?.totalAset || 0)}\n`;
-        text += `- Total Kewajiban: ${formatCurrency(data?.neraca?.totalKewajiban || 0)}\n`;
-        text += `- Total Ekuitas: ${formatCurrency(data?.neraca?.totalEkuitas || 0)}\n\n`;
+        text += `- Total Aset: ${formatCurrency(data?.neraca?.totalAssets || 0)}\n`;
+        text += `- Total Kewajiban: ${formatCurrency(totalLiabilities || 0)}\n`;
+        text += `- Total Ekuitas: ${formatCurrency(calculatedEquity || 0)}\n\n`;
       }
 
       if (selectedOptions.includes('arus-kas')) {
         text += `💵 *ARUS KAS*\n`;
-        text += `- Total Penerimaan: ${formatCurrency(data?.arusKas?.totalIn || 0)}\n`;
-        text += `- Total Pengeluaran: ${formatCurrency(data?.arusKas?.totalOut || 0)}\n`;
-        text += `- Saldo Kas Akhir: ${formatCurrency(data?.arusKas?.saldoAkhir || 0)}\n\n`;
+        text += `- Kas Awal: ${formatCurrency(data?.arusKas?.beginningCash || 0)}\n`;
+        text += `- Arus Kas Bersih: ${formatCurrency(data?.arusKas?.netCashFlow || 0)}\n`;
+        text += `- Saldo Kas Akhir: ${formatCurrency(data?.arusKas?.endingCash || 0)}\n\n`;
       }
     } else if (type === 'invoice') {
       const inv = data as Invoice;
