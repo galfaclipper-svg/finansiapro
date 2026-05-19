@@ -28,7 +28,7 @@ export default function LoginPage() {
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      router.push('/');
+      router.push('/dashboard');
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'An error occurred during authentication.');

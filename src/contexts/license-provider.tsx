@@ -86,12 +86,12 @@ export const LicenseProvider = ({ children }: { children: React.ReactNode }) => 
           // If no license, go to enter-license
           router.replace('/enter-license');
        } else if (hasValidLicense && isLicenseRoute) {
-          // If has license but on enter-license, go to home
-          router.replace('/');
+          // If has license but on enter-license, go to guide
+          router.replace('/guide');
        }
     } else {
        // Not logged in
-       if (!isLoginRoute && !pathname?.startsWith('/register')) {
+       if (!isLoginRoute && !pathname?.startsWith('/register') && pathname !== '/') {
          router.replace('/login');
        }
     }
