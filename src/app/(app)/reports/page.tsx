@@ -1172,6 +1172,8 @@ export default function ReportsPage() {
           neraca: reportData.balanceSheet,
           arusKas: reportData.cashFlow
         }}
+        onDownloadXLSX={handleExportXLSX}
+        onDownloadPDF={handlePrintPDF}
       />
     </div>
   );

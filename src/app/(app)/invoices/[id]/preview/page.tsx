@@ -237,6 +237,8 @@ export default function InvoicePreviewPage() {
         onOpenChange={setIsShareOpen}
         type="invoice"
         data={invoice}
+        onDownloadXLSX={handleDownloadExcel}
+        onDownloadPDF={handlePrint}
       />
     </div>
   );

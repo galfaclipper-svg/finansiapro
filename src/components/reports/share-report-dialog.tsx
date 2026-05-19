@@ -20,15 +20,18 @@ interface ShareReportDialogProps {
   onOpenChange: (open: boolean) => void;
   type: ShareReportType;
   data: any; // financial data or invoice data
+  onDownloadXLSX?: () => void;
+  onDownloadPDF?: () => void;
 }
 
-export function ShareReportDialog({ open, onOpenChange, type, data }: ShareReportDialogProps) {
+export function ShareReportDialog({ open, onOpenChange, type, data, onDownloadXLSX, onDownloadPDF }: ShareReportDialogProps) {
   const { companyProfile } = useAppState();
   const recipients = companyProfile.reportRecipients || [];
 
   const [selectedRecipientId, setSelectedRecipientId] = useState<string>('');
   const [sendMethod, setSendMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   const [selectedOptions, setSelectedOptions] = useState<string[]>(['laba-rugi', 'neraca', 'arus-kas', 'buku-besar']);
+  const [autoDownload, setAutoDownload] = useState<'none' | 'pdf' | 'xlsx'>('xlsx');
   const [messagePreview, setMessagePreview] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -129,6 +132,12 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
       const subject = type === 'financial' ? `Laporan Keuangan - ${companyProfile.name}` : `Invoice ${data?.invoiceNumber} - ${companyProfile.name}`;
       const url = `mailto:${recipient.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(messagePreview)}`;
       window.open(url, '_blank');
+    }
+
+    if (autoDownload === 'pdf' && onDownloadPDF) {
+      setTimeout(() => onDownloadPDF(), 500);
+    } else if (autoDownload === 'xlsx' && onDownloadXLSX) {
+      setTimeout(() => onDownloadXLSX(), 500);
     }
   };
 
@@ -239,6 +248,24 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
             )}
 
             <div className="space-y-3">
+              <Label>Otomatis Unduh Lampiran</Label>
+              <RadioGroup value={autoDownload} onValueChange={(v) => setAutoDownload(v as any)} className="flex space-x-4">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="xlsx" id="dl-xlsx" />
+                  <Label htmlFor="dl-xlsx" className="cursor-pointer">Excel (XLSX)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="pdf" id="dl-pdf" disabled={!onDownloadPDF} />
+                  <Label htmlFor="dl-pdf" className={`cursor-pointer ${!onDownloadPDF ? 'text-muted-foreground' : ''}`}>PDF (Print)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="none" id="dl-none" />
+                  <Label htmlFor="dl-none" className="cursor-pointer">Jangan Unduh</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <Label>Pratinjau Pesan</Label>
                 <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleCopy}>
@@ -254,8 +281,7 @@ export function ShareReportDialog({ open, onOpenChange, type, data }: ShareRepor
               <p className="text-[11px] text-muted-foreground flex items-start gap-1">
                 <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
                 <span>
-                  Sistem tidak dapat melampirkan file PDF/XLSX otomatis. Teks ini akan diisi secara otomatis di {sendMethod === 'whatsapp' ? 'WhatsApp' : 'Email'}, 
-                  Anda dapat mengunggah file lampiran secara manual sebelum menekan tombol Kirim.
+                  Sistem tidak dapat melampirkan file otomatis ke dalam pesan. {autoDownload !== 'none' ? 'File akan otomatis terunduh bersamaan dengan terbukanya jendela pesan, Anda tinggal menarik file tersebut ke dalam kolom percakapan.' : 'Silakan pastikan Anda sudah mengunduh file laporan sebelumnya.'}
                 </span>
               </p>
             </div>
