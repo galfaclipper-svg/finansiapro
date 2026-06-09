@@ -26,9 +26,10 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 
 export default function ReportsPage() {
-  const { transactions, inventory, companyProfile } = useAppState();
+  const { transactions, inventory, companyProfile, dateRange } = useAppState();
   const [isShareOpen, setIsShareOpen] = useState(false);
 
   const reportData = useMemo(() => {
@@ -180,26 +181,58 @@ export default function ReportsPage() {
 
 
     // --- 3. Calculate Final Account Balances ---
-    const accountBalances: { [key: string]: number } = {};
-    extendedCOA.forEach(acc => { accountBalances[acc.name] = 0; });
+    const fromDate = dateRange?.from ? new Date(dateRange.from).getTime() : 0;
+    const toDate = dateRange?.to ? new Date(dateRange.to).setHours(23, 59, 59, 999) : Infinity;
 
-    allJournalEntries.forEach(entry => {
+    const startingEntries = allJournalEntries.filter(entry => new Date(entry.date).getTime() < fromDate);
+    const periodEntries = allJournalEntries.filter(entry => {
+      const tTime = new Date(entry.date).getTime();
+      return tTime >= fromDate && tTime <= toDate;
+    });
+
+    const startingBalances: { [key: string]: number } = {};
+    const periodBalances: { [key: string]: number } = {};
+    extendedCOA.forEach(acc => { startingBalances[acc.name] = 0; periodBalances[acc.name] = 0; });
+
+    startingEntries.forEach(entry => {
         const accountInfo = extendedCOA.find(a => a.name === entry.accountName);
         if (!accountInfo) return;
         const amount = entry.amount;
         if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
-            accountBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
-        } else { // Liabilities, Equity, Revenue
-            accountBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
+            startingBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
+        } else {
+            startingBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
         }
     });
-    
+
+    periodEntries.forEach(entry => {
+        const accountInfo = extendedCOA.find(a => a.name === entry.accountName);
+        if (!accountInfo) return;
+        const amount = entry.amount;
+        if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
+            periodBalances[entry.accountName] += (entry.entryType === 'Debit' ? amount : -amount);
+        } else {
+            periodBalances[entry.accountName] += (entry.entryType === 'Credit' ? amount : -amount);
+        }
+    });
+
+    let prevRevenues = 0;
+    let prevExpenses = 0;
+    Object.entries(startingBalances).forEach(([accountName, balance]) => {
+      const accountInfo = extendedCOA.find(a => a.name === accountName);
+      if (accountInfo?.type === 'Revenue') prevRevenues += balance;
+      if (accountInfo?.type === 'Expenses') prevExpenses += balance;
+    });
+    const prevNetIncome = prevRevenues - prevExpenses;
+    const prevPrive = startingBalances['Prive'] || 0;
+    const accumulatedRetainedEarnings = (startingBalances['Laba Ditahan'] || 0) + prevNetIncome - prevPrive;
+
     // --- 4. Build Reports from Final Balances ---
 
-    // Income Statement Data
+    // Income Statement Data (Only Period)
     const revenues: { [key: string]: number } = {};
     const expenses: { [key: string]: number } = {};
-    Object.entries(accountBalances).forEach(([accountName, balance]) => {
+    Object.entries(periodBalances).forEach(([accountName, balance]) => {
       const accountInfo = extendedCOA.find(a => a.name === accountName);
       if (!accountInfo) return;
       if (accountInfo.type === 'Revenue' && balance !== 0) revenues[accountName] = balance;
@@ -209,36 +242,42 @@ export default function ReportsPage() {
     const totalExpenses = Object.values(expenses).reduce((sum, amount) => sum + amount, 0);
     const netIncome = totalRevenue - totalExpenses;
 
-    // Balance Sheet Data
+    // Balance Sheet Data (Starting + Period)
     const assets: { [key: string]: number } = {};
     const liabilities: { [key: string]: number } = {};
-    Object.entries(accountBalances).forEach(([accountName, balance]) => {
-      const accountInfo = extendedCOA.find(a => a.name === accountName);
-      if (accountInfo?.type === 'Assets' && balance !== 0) assets[accountName] = balance;
-      if (accountInfo?.type === 'Liabilities' && balance !== 0) liabilities[accountName] = balance;
+    
+    extendedCOA.forEach(accountInfo => {
+        const totalBalance = startingBalances[accountInfo.name] + periodBalances[accountInfo.name];
+        if (totalBalance !== 0) {
+            if (accountInfo.type === 'Assets') assets[accountInfo.name] = totalBalance;
+            if (accountInfo.type === 'Liabilities') liabilities[accountInfo.name] = totalBalance;
+        }
     });
 
     const equityAccounts: { [key: string]: number } = {
-      'Modal Pemilik': accountBalances['Modal Pemilik'] || 0,
-      'Laba Ditahan': accountBalances['Laba Ditahan'] || 0,
+      'Modal Pemilik': startingBalances['Modal Pemilik'] + periodBalances['Modal Pemilik'],
+      'Laba Ditahan': accumulatedRetainedEarnings + periodBalances['Laba Ditahan'],
       'Laba Bersih (Periode Berjalan)': netIncome,
-      'Prive': accountBalances['Prive'] || 0,
+      'Prive': periodBalances['Prive'],
     };
     
     const totalAssets = Object.values(assets).reduce((sum, val) => sum + val, 0);
     const totalLiabilities = Object.values(liabilities).reduce((sum, val) => sum + val, 0);
-    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Ditahan'] || 0) + netIncome - (equityAccounts['Prive'] || 0); // Prive is a contra-equity account (subtraction)
+    const totalEquity = (equityAccounts['Modal Pemilik'] || 0) + (equityAccounts['Laba Ditahan'] || 0) + netIncome - (equityAccounts['Prive'] || 0);
     const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
 
     // General Journal Data
-    const journalEntries = allJournalEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id.localeCompare(b.id) || (a.entryType === 'Debit' ? -1 : 1));
+    const journalEntries = periodEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() || a.id.localeCompare(b.id) || (a.entryType === 'Debit' ? -1 : 1));
 
     // Cash Flow Data
     const operatingFlows: { name: string, amount: number }[] = [];
     const investingFlows: { name: string, amount: number }[] = [];
     const financingFlows: { name: string, amount: number }[] = [];
     
-    const cashTransactions = augmentedTransactions.filter(t => !['Beban Penyusutan', 'Beban Amortisasi'].includes(t.category) && t.type !== 'transfer');
+    const cashTransactions = augmentedTransactions.filter(t => {
+      const tTime = new Date(t.date).getTime();
+      return tTime >= fromDate && tTime <= toDate && !['Beban Penyusutan', 'Beban Amortisasi'].includes(t.category) && t.type !== 'transfer';
+    });
     
     cashTransactions.forEach(t => {
       const account = extendedCOA.find(a => a.name === t.category);
@@ -261,17 +300,29 @@ export default function ReportsPage() {
     const totalInvesting = investingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     const totalFinancing = financingFlows.reduce((sum, flow) => sum + flow.amount, 0);
     
-    const endingCash = Array.from(allCashAccounts).reduce((sum, accName) => sum + (accountBalances[accName] || 0), 0);
+    const beginningCash = Array.from(allCashAccounts).reduce((sum, accName) => sum + (startingBalances[accName] || 0), 0);
     const netCashFlow = totalOperating + totalInvesting + totalFinancing;
-    const beginningCash = endingCash - netCashFlow;
+    const endingCash = beginningCash + netCashFlow;
 
     // General Ledger Data
-    const allJournalEntriesForLedger = allJournalEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    const ledgerAccountsData: { [key: string]: { entries: any[], balance: number, accountInfo: any } } = {};
+    const allJournalEntriesForLedger = periodEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const ledgerAccountsData: { [key: string]: { entries: any[], balance: number, accountInfo: any, startingBalance: number } } = {};
     
     extendedCOA.forEach(accountInfo => {
+        const startBal = startingBalances[accountInfo.name] || 0;
+        let runningBalance = startBal;
+        let displayStartBal = startBal;
+        
+        if (accountInfo.name === 'Laba Ditahan') {
+           runningBalance = accumulatedRetainedEarnings;
+           displayStartBal = accumulatedRetainedEarnings;
+        } else if (['Revenue', 'Expenses', 'Prive'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
+           runningBalance = 0;
+           displayStartBal = 0;
+        }
+
         const entriesForAccount = allJournalEntriesForLedger.filter(entry => entry.accountName === accountInfo.name);
-        let runningBalance = 0;
+        
         const entriesWithBalance = entriesForAccount.map(entry => {
              const debit = entry.entryType === 'Debit' ? entry.amount : 0;
              const credit = entry.entryType === 'Credit' ? entry.amount : 0;
@@ -279,7 +330,13 @@ export default function ReportsPage() {
              else { runningBalance += credit - debit; }
             return {...entry, balance: runningBalance};
         });
-        ledgerAccountsData[accountInfo.name] = { entries: entriesWithBalance, balance: runningBalance, accountInfo };
+        
+        ledgerAccountsData[accountInfo.name] = { 
+            entries: entriesWithBalance, 
+            balance: runningBalance, 
+            accountInfo,
+            startingBalance: displayStartBal
+        };
     });
     const sortedLedgerAccounts = Object.values(ledgerAccountsData).sort((a, b) => (a.accountInfo?.id ?? 9999) > (b.accountInfo?.id ?? 9999) ? 1 : -1);
 
@@ -291,11 +348,14 @@ export default function ReportsPage() {
       cashFlow: { operatingFlows, totalOperating, investingFlows, totalInvesting, financingFlows, totalFinancing, netCashFlow, beginningCash, endingCash },
       generalLedger: { sortedLedgerAccounts }
     };
-  }, [transactions, inventory, companyProfile.name]);
+  }, [transactions, inventory, companyProfile.name, dateRange]);
 
   const handleExportXLSX = () => {
     const wb = XLSX.utils.book_new();
     const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    const periodString = dateRange?.from 
+      ? `Periode: ${format(dateRange.from, 'd MMM yyyy', {locale: id})} - ${dateRange.to ? format(dateRange.to, 'd MMM yyyy', {locale: id}) : 'Sekarang'}`
+      : `Seluruh Waktu (Hingga ${today})`;
     const companyName = companyProfile.name;
     const journalSheetName = "Jurnal Umum";
 
@@ -349,7 +409,7 @@ export default function ReportsPage() {
     const tocData: any[] = [
         [{ v: "DAFTAR ISI LAPORAN KEUANGAN", s: { font: { bold: true, sz: 18 } } }],
         [{ v: companyName, s: { font: { sz: 14 } } }],
-        [{ v: `Periode/Cetak: ${today}`, s: { font: { italic: true } } }],
+        [{ v: periodString, s: { font: { italic: true } } }],
         [],
         [{ v: "Silakan KLIK pada baris manapun di bawah untuk melompat langsung ke lembar (sheet) yang bersangkutan:", s: { font: { italic: true } } }],
         [],
@@ -499,7 +559,7 @@ export default function ReportsPage() {
     const incomeData: any[] = [
       [{v: companyName, s:headerStyle}, "", backMenuBtn],
       [{v: incomeSheetName, s:subHeaderStyle}],
-      [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}],
+      [{v: periodString, s:dateStyle}],
       [],
     ];
     
@@ -542,7 +602,7 @@ export default function ReportsPage() {
     // --- 3. Neraca ---
     const balanceSheetName = "Neraca";
     const balanceSheetData: any[] = [
-      [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: balanceSheetName, s:subHeaderStyle}], [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}], [],
+      [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: balanceSheetName, s:subHeaderStyle}], [{v: periodString, s:dateStyle}], [],
       [{v:"Aset", s:boldStyle}]
     ];
 
@@ -602,7 +662,7 @@ export default function ReportsPage() {
     // --- 4. Laporan Arus Kas (Indirect Method - DYNAMIC) ---
     const cashFlowSheetName = "Arus Kas";
     const cashFlowData: any[] = [
-        [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: "Laporan Arus Kas (Indirect Method)", s:subHeaderStyle}], [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}], [],
+        [{v: companyName, s:headerStyle}, "", backMenuBtn], [{v: "Laporan Arus Kas (Indirect Method)", s:subHeaderStyle}], [{v: periodString, s:dateStyle}], [],
         
         [{v: "Aktivitas Operasi", s: boldStyle}],
         ["  Laba Bersih", {t:'n', f:`'${incomeSheetName}'!B${netIncomeRow}`}],
@@ -799,7 +859,7 @@ export default function ReportsPage() {
     const auditData: any[] = [
        [{v: companyName, s:headerStyle}, "", "", "", backMenuBtn], 
        [{v: "Laporan Executive Audit & Investor", s:subHeaderStyle}, "", ""], 
-       [{v: `Per Tanggal Cetak: ${today}`, s:dateStyle}, "", ""], 
+       [{v: periodString, s:dateStyle}, "", ""], 
        [],
        [{v: "Kesimpulan Analisis Sistem", s:boldStyle}, "", "Keterangan"],
        
@@ -845,6 +905,9 @@ export default function ReportsPage() {
   const handlePrintPDF = async () => {
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    const periodString = dateRange?.from 
+      ? `Periode: ${format(dateRange.from, 'd MMM yyyy', {locale: id})} - ${dateRange.to ? format(dateRange.to, 'd MMM yyyy', {locale: id}) : 'Sekarang'}`
+      : `Seluruh Waktu (Hingga ${today})`;
     const companyName = companyProfile.name;
     const totalPagesExp = '{total_pages_count_string}';
     const primaryColor = [36, 123, 160]; // Corresponds to #247BA0
@@ -873,7 +936,7 @@ export default function ReportsPage() {
       
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(`Tanggal Cetak: ${today}`, textOffsetX, 28);
+      doc.text(periodString, textOffsetX, 28);
 
       // FOOTER
       const pageNumber = doc.internal.getNumberOfPages();
@@ -1120,18 +1183,21 @@ export default function ReportsPage() {
         title="Laporan Keuangan"
         description="Hasilkan dan lihat laporan keuangan bisnis Anda."
       >
-        <Button variant="outline" className="border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
-          <Send className="mr-2 h-4 w-4" />
-          Kirim Laporan
-        </Button>
-        <Button variant="outline" onClick={handleExportXLSX}>
-          <Download className="mr-2 h-4 w-4" />
-          Ekspor Semua (XLSX)
-        </Button>
-         <Button variant="outline" onClick={handlePrintPDF}>
-          <Printer className="mr-2 h-4 w-4" />
-          Cetak Semua (PDF)
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <DatePickerWithRange />
+          <Button variant="outline" className="border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
+            <Send className="mr-2 h-4 w-4" />
+            Kirim Laporan
+          </Button>
+          <Button variant="outline" onClick={handleExportXLSX}>
+            <Download className="mr-2 h-4 w-4" />
+            Ekspor Semua (XLSX)
+          </Button>
+          <Button variant="outline" onClick={handlePrintPDF}>
+            <Printer className="mr-2 h-4 w-4" />
+            Cetak Semua (PDF)
+          </Button>
+        </div>
       </PageHeader>
       
       <Tabs defaultValue="income-statement">
