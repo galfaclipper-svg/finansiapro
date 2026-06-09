@@ -1201,13 +1201,13 @@ export default function ReportsPage() {
       </PageHeader>
       
       <Tabs defaultValue="income-statement">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-4">
-            <TabsTrigger value="income-statement">Laporan Laba Rugi</TabsTrigger>
-            <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
-            <TabsTrigger value="general-journal">Jurnal Umum</TabsTrigger>
-            <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
-            <TabsTrigger value="general-ledger">Buku Besar</TabsTrigger>
-            <TabsTrigger value="audit-investor">Audit & Investor</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-4 h-auto gap-1">
+            <TabsTrigger value="income-statement" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white hover:bg-emerald-500/20">Laporan Laba Rugi</TabsTrigger>
+            <TabsTrigger value="balance-sheet" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white hover:bg-emerald-500/20">Neraca</TabsTrigger>
+            <TabsTrigger value="general-journal" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white hover:bg-emerald-500/20">Jurnal Umum</TabsTrigger>
+            <TabsTrigger value="cash-flow" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white hover:bg-emerald-500/20">Arus Kas</TabsTrigger>
+            <TabsTrigger value="general-ledger" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white hover:bg-emerald-500/20">Buku Besar</TabsTrigger>
+            <TabsTrigger value="audit-investor" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white hover:bg-emerald-500/20">Audit & Investor</TabsTrigger>
         </TabsList>
         <TabsContent value="income-statement">
             <IncomeStatement data={reportData.incomeStatement} />
