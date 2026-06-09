@@ -130,7 +130,7 @@ export function CashPositionChart() {
   }, [transactions, inventory, dateRange]);
 
   return (
-    <Card className="glass-panel flex flex-col">
+    <Card className="glass-panel glass-panel-emerald flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Wallet className="h-5 w-5 text-green-500" />

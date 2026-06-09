@@ -119,40 +119,40 @@ export function OverviewCards() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="glass-panel">
+      <Card className="glass-panel glass-panel-blue">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <DollarSign className="h-4 w-4 text-blue-400" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
           <p className="text-xs text-muted-foreground">Pendapatan kotor di periode terpilih.</p>
         </CardContent>
       </Card>
-      <Card className="glass-panel">
+      <Card className="glass-panel glass-panel-emerald">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Laba Bersih</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <TrendingUp className="h-4 w-4 text-emerald-400" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(netIncome)}</div>
            <p className="text-xs text-muted-foreground">Laba bersih di periode terpilih.</p>
         </CardContent>
       </Card>
-      <Card className="glass-panel">
+      <Card className="glass-panel glass-panel-amber">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Saldo Kas Akhir</CardTitle>
-          <Wallet className="h-4 w-4 text-muted-foreground" />
+          <Wallet className="h-4 w-4 text-amber-400" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(cashBalance)}</div>
           <p className="text-xs text-muted-foreground">Total kas pada akhir periode.</p>
         </CardContent>
       </Card>
-      <Card className="glass-panel">
+      <Card className="glass-panel glass-panel-purple">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Transaksi</CardTitle>
-          <ReceiptText className="h-4 w-4 text-muted-foreground" />
+          <ReceiptText className="h-4 w-4 text-purple-400" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalTransactions}</div>

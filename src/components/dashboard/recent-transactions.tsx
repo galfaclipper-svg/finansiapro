@@ -36,7 +36,7 @@ export function RecentTransactions() {
   });
 
   return (
-    <Card className="glass-panel">
+    <Card className="glass-panel glass-panel-purple">
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="grid gap-2">
             <CardTitle>Transaksi Terkini</CardTitle>

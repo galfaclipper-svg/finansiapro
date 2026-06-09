@@ -141,7 +141,7 @@ export function AiSummary() {
   };
 
   return (
-    <Card className="glass-panel">
+    <Card className="glass-panel glass-panel-cyan">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />

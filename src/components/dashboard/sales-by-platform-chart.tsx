@@ -74,7 +74,7 @@ export function SalesByPlatformChart() {
   const totalRevenueAll = platformStats.reduce((sum, p) => sum + p.revenue, 0);
 
   return (
-    <Card className="flex flex-col h-full border-none shadow-sm drop-shadow-sm bg-white/50 backdrop-blur-sm">
+    <Card className="glass-panel glass-panel-amber flex flex-col h-full">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
             <div>
