@@ -93,7 +93,7 @@ export function RevenueChart() {
   }, [transactions, inventory, dateRange]);
 
   return (
-    <Card>
+    <Card className="glass-panel">
       <CardHeader>
         <CardTitle>Ikhtisar Pendapatan vs Beban</CardTitle>
         <CardDescription>Pendapatan dan beban selama periode yang dipilih.</CardDescription>

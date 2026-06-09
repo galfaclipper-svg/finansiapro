@@ -1,12 +1,12 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/contexts/app-provider';
 import { AuthProvider } from '@/contexts/auth-provider';
 import { LicenseProvider } from '@/contexts/license-provider';
+import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -14,9 +14,21 @@ export const metadata: Metadata = {
   title: 'FinansiaProf',
   description:
     'Manajemen keuangan cerdas untuk bisnis perdagangan online.',
+  manifest: "/manifest.json",
   icons: {
-    icon: '/icon.png',
+    icon: [
+      { url: '/icon.png' },
+      { url: '/icon.svg', type: 'image/svg+xml' }
+    ],
+    apple: '/icon-192x192.png'
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -33,6 +45,7 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased overflow-x-hidden', inter.variable)}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <LicenseProvider>
               <AppProvider>
@@ -85,6 +98,7 @@ export default function RootLayout({
               </AppProvider>
             </LicenseProvider>
           </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

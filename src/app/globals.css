@@ -6,9 +6,9 @@
   :root {
     --background: 200 43% 95%;
     --foreground: 224 71% 4%;
-    --card: 200 43% 95%;
+    --card: 0 0% 100%;
     --card-foreground: 224 71% 4%;
-    --popover: 200 43% 95%;
+    --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
     --primary: 200 65% 38%;
     --primary-foreground: 0 0% 100%;
@@ -28,7 +28,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 1rem;
     --sidebar-background: 200 10% 98%;
     --sidebar-foreground: 200 65% 38%;
     --sidebar-primary: 200 65% 38%;
@@ -40,38 +40,43 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 200 65% 48%; /* Lighter blue for dark mode */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 232 53% 64%; /* Lighter indigo for dark mode */
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 200 65% 48%;
-    --chart-1: 200 65% 48%;
-    --chart-2: 232 53% 64%;
-    --chart-3: 197 37% 44%;
-    --chart-4: 43 74% 76%;
-    --chart-5: 27 87% 77%;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 200 65% 48%;
-    --sidebar-primary: 200 65% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 200 65% 48%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 200 65% 48%;
+    /* Futuristic Deep Dark Background */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    /* Glassy cards */
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+    /* Neon Blue Primary */
+    --primary: 195 100% 50%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 10% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 10% 10%;
+    --muted-foreground: 240 5% 65%;
+    /* Neon Purple Accent */
+    --accent: 280 100% 60%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 10% 15%;
+    --input: 240 10% 15%;
+    --ring: 195 100% 50%;
+    --chart-1: 195 100% 50%;
+    --chart-2: 280 100% 60%;
+    --chart-3: 140 100% 50%;
+    --chart-4: 45 100% 50%;
+    --chart-5: 0 100% 60%;
+    /* Sidebar */
+    --sidebar-background: 240 10% 4%;
+    --sidebar-foreground: 195 100% 50%;
+    --sidebar-primary: 195 100% 50%;
+    --sidebar-primary-foreground: 240 10% 4%;
+    --sidebar-accent: 240 10% 10%;
+    --sidebar-accent-foreground: 195 100% 50%;
+    --sidebar-border: 240 10% 15%;
+    --sidebar-ring: 195 100% 50%;
   }
 }
 
@@ -82,6 +87,22 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Optional radial gradient for futuristic feel in dark mode */
+  }
+  
+  .dark body {
+    background-image: radial-gradient(circle at 50% 0%, rgba(0, 242, 254, 0.05) 0%, transparent 50%),
+                      radial-gradient(circle at 100% 100%, rgba(79, 172, 254, 0.05) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-background/60 backdrop-blur-xl border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)];
+  }
+  .dark .glass-panel {
+    @apply bg-white/5 border-white/10 shadow-[0_4px_30px_rgba(0,242,254,0.05)];
   }
 }
 
@@ -96,4 +117,23 @@
 
 body {
   top: 0px !important;
+}
+
+/* Ensure Print is always bright to save ink */
+@media print {
+  * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  body {
+    background-color: #fff !important;
+    background-image: none !important;
+  }
+  .glass-panel {
+    background: none !important;
+    border: 1px solid #ccc !important;
+    backdrop-filter: none !important;
+  }
 }

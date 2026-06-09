@@ -119,7 +119,7 @@ export function OverviewCards() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
+      <Card className="glass-panel">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -129,7 +129,7 @@ export function OverviewCards() {
           <p className="text-xs text-muted-foreground">Pendapatan kotor di periode terpilih.</p>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="glass-panel">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Laba Bersih</CardTitle>
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -139,7 +139,7 @@ export function OverviewCards() {
            <p className="text-xs text-muted-foreground">Laba bersih di periode terpilih.</p>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="glass-panel">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Saldo Kas Akhir</CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -149,7 +149,7 @@ export function OverviewCards() {
           <p className="text-xs text-muted-foreground">Total kas pada akhir periode.</p>
         </CardContent>
       </Card>
-      <Card>
+      <Card className="glass-panel">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Transaksi</CardTitle>
           <ReceiptText className="h-4 w-4 text-muted-foreground" />

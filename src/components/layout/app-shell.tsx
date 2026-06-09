@@ -19,6 +19,7 @@ import { Header } from './header';
 import Link from 'next/link';
 import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator, Users, FileText } from 'lucide-react';
 import { SecretAdminGate } from '@/components/secret-admin-gate';
+import { BottomNav } from './bottom-nav';
 
 type NavItem = { title: string; href: string; icon: React.ReactNode; };
 
@@ -88,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar
         variant="sidebar"
         collapsible="icon"
-        className="border-sidebar-border"
+        className="hidden md:flex border-sidebar-border"
       >
         <SidebarHeader className="h-14 p-3.5 flex items-center gap-2">
           <Link className="flex items-center gap-2" href="/dashboard">
@@ -114,12 +115,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
              </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-        <div className="flex flex-col">
+      <SidebarInset className="md:pl-0">
+        <div className="flex flex-col min-h-screen">
           <Header />
-          <main className="flex-1 p-4 sm:px-6 sm:py-0">{children}</main>
+          <main className="flex-1 p-4 pb-20 sm:px-6 sm:py-0 md:pb-4">{children}</main>
         </div>
       </SidebarInset>
+      <BottomNav />
     </SidebarProvider>
   );
 }
