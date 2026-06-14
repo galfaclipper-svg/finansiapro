@@ -53,7 +53,38 @@ export function DatePickerWithRange({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
+        <PopoverContent className="w-auto p-0 force-light bg-white text-slate-900 border-slate-200" align="end">
+          <div className="flex flex-col sm:flex-row p-3 gap-4 border-b border-slate-200">
+             <div className="grid gap-1.5 flex-1">
+                 <label className="text-xs font-semibold text-slate-600 uppercase">Dari Tanggal</label>
+                 <input 
+                    type="date" 
+                    className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={date?.from ? format(date.from, 'yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                        const newDate = new Date(e.target.value);
+                        if (!isNaN(newDate.getTime())) {
+                            setDate({ ...date, from: newDate, to: date?.to && newDate > date.to ? newDate : date?.to });
+                        }
+                    }}
+                 />
+             </div>
+             <div className="grid gap-1.5 flex-1">
+                 <label className="text-xs font-semibold text-slate-600 uppercase">Sampai Tanggal</label>
+                 <input 
+                    type="date" 
+                    className="flex h-9 w-full rounded-md border border-slate-300 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={date?.to ? format(date.to, 'yyyy-MM-dd') : ''}
+                    min={date?.from ? format(date.from, 'yyyy-MM-dd') : undefined}
+                    onChange={(e) => {
+                        const newDate = new Date(e.target.value);
+                        if (!isNaN(newDate.getTime())) {
+                            setDate({ ...date, from: date?.from || newDate, to: newDate });
+                        }
+                    }}
+                 />
+             </div>
+          </div>
           <Calendar
             initialFocus
             mode="range"

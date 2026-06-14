@@ -753,7 +753,8 @@ export default function ReportsPage() {
         const filteredEntries = reportData.generalJournal.journalEntries.filter(entry => entry.accountName === accountInfo.name);
         let runningSaldo = 0;
 
-        for (let i = 0; i < 500; i++) {
+        const maxLedgerRows = Math.max(500, filteredEntries.length + 100);
+        for (let i = 0; i < maxLedgerRows; i++) {
             const rowRef = 6 + i; 
             const prevRowRef = rowRef - 1;
             

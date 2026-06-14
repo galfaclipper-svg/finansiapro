@@ -17,6 +17,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useAppState } from '@/hooks/use-app-state';
 import { useAuth } from '@/contexts/auth-provider';
+import { ThemeSwitcher } from '@/components/layout/theme-switcher';
 
 export function Header() {
   const { companyProfile } = useAppState();
@@ -33,6 +34,7 @@ export function Header() {
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1" />
       <LanguageSwitcher />
+      <ThemeSwitcher />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

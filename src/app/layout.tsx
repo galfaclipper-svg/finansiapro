@@ -45,7 +45,13 @@ export default function RootLayout({
         <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
       </head>
       <body className={cn('min-h-screen bg-background font-body antialiased overflow-x-hidden', inter.variable)}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="dark" 
+          enableSystem 
+          disableTransitionOnChange
+          themes={['light', 'dark', 'burgundy', 'luxury', 'terracotta', 'stencil']}
+        >
           <AuthProvider>
             <LicenseProvider>
               <AppProvider>
