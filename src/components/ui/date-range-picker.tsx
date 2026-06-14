@@ -60,8 +60,11 @@ export function DatePickerWithRange({
             defaultMonth={date?.from}
             selected={date}
             onSelect={setDate}
-            numberOfMonths={2}
+            numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
             locale={id}
+            captionLayout="dropdown-buttons"
+            fromYear={2020}
+            toYear={new Date().getFullYear() + 5}
           />
         </PopoverContent>
       </Popover>
