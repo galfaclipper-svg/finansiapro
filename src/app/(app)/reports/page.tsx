@@ -18,7 +18,6 @@ import { useAppState } from '@/hooks/use-app-state';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import * as XLSX from 'xlsx-js-style';
 import { useMemo } from 'react';
 import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -362,604 +361,548 @@ export default function ReportsPage() {
     };
   }, [transactions, inventory, companyProfile.name, dateRange]);
 
-  const handleExportXLSX = () => {
-    const wb = XLSX.utils.book_new();
-    const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-    const periodString = dateRange?.from
-      ? `Periode: ${format(dateRange.from, 'd MMM yyyy', { locale: id })} - ${dateRange.to ? format(dateRange.to, 'd MMM yyyy', { locale: id }) : 'Sekarang'}`
-      : `Seluruh Waktu (Hingga ${today})`;
-    const companyName = companyProfile.name;
-    const journalSheetName = 'Jurnal Umum';
+  const handleExportXLSX = async () => {
+    try {
+      const EXL = await import('exceljs');
+      const ExcelJS = (EXL as any).default || EXL;
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'FinansiaProf';
+      workbook.created = new Date();
 
-    const sanitizeSheetName = (name: string) => name.replace(/[\\/*?[\]:]/g, '').substring(0, 31);
+      const today = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+      const periodString = dateRange?.from
+        ? `Periode: ${format(dateRange.from, 'd MMM yyyy', { locale: id })} - ${dateRange.to ? format(dateRange.to, 'd MMM yyyy', { locale: id }) : 'Sekarang'}`
+        : `Seluruh Waktu (Hingga ${today})`;
+      const companyName = companyProfile.name;
+      const journalSheetName = 'Jurnal Umum';
+      const sanitizeSheetName = (n: string) => n.replace(/[\\/*?[\]:]/g, '').substring(0, 31);
 
-    // COLORS
-    const CLR = {
-      navy: '1E3A5F', blue: '247BA0', blueMid: 'D0E8F5',
-      blueLight: 'EBF4FA', yellow: 'FFFDE7', greenLight: 'E8F5E9',
-      greenHdr: '1B6B38', white: 'FFFFFF', textGray: '6B7280', border: 'B8D4E8',
-    };
+      // ── COLORS (ARGB = Alpha + R + G + B) ──────────────────────────
+      const C = {
+        navy:       'FF1E3A5F',
+        blue:       'FF247BA0',
+        blueMid:    'FFD0E8F5',
+        blueLight:  'FFEBF4FA',
+        yellow:     'FFFFFDE7',
+        greenLight: 'FFE8F5E9',
+        greenHdr:   'FF1B6B38',
+        white:      'FFFFFFFF',
+        textGray:   'FF6B7280',
+        border:     'FFB8D4E8',
+      };
 
-    // BORDERS
-    const bThin = { top: { style: 'thin', color: { rgb: CLR.border } }, bottom: { style: 'thin', color: { rgb: CLR.border } }, left: { style: 'thin', color: { rgb: CLR.border } }, right: { style: 'thin', color: { rgb: CLR.border } } };
-    const bMed  = { top: { style: 'medium', color: { rgb: CLR.blue } }, bottom: { style: 'medium', color: { rgb: CLR.blue } }, left: { style: 'thin', color: { rgb: CLR.border } }, right: { style: 'thin', color: { rgb: CLR.border } } };
+      const bThin = (a = C.border) => ({ style: 'thin' as const, color: { argb: a } });
+      const bMed  = (a = C.blue)   => ({ style: 'medium' as const, color: { argb: a } });
+      const bAll  = { top: bThin(), bottom: bThin(), left: bThin(), right: bThin() };
+      const bMedTB = { top: bMed(), bottom: bMed(), left: bThin(), right: bThin() };
+      const nFmt  = '#,##0;(#,##0);"-"';
 
-    // STYLE FACTORIES
-    const fnt  = (o: any) => ({ name: 'Calibri', sz: 10, ...o });
-    const sTitle  = { font: fnt({ bold: true, sz: 16, color: { rgb: CLR.navy } }) };
-    const sSub    = { font: fnt({ bold: true, sz: 12, color: { rgb: CLR.blue } }) };
-    const sPer    = { font: fnt({ italic: true, sz: 10, color: { rgb: CLR.textGray } }) };
-    const sNote   = { font: fnt({ italic: true, sz: 9,  color: { rgb: CLR.textGray } }) };
-    const sBold   = { font: fnt({ bold: true }) };
-    const sHdr = (center = false) => ({
-      font: fnt({ bold: true, color: { rgb: CLR.white } }),
-      fill: { fgColor: { rgb: CLR.blue } },
-      alignment: { horizontal: center ? 'center' : 'left', vertical: 'center', wrapText: true },
-      border: bThin,
-    });
-    const sGrnHdr = () => ({ ...sHdr(true), fill: { fgColor: { rgb: CLR.greenHdr } } });
-    const sRow = (alt = false, right = false) => ({
-      font: fnt({}), fill: { fgColor: { rgb: alt ? CLR.blueLight : CLR.white } },
-      border: bThin, alignment: { horizontal: right ? 'right' : 'left', vertical: 'center' },
-    });
-    const sTot = (right = false) => ({
-      font: fnt({ bold: true, color: { rgb: CLR.navy } }), fill: { fgColor: { rgb: CLR.blueMid } },
-      border: bMed, alignment: { horizontal: right ? 'right' : 'left', vertical: 'center' },
-    });
-    const sInp = (right = false, green = false) => ({
-      font: fnt({}), fill: { fgColor: { rgb: green ? CLR.greenLight : CLR.yellow } },
-      border: bThin, alignment: { horizontal: right ? 'right' : 'left', vertical: 'center' },
-    });
+      const styleHdr = (cell: any, center = false) => {
+        cell.font      = { name: 'Calibri', bold: true, size: 10, color: { argb: C.white } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.blue } };
+        cell.border    = bAll;
+        cell.alignment = { horizontal: center ? 'center' : 'left', vertical: 'middle', wrapText: true };
+      };
+      const styleGrnHdr = (cell: any) => {
+        cell.font      = { name: 'Calibri', bold: true, size: 10, color: { argb: C.white } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.greenHdr } };
+        cell.border    = bAll;
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      };
+      const styleData = (cell: any, alt = false, right = false, wrap = false) => {
+        cell.font      = { name: 'Calibri', size: 10 };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: alt ? C.blueLight : C.white } };
+        cell.border    = bAll;
+        cell.alignment = { horizontal: right ? 'right' : 'left', vertical: 'middle', wrapText: wrap };
+      };
+      const styleTotal = (cell: any, right = false) => {
+        cell.font      = { name: 'Calibri', bold: true, size: 10, color: { argb: C.navy } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.blueMid } };
+        cell.border    = bMedTB;
+        cell.alignment = { horizontal: right ? 'right' : 'left', vertical: 'middle' };
+      };
+      const styleInput = (cell: any, right = false, green = false) => {
+        cell.font      = { name: 'Calibri', size: 10 };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: green ? C.greenLight : C.yellow } };
+        cell.border    = bAll;
+        cell.alignment = { horizontal: right ? 'right' : 'left', vertical: 'middle', wrapText: !right };
+      };
+      const styleMenuBtn = (cell: any, targetSheet: string) => {
+        cell.value     = { text: '↩ MENU', hyperlink: `#'DAFTAR ISI'!A1` };
+        cell.font      = { name: 'Calibri', bold: true, size: 9, color: { argb: C.white } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.blue } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      };
 
-    const nFmt = `_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)`;
+      const setupPage = (sheet: any, landscape = false) => {
+        sheet.views = [{ showGridLines: false, zoomScale: 100 }];
+        sheet.pageSetup.paperSize    = 9; // A4
+        sheet.pageSetup.orientation  = landscape ? 'landscape' : 'portrait';
+        sheet.pageSetup.fitToPage    = true;
+        sheet.pageSetup.fitToWidth   = 1;
+        sheet.pageSetup.fitToHeight  = 0;
+        sheet.pageSetup.margins      = { left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+      };
 
-    // PRINT / VIEW SETTINGS
-    const setUI = (ws: any, landscape = false) => {
-      ws['!sheetViews']   = [{ showGridLines: false, zoomScale: 100 }];
-      ws['!pageSetup']    = { paperSize: 9, orientation: landscape ? 'landscape' : 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
-      ws['!printOptions'] = { gridLines: false };
-      ws['!margins']      = { left: 0.55, right: 0.55, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
-    };
+      const fv = (formula: string, result: any = 0) => ({ formula, result });
 
-    // APPLY NUMBER FORMAT TO COLUMNS
-    const applyNF = (ws: any, cols: number[]) => {
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      for (let R = range.s.r; R <= range.e.r; ++R) {
-        for (const C of cols) {
-          const ref = XLSX.utils.encode_cell({ c: C, r: R });
-          if (!ws[ref]) ws[ref] = { t: 'n', v: 0 };
-          ws[ref].z = nFmt;
-        }
-      }
-    };
+      // Account reference (Daftar Akun data starts row 6)
+      const ACCT_DATA_START = 6;
+      const acctRef = `'Daftar Akun'!$A$${ACCT_DATA_START}:$A$${ACCT_DATA_START + CHART_OF_ACCOUNTS.length}`;
 
-    // STYLE TABLE ROWS (alternating, header, totals)
-    const styleTable = (ws: any, hdrRow: number, dataStart: number, totRows: number[] = []) => {
-      setUI(ws);
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      for (let R = range.s.r; R <= range.e.r; ++R) {
-        const ex1    = R + 1;
-        const isHdr  = ex1 === hdrRow;
-        const isTot  = totRows.includes(ex1);
-        const isData = ex1 >= dataStart && !isTot;
-        const isAlt  = isData && (ex1 - dataStart) % 2 === 1;
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const ref  = XLSX.utils.encode_cell({ r: R, c: C });
-          const cell = ws[ref];
-          if (!cell || (cell.v === undefined && !cell.f && !isHdr)) continue;
-          const isR  = typeof cell.v === 'number' || (cell.z && (cell.z as string).includes('#'));
-          if (isHdr)       cell.s = { ...cell.s, ...sHdr(C > 0) };
-          else if (isTot)  cell.s = { ...cell.s, ...sTot(isR) };
-          else if (isData) cell.s = { ...cell.s, ...sRow(isAlt, isR) };
-        }
-      }
-    };
+      // Katalog Produk data starts row 7
+      const KATALOG_DATA_START = 7;
+      const katalogRef = inventory.length > 0
+        ? `'Katalog Produk'!$A$${KATALOG_DATA_START}:$A$${KATALOG_DATA_START + inventory.length - 1}`
+        : '"---"';
 
-    const backBtn = {
-      v: 'MENU', l: { Target: "#'DAFTAR ISI'!A1" },
-      s: { font: fnt({ bold: true, color: { rgb: CLR.white } }), fill: { fgColor: { rgb: CLR.blue } }, alignment: { horizontal: 'center' }, border: bThin },
-    };
+      // Journal rows
+      const JRNL_DATA  = 6;
+      const INPUT_DATA = 8;   // Input Tambahan data starts row 8
+      const MAX_INPUTS = 200;
 
-    const ACCT_DATA_START = 6;
-    const acctRef = `'Daftar Akun'!$A$${ACCT_DATA_START}:$A$${ACCT_DATA_START + CHART_OF_ACCOUNTS.length}`;
+      // ═══════════════════════════════════════════════════════════
+      // 0. DAFTAR ISI
+      // ═══════════════════════════════════════════════════════════
+      const tocSheet = workbook.addWorksheet('DAFTAR ISI');
+      setupPage(tocSheet);
+      tocSheet.pageSetup.printArea = 'A1:B60';
+      tocSheet.columns = [{ width: 5 }, { width: 65 }];
 
-    // 0. DAFTAR ISI
-    const lnk = (label: string, target: string) => ({
-      v: label, l: { Target: `#'${target}'!A1` },
-      s: { font: fnt({ color: { rgb: CLR.blue }, underline: true, sz: 10 }) },
-    });
-    const tocData: any[] = [
-      [{ v: 'LAPORAN KEUANGAN', s: sTitle }],
-      [{ v: companyName, s: { font: fnt({ bold: true, sz: 13, color: { rgb: CLR.navy } }) } }],
-      [{ v: periodString, s: sPer }],
-      [{ v: `Dicetak: ${today}`, s: sNote }],
-      [],
-      [{ v: 'DAFTAR ISI - Klik link di bawah untuk berpindah ke sheet:', s: { font: fnt({ bold: true, sz: 11, color: { rgb: CLR.navy } }) } }],
-      [],
-      [{ v: '1. ENTRI & REFERENSI', s: { font: fnt({ bold: true, sz: 11, color: { rgb: CLR.blue } }) } }],
-      ['    ', lnk('Input Tambahan (Entri Transaksi)', 'Input Tambahan')],
-      ['    ', lnk('Jurnal Umum', journalSheetName)],
-      ['    ', lnk('Katalog Produk & HPP', 'Katalog Produk')],
-      ['    ', lnk('Daftar Akun (Referensi)', 'Daftar Akun')],
-      [],
-      [{ v: '2. LAPORAN UTAMA', s: { font: fnt({ bold: true, sz: 11, color: { rgb: CLR.blue } }) } }],
-      ['    ', lnk('Laporan Laba Rugi', 'Laba Rugi')],
-      ['    ', lnk('Neraca (Posisi Keuangan)', 'Neraca')],
-      ['    ', lnk('Laporan Arus Kas', 'Arus Kas')],
-      [],
-      [{ v: '3. ANALISIS KHUSUS', s: { font: fnt({ bold: true, sz: 11, color: { rgb: CLR.blue } }) } }],
-      ['    ', lnk('Audit & Investor Dashboard', 'Audit & Investor')],
-      [],
-      [{ v: '4. BUKU BESAR (PER AKUN)', s: { font: fnt({ bold: true, sz: 11, color: { rgb: CLR.blue } }) } }],
-    ];
-    CHART_OF_ACCOUNTS.forEach(acc => {
-      const safeName = sanitizeSheetName(acc.name);
-      tocData.push(['    ', { v: acc.name, l: { Target: `#'${safeName}'!A1` }, s: { font: fnt({ color: { rgb: '3c78d8' }, underline: true, sz: 10 }) } }]);
-    });
-    const wsTOC = XLSX.utils.aoa_to_sheet(tocData);
-    wsTOC['!cols'] = [{ wch: 5 }, { wch: 65 }];
-    setUI(wsTOC);
-    XLSX.utils.book_append_sheet(wb, wsTOC, 'DAFTAR ISI');
+      const tR = (label: string, sz = 10, bold = false, navy = false, italic = false) => {
+        const r = tocSheet.addRow(['', label]); r.height = sz > 10 ? sz + 8 : 15;
+        r.getCell(2).font = { name: 'Calibri', size: sz, bold, italic, color: { argb: navy ? C.navy : bold ? C.blue : C.textGray } };
+        return r;
+      };
+      const tL = (label: string, target: string) => {
+        const r = tocSheet.addRow(['    ', label]); r.height = 15;
+        r.getCell(2).value = { text: label, hyperlink: `#'${target}'!A1` };
+        r.getCell(2).font  = { name: 'Calibri', size: 10, color: { argb: C.blue }, underline: true };
+        return r;
+      };
+      tR('LAPORAN KEUANGAN', 16, true, true); tR(companyName, 13, true, true); tR(periodString, 10, false, false, true); tR(`Dicetak: ${today}`, 9, false, false, true);
+      tR(''); { const r = tocSheet.addRow(['', 'DAFTAR ISI — Klik link di bawah untuk berpindah ke sheet:']); r.height = 18; r.getCell(2).font = { name: 'Calibri', size: 11, bold: true, color: { argb: C.navy } }; } tR('');
+      tR('1.  ENTRI & REFERENSI', 11, true);
+      tL('    Input Tambahan (Entri Transaksi)', 'Input Tambahan');
+      tL('    Jurnal Umum', journalSheetName);
+      tL('    Katalog Produk & HPP', 'Katalog Produk');
+      tL('    Daftar Akun (Referensi)', 'Daftar Akun');
+      tR('');
+      tR('2.  LAPORAN UTAMA', 11, true);
+      tL('    Laporan Laba Rugi', 'Laba Rugi');
+      tL('    Neraca (Posisi Keuangan)', 'Neraca');
+      tL('    Laporan Arus Kas', 'Arus Kas');
+      tR('');
+      tR('3.  ANALISIS KHUSUS', 11, true);
+      tL('    Audit & Investor Dashboard', 'Audit & Investor');
+      tR('');
+      tR('4.  BUKU BESAR (PER AKUN)', 11, true);
+      CHART_OF_ACCOUNTS.forEach(acc => tL(`    ${acc.name}`, sanitizeSheetName(acc.name)));
 
-    // 1. KATALOG PRODUK
-    const KATALOG_DATA_START = 7;
-    const katalogRef = inventory.length > 0
-      ? `'Katalog Produk'!$A$${KATALOG_DATA_START}:$A$${KATALOG_DATA_START + inventory.length - 1}`
-      : '"---"';
-    const katalogData: any[] = [
-      [{ v: companyName, s: sTitle }, '', backBtn],
-      [{ v: 'Katalog Produk & HPP per Unit', s: sSub }],
-      [{ v: `Data inventori per ${today}`, s: sPer }],
-      [{ v: 'Perbarui nilai HPP di sini jika ada perubahan harga beli. Nilai di kolom B dipakai otomatis di Input Tambahan via VLOOKUP.', s: sNote }],
-      [],
-      [{ v: 'Nama Produk', s: sHdr() }, { v: 'HPP / Unit (Rp)', s: sHdr(true) }, { v: 'Stok Saat Ini', s: sHdr(true) }],
-    ];
-    inventory.forEach(item => {
-      katalogData.push([item.name, { t: 'n', v: item.costPerUnit, z: nFmt }, { t: 'n', v: item.stock }]);
-    });
-    if (inventory.length === 0) katalogData.push(['(Belum ada produk di inventori)', '', '']);
-    const wsKatalog = XLSX.utils.aoa_to_sheet(katalogData);
-    wsKatalog['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 15 }];
-    styleTable(wsKatalog, 6, KATALOG_DATA_START);
-    XLSX.utils.book_append_sheet(wb, wsKatalog, 'Katalog Produk');
-
-    // 2. JURNAL UMUM
-    const JRNL_HDR  = 5;
-    const JRNL_DATA = 6;
-    const INPUT_DATA = 8;
-    const MAX_INPUTS = 200;
-
-    const journalData: any[] = [
-      [{ v: companyName, s: sTitle }, '', '', '', '', '', '', '', backBtn],
-      [{ v: 'Jurnal Umum', s: sSub }],
-      [{ v: periodString, s: sPer }],
-      [],
-      [
-        { v: 'Tanggal', s: sHdr() }, { v: 'ID Transaksi', s: sHdr() },
-        { v: 'Nama Akun', s: sHdr() }, { v: 'Keterangan', s: sHdr() },
-        { v: 'Debit (Rp)', s: sHdr(true) }, { v: 'Kredit (Rp)', s: sHdr(true) },
-        { v: 'Cek Akun', s: sHdr(true) },
-        { v: 'HelperBB', s: { font: fnt({ sz: 7, color: { rgb: CLR.textGray } }), fill: { fgColor: { rgb: 'EEEEEE' } } } },
-        backBtn,
-      ],
-    ];
-
-    let helperCnt: Record<string, number> = {};
-    reportData.generalJournal.journalEntries.forEach((entry, idx) => {
-      const row  = JRNL_DATA + idx;
-      const akun = entry.accountName;
-      helperCnt[akun] = (helperCnt[akun] || 0) + 1;
-      journalData.push([
-        { t: 's', v: format(new Date(entry.date), 'yyyy-MM-dd') },
-        { t: 's', v: entry.id },
-        { t: 's', v: akun },
-        { t: 's', v: entry.description },
-        { t: 'n', v: entry.entryType === 'Debit'  ? entry.amount : 0, z: nFmt },
-        { t: 'n', v: entry.entryType === 'Credit' ? entry.amount : 0, z: nFmt },
-        { t: 'str', f: `IF(C${row}="","",IF(ISNUMBER(MATCH(C${row},${acctRef},0)),"OK","CEK AKUN!"))` },
-        { t: 'str', v: `${akun}${helperCnt[akun]}`, f: `IF(C${row}="","",C${row}&COUNTIF($C$${JRNL_DATA}:C${row},C${row}))` },
-      ]);
-    });
-
-    const BLANK_JRNL = JRNL_DATA + reportData.generalJournal.journalEntries.length;
-    for (let i = 0; i < 500; i++) {
-      const row = BLANK_JRNL + i;
-      journalData.push([
-        '', { t: 'str', f: `IF(C${row}="","",IF(A${row}<>"","TRX-"&TEXT(ROW(),"0000"),B${row-1}))` },
-        '', '',
-        { t: 'n', v: 0, z: nFmt }, { t: 'n', v: 0, z: nFmt },
-        { t: 'str', f: `IF(C${row}="","",IF(ISNUMBER(MATCH(C${row},${acctRef},0)),"OK","CEK AKUN!"))` },
-        { t: 'str', f: `IF(C${row}="","",C${row}&COUNTIF($C$${JRNL_DATA}:C${row},C${row}))` },
-      ]);
-    }
-
-    // Input Tambahan -> 4 journal rows per input
-    const INPUT_JRNL_START = journalData.length + 1;
-    for (let i = 1; i <= MAX_INPUTS; i++) {
-      const IR  = INPUT_DATA + i - 1;
-      const dR  = INPUT_JRNL_START + (i - 1) * 4;
-      const cR  = dR + 1;
-      const dH  = dR + 2;
-      const cH  = dR + 3;
-      const has   = `'Input Tambahan'!D${IR}<>""`;
-      const isCI  = `'Input Tambahan'!D${IR}="cash-in"`;
-      const hasHP = `AND(${has},${isCI},'Input Tambahan'!N${IR}>0)`;
-      const pad   = String(i).padStart(3, '0');
-
-      journalData.push([
-        { t: 'str', f: `IF(${has},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")` },
-        { t: 'str', f: `IF(${has},"ADJ-${pad}-D","")` },
-        { t: 'str', f: `IF(${has},IF(${isCI},'Input Tambahan'!E${IR},'Input Tambahan'!F${IR}),"")` },
-        { t: 'str', f: `IF(${has},'Input Tambahan'!C${IR},"")` },
-        { t: 'n', f: `IF(${has},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)`, z: nFmt },
-        { t: 'n', v: 0, z: nFmt },
-        { t: 'str', f: `IF(C${dR}="","",IF(ISNUMBER(MATCH(C${dR},${acctRef},0)),"OK","CEK AKUN!"))` },
-        { t: 'str', f: `IF(C${dR}="","",C${dR}&COUNTIF($C$${JRNL_DATA}:C${dR},C${dR}))` },
-      ]);
-      journalData.push([
-        { t: 'str', f: `IF(${has},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")` },
-        { t: 'str', f: `IF(${has},"ADJ-${pad}-K","")` },
-        { t: 'str', f: `IF(${has},IF(${isCI},'Input Tambahan'!F${IR},'Input Tambahan'!E${IR}),"")` },
-        { t: 'str', f: `IF(${has},'Input Tambahan'!C${IR},"")` },
-        { t: 'n', v: 0, z: nFmt },
-        { t: 'n', f: `IF(${has},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)`, z: nFmt },
-        { t: 'str', f: `IF(C${cR}="","",IF(ISNUMBER(MATCH(C${cR},${acctRef},0)),"OK","CEK AKUN!"))` },
-        { t: 'str', f: `IF(C${cR}="","",C${cR}&COUNTIF($C$${JRNL_DATA}:C${cR},C${cR}))` },
-      ]);
-      journalData.push([
-        { t: 'str', f: `IF(${hasHP},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")` },
-        { t: 'str', f: `IF(${hasHP},"ADJ-${pad}-HD","")` },
-        { t: 'str', f: `IF(${hasHP},"Harga Pokok Penjualan","")` },
-        { t: 'str', f: `IF(${hasHP},'Input Tambahan'!C${IR},"")` },
-        { t: 'n', f: `IF(${hasHP},'Input Tambahan'!N${IR},0)`, z: nFmt },
-        { t: 'n', v: 0, z: nFmt },
-        { t: 'str', f: `IF(C${dH}="","",IF(ISNUMBER(MATCH(C${dH},${acctRef},0)),"OK","CEK AKUN!"))` },
-        { t: 'str', f: `IF(C${dH}="","",C${dH}&COUNTIF($C$${JRNL_DATA}:C${dH},C${dH}))` },
-      ]);
-      journalData.push([
-        { t: 'str', f: `IF(${hasHP},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")` },
-        { t: 'str', f: `IF(${hasHP},"ADJ-${pad}-HK","")` },
-        { t: 'str', f: `IF(${hasHP},"Persediaan Barang Dagang","")` },
-        { t: 'str', f: `IF(${hasHP},'Input Tambahan'!C${IR},"")` },
-        { t: 'n', v: 0, z: nFmt },
-        { t: 'n', f: `IF(${hasHP},'Input Tambahan'!N${IR},0)`, z: nFmt },
-        { t: 'str', f: `IF(C${cH}="","",IF(ISNUMBER(MATCH(C${cH},${acctRef},0)),"OK","CEK AKUN!"))` },
-        { t: 'str', f: `IF(C${cH}="","",C${cH}&COUNTIF($C$${JRNL_DATA}:C${cH},C${cH}))` },
-      ]);
-    }
-
-    const wsJournal = XLSX.utils.aoa_to_sheet(journalData);
-    wsJournal['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { hidden: true, wch: 20 }, { wch: 12 }];
-    wsJournal['!freeze'] = { xSplit: 0, ySplit: JRNL_HDR };
-    styleTable(wsJournal, JRNL_HDR, JRNL_DATA);
-    XLSX.utils.book_append_sheet(wb, wsJournal, journalSheetName);
-
-    // 3. DAFTAR AKUN
-    const acctData: any[] = [
-      [{ v: companyName, s: sTitle }, '', backBtn],
-      [{ v: 'Daftar Akun Referensi', s: sSub }],
-      [{ v: 'Nama akun WAJIB digunakan persis sama di Jurnal Umum & Input Tambahan.', s: sNote }],
-      [],
-      [{ v: 'Nama Akun', s: sHdr() }, { v: 'Tipe', s: sHdr() }, { v: 'Kategori', s: sHdr() }],
-      ...CHART_OF_ACCOUNTS.map(a => [a.name, a.type, a.category]),
-    ];
-    const wsAcct = XLSX.utils.aoa_to_sheet(acctData);
-    wsAcct['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 35 }];
-    styleTable(wsAcct, 5, ACCT_DATA_START);
-    XLSX.utils.book_append_sheet(wb, wsAcct, 'Daftar Akun');
-
-    // 4. INPUT TAMBAHAN
-    const cashList = CASH_ACCOUNTS.join(',');
-    const inputData: any[] = [
-      [{ v: companyName, s: sTitle }],
-      [{ v: 'INPUT TAMBAHAN - Entri Transaksi Langsung di Excel', s: sSub }],
-      [{ v: `Akun Kas: ${CASH_ACCOUNTS.join(', ')}`, s: sPer }],
-      [{ v: 'PETUNJUK: Isi kolom B-M. Pilih Tipe, Akun Kas, dan Akun Lawan dari dropdown. Tiap baris otomatis menghasilkan 4 entri jurnal (Pendapatan + HPP).', s: sNote }],
-      [{ v: 'TIP: Kolom N (Total HPP) dihitung otomatis via VLOOKUP ke Katalog Produk. Untuk layanan/non-produk, kosongkan kolom Produk.', s: sNote }],
-      [],
-      [
-        { v: 'No', s: sHdr(true) },
-        { v: 'Tanggal', s: sHdr() },
-        { v: 'Deskripsi', s: sHdr() },
-        { v: 'Tipe (cash-in/out)', s: sHdr(true) },
-        { v: 'Akun Kas', s: sHdr() },
-        { v: 'Akun Lawan / Kategori', s: sHdr() },
-        { v: 'Nominal (Rp)', s: sHdr(true) },
-        { v: 'Produk 1', s: sHdr() },
-        { v: 'Qty 1', s: sHdr(true) },
-        { v: 'Produk 2', s: sHdr() },
-        { v: 'Qty 2', s: sHdr(true) },
-        { v: 'Produk 3', s: sHdr() },
-        { v: 'Qty 3', s: sHdr(true) },
-        { v: 'Total HPP (Auto)', s: sGrnHdr() },
-        { v: 'Validasi Akun', s: sHdr(true) },
-      ],
-    ];
-
-    for (let i = 1; i <= MAX_INPUTS; i++) {
-      const rn = INPUT_DATA + i - 1;
-      inputData.push([
-        { t: 'str', f: `IF(D${rn}="","",${i})`, s: sInp(true) },
-        { t: 's', v: '', s: sInp() },
-        { t: 's', v: '', s: sInp() },
-        { t: 's', v: '', s: sInp(true) },
-        { t: 's', v: '', s: sInp() },
-        { t: 's', v: '', s: sInp() },
-        { t: 'n', v: 0, z: nFmt, s: sInp(true) },
-        { t: 's', v: '', s: sInp() },
-        { t: 'n', v: 0, s: sInp(true) },
-        { t: 's', v: '', s: sInp() },
-        { t: 'n', v: 0, s: sInp(true) },
-        { t: 's', v: '', s: sInp() },
-        { t: 'n', v: 0, s: sInp(true) },
-        {
-          t: 'n', z: nFmt,
-          f: `IF(D${rn}="cash-in",`
-            + `IFERROR(IF(H${rn}<>"",VLOOKUP(H${rn},'Katalog Produk'!$A:$B,2,0)*IF(I${rn}>0,I${rn},0),0),0)`
-            + `+IFERROR(IF(J${rn}<>"",VLOOKUP(J${rn},'Katalog Produk'!$A:$B,2,0)*IF(K${rn}>0,K${rn},0),0),0)`
-            + `+IFERROR(IF(L${rn}<>"",VLOOKUP(L${rn},'Katalog Produk'!$A:$B,2,0)*IF(M${rn}>0,M${rn},0),0),0),0)`,
-          s: sInp(true, true),
-        },
-        { t: 'str', f: `IF(F${rn}="","",IF(ISNUMBER(MATCH(F${rn},${acctRef},0)),"OK","Akun salah!"))`, s: sInp(true) },
-      ]);
-    }
-
-    const wsInput = XLSX.utils.aoa_to_sheet(inputData);
-    wsInput['!cols'] = [
-      { wch: 5 }, { wch: 13 }, { wch: 30 }, { wch: 14 }, { wch: 20 },
-      { wch: 28 }, { wch: 16 }, { wch: 25 }, { wch: 7 }, { wch: 25 },
-      { wch: 7 }, { wch: 25 }, { wch: 7 }, { wch: 17 }, { wch: 16 },
-    ];
-    wsInput['!rows'] = Array.from({ length: 7 }, (_, i) => ({ hpt: i === 6 ? 30 : 18 }));
-    const dEnd = INPUT_DATA + MAX_INPUTS - 1;
-    wsInput['!dataValidation'] = [
-      { sqref: `D${INPUT_DATA}:D${dEnd}`, type: 'list', formula1: '"cash-in,cash-out"', showDropDown: false },
-      { sqref: `E${INPUT_DATA}:E${dEnd}`, type: 'list', formula1: `"${cashList}"`, showDropDown: false },
-      { sqref: `F${INPUT_DATA}:F${dEnd}`, type: 'list', formula1: acctRef, showDropDown: false },
-      ...(inventory.length > 0 ? [
-        { sqref: `H${INPUT_DATA}:H${dEnd}`, type: 'list', formula1: katalogRef, showDropDown: false },
-        { sqref: `J${INPUT_DATA}:J${dEnd}`, type: 'list', formula1: katalogRef, showDropDown: false },
-        { sqref: `L${INPUT_DATA}:L${dEnd}`, type: 'list', formula1: katalogRef, showDropDown: false },
-      ] : []),
-    ];
-    setUI(wsInput, true);
-    XLSX.utils.book_append_sheet(wb, wsInput, 'Input Tambahan');
-
-    // 5. LABA RUGI
-    const incomeSheetName = 'Laba Rugi';
-    const incData: any[] = [
-      [{ v: companyName, s: sTitle }, '', backBtn],
-      [{ v: 'Laporan Laba Rugi', s: sSub }],
-      [{ v: periodString, s: sPer }],
-      [],
-    ];
-    incData.push([{ v: 'Pendapatan', s: sBold }]);
-    const revStart = incData.length + 1;
-    CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').forEach(acc => {
-      incData.push([`  ${acc.name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)`, z: nFmt }]);
-    });
-    const revEnd = incData.length;
-    incData.push([{ v: 'Total Pendapatan', s: sBold }, { t: 'n', f: `SUM(B${revStart}:B${revEnd})`, z: nFmt, s: sBold }]);
-    const totalRevRow = incData.length;
-    incData.push([]);
-    incData.push([{ v: 'Beban', s: sBold }]);
-    const expStart = incData.length + 1;
-    let r_Penyusutan = 0, r_Amortisasi = 0, r_HPP = 0;
-    CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').forEach(acc => {
-      const rn = incData.length + 1;
-      if (acc.name === 'Beban Penyusutan') r_Penyusutan = rn;
-      if (acc.name === 'Beban Amortisasi') r_Amortisasi = rn;
-      if (acc.name === 'Harga Pokok Penjualan') r_HPP = rn;
-      incData.push([`  ${acc.name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)`, z: nFmt }]);
-    });
-    const expEnd = incData.length;
-    incData.push([{ v: 'Total Beban', s: sBold }, { t: 'n', f: `SUM(B${expStart}:B${expEnd})`, z: nFmt, s: sBold }]);
-    const totalExpRow = incData.length;
-    incData.push([]);
-    incData.push([{ v: 'LABA BERSIH', s: { font: fnt({ bold: true, sz: 11, color: { rgb: CLR.navy } }) } }, { t: 'n', f: `B${totalRevRow}-B${totalExpRow}`, z: nFmt, s: sBold }]);
-    const netIncRow = incData.length;
-    const wsIncome = XLSX.utils.aoa_to_sheet(incData);
-    wsIncome['!cols'] = [{ wch: 42 }, { wch: 22 }, { wch: 12 }];
-    setUI(wsIncome);
-    XLSX.utils.book_append_sheet(wb, wsIncome, incomeSheetName);
-
-    // 6. NERACA
-    const balSheetName = 'Neraca';
-    const balData: any[] = [
-      [{ v: companyName, s: sTitle }, '', backBtn],
-      [{ v: 'Neraca (Posisi Keuangan)', s: sSub }],
-      [{ v: periodString, s: sPer }],
-      [],
-      [{ v: 'ASET', s: sBold }],
-    ];
-    const bsRows: Record<string, number> = {};
-    const assetStart = balData.length + 1;
-    CHART_OF_ACCOUNTS.filter(a => a.type === 'Assets').forEach(acc => {
-      const rn = balData.length + 1; bsRows[acc.name] = rn;
-      balData.push([`  ${acc.name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)`, z: nFmt }]);
-    });
-    const assetEnd = balData.length;
-    balData.push([{ v: 'Total Aset', s: sBold }, { t: 'n', f: `SUM(B${assetStart}:B${assetEnd})`, z: nFmt, s: sBold }]);
-    const totalAssetRow = balData.length;
-    balData.push([], [{ v: 'KEWAJIBAN & EKUITAS', s: sBold }], [{ v: '  Kewajiban', s: sBold }]);
-    const liabStart = balData.length + 1;
-    CHART_OF_ACCOUNTS.filter(a => a.type === 'Liabilities').forEach(acc => {
-      const rn = balData.length + 1; bsRows[acc.name] = rn;
-      balData.push([`    ${acc.name}`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)`, z: nFmt }]);
-    });
-    const liabEnd = balData.length;
-    balData.push([{ v: '  Ekuitas', s: sBold }]);
-    const eqStart = balData.length + 1;
-    const r_Modal = balData.length + 1; bsRows['Modal Pemilik'] = r_Modal;
-    balData.push([`    Modal Pemilik`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`, z: nFmt }]);
-    const r_LabaDitahan = balData.length + 1; bsRows['Laba Ditahan'] = r_LabaDitahan;
-    balData.push([`    Laba Ditahan`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!E:E)`, z: nFmt }]);
-    balData.push([`    Laba Bersih (Periode Berjalan)`, { t: 'n', f: `'${incomeSheetName}'!B${netIncRow}`, z: nFmt }]);
-    const r_Prive = balData.length + 1; bsRows['Prive'] = r_Prive;
-    balData.push([`    Prive`, { t: 'n', f: `SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)`, z: nFmt }]);
-    const liabSumF = liabStart > liabEnd ? '0' : `SUM(B${liabStart}:B${liabEnd})`;
-    const eqSumF   = `B${eqStart}+B${eqStart+1}+B${eqStart+2}-B${eqStart+3}`;
-    balData.push([{ v: 'Total Kewajiban & Ekuitas', s: sBold }, { t: 'n', f: `${liabSumF}+${eqSumF}`, z: nFmt, s: sBold }]);
-    const totalLERow = balData.length;
-    const wsBalance = XLSX.utils.aoa_to_sheet(balData);
-    wsBalance['!cols'] = [{ wch: 42 }, { wch: 22 }, { wch: 12 }];
-    setUI(wsBalance);
-    XLSX.utils.book_append_sheet(wb, wsBalance, balSheetName);
-
-    // 7. ARUS KAS
-    const cashFlowName = 'Arus Kas';
-    const cfData: any[] = [
-      [{ v: companyName, s: sTitle }, '', backBtn],
-      [{ v: 'Laporan Arus Kas (Indirect Method)', s: sSub }],
-      [{ v: periodString, s: sPer }],
-      [],
-      [{ v: 'Aktivitas Operasi', s: sBold }],
-      ['  Laba Bersih', { t: 'n', f: `'${incomeSheetName}'!B${netIncRow}`, z: nFmt }],
-    ];
-    if (r_Penyusutan) cfData.push(['  Penyesuaian Penyusutan', { t: 'n', f: `'${incomeSheetName}'!B${r_Penyusutan}`, z: nFmt }]);
-    if (r_Amortisasi) cfData.push(['  Penyesuaian Amortisasi', { t: 'n', f: `'${incomeSheetName}'!B${r_Amortisasi}`, z: nFmt }]);
-    CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Assets' && !CASH_ACCOUNTS.includes(a.name)).forEach(acc => {
-      const ref = bsRows[acc.name]; if (ref) cfData.push([`  Penurunan/(Kenaikan) ${acc.name}`, { t: 'n', f: `-'${balSheetName}'!B${ref}`, z: nFmt }]);
-    });
-    CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Liabilities').forEach(acc => {
-      const ref = bsRows[acc.name]; if (ref) cfData.push([`  Kenaikan/(Penurunan) ${acc.name}`, { t: 'n', f: `'${balSheetName}'!B${ref}`, z: nFmt }]);
-    });
-    const opEnd2 = cfData.length;
-    cfData.push([{ v: 'Kas Bersih Aktivitas Operasi', s: sBold }, { t: 'n', f: `SUM(B6:B${opEnd2})`, z: nFmt, s: sBold }]);
-    const opTotalRow = cfData.length;
-    cfData.push([], [{ v: 'Aktivitas Investasi', s: sBold }]);
-    const invStart2 = cfData.length + 1;
-    CHART_OF_ACCOUNTS.filter(a => ['Fixed Assets', 'Intangible Assets'].includes(a.category) && !a.name.startsWith('Akumulasi')).forEach(acc => {
-      const ref = bsRows[acc.name]; if (ref) cfData.push([`  Pembelian/(Penjualan) ${acc.name}`, { t: 'n', f: `-'${balSheetName}'!B${ref}`, z: nFmt }]);
-    });
-    const invEnd2 = cfData.length;
-    const invSumF2 = invStart2 > invEnd2 ? '0' : `SUM(B${invStart2}:B${invEnd2})`;
-    cfData.push([{ v: 'Kas Bersih Aktivitas Investasi', s: sBold }, { t: 'n', f: invSumF2, z: nFmt, s: sBold }]);
-    const invTotalRow = cfData.length;
-    cfData.push([], [{ v: 'Aktivitas Pendanaan', s: sBold }]);
-    const finStart2 = cfData.length + 1;
-    CHART_OF_ACCOUNTS.filter(a => a.category === 'Long-term Liabilities').forEach(acc => {
-      const ref = bsRows[acc.name]; if (ref) cfData.push([`  Penerimaan/(Pelunasan) ${acc.name}`, { t: 'n', f: `'${balSheetName}'!B${ref}`, z: nFmt }]);
-    });
-    CHART_OF_ACCOUNTS.filter(a => a.category === 'Owner Equity').forEach(acc => {
-      const ref = bsRows[acc.name];
-      if (ref) cfData.push(acc.name === 'Prive'
-        ? [`  (Penarikan Prive)`, { t: 'n', f: `-'${balSheetName}'!B${ref}`, z: nFmt }]
-        : [`  Penambahan ${acc.name}`, { t: 'n', f: `'${balSheetName}'!B${ref}`, z: nFmt }]);
-    });
-    const finEnd2 = cfData.length;
-    const finSumF2 = finStart2 > finEnd2 ? '0' : `SUM(B${finStart2}:B${finEnd2})`;
-    cfData.push([{ v: 'Kas Bersih Aktivitas Pendanaan', s: sBold }, { t: 'n', f: finSumF2, z: nFmt, s: sBold }]);
-    const finTotalRow = cfData.length;
-    cfData.push([]);
-    cfData.push([{ v: 'Kenaikan (Penurunan) Bersih Kas', s: sBold }, { t: 'n', f: `B${opTotalRow}+B${invTotalRow}+B${finTotalRow}`, z: nFmt, s: sBold }]);
-    const netChangRow = cfData.length;
-    cfData.push(['Saldo Kas & Bank Awal', { t: 'n', v: 0, z: nFmt }]);
-    cfData.push([{ v: 'Saldo Kas & Bank Akhir', s: sBold }, { t: 'n', f: `B${netChangRow}+B${netChangRow+1}`, z: nFmt, s: sBold }]);
-    const endCashRow = cfData.length;
-    cfData.push(['[Cek ke Neraca]', {
-      t: 'n', z: nFmt, s: sPer,
-      f: CASH_ACCOUNTS.filter(n => bsRows[n]).map(n => `'${balSheetName}'!B${bsRows[n]}`).join('+') || '0',
-    }]);
-    const wsCF = XLSX.utils.aoa_to_sheet(cfData);
-    wsCF['!cols'] = [{ wch: 46 }, { wch: 22 }, { wch: 12 }];
-    setUI(wsCF);
-    XLSX.utils.book_append_sheet(wb, wsCF, cashFlowName);
-
-    // 8. BUKU BESAR
-    CHART_OF_ACCOUNTS.forEach(accountInfo => {
-      const sheetName = sanitizeSheetName(accountInfo.name);
-      const ldData: any[] = [
-        [{ v: companyName, s: sTitle }],
-        [{ v: `Buku Besar: ${accountInfo.name}`, s: sSub }],
-        [{ v: `Per Tanggal Cetak: ${today}`, s: sPer }],
-        [],
-        ['Tanggal', 'ID', 'Akun', 'Keterangan', 'Debit (Rp)', 'Kredit (Rp)', 'Saldo (Rp)', backBtn],
+      // ═══════════════════════════════════════════════════════════
+      // 1. INPUT TAMBAHAN
+      // ═══════════════════════════════════════════════════════════
+      const inputSheet = workbook.addWorksheet('Input Tambahan');
+      setupPage(inputSheet, true);
+      inputSheet.columns = [
+        { width: 5 }, { width: 13 }, { width: 30 }, { width: 14 }, { width: 20 }, { width: 28 },
+        { width: 16 }, { width: 25 }, { width: 7 }, { width: 25 }, { width: 7 }, { width: 25 },
+        { width: 7 }, { width: 17 }, { width: 16 },
+        { width: 12 }, // Col P: MENU button — outside print area
       ];
-      const wsLedger = XLSX.utils.aoa_to_sheet(ldData);
-      for (let col = 0; col < 8; col++) {
-        const ref = XLSX.utils.encode_cell({ r: 4, c: col });
-        if (!wsLedger[ref]) wsLedger[ref] = { t: 's', v: '' };
-        wsLedger[ref].s = sHdr(col >= 4);
+      // Info rows 1-6
+      { const r = inputSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = inputSheet.addRow(['INPUT TAMBAHAN — Entri Transaksi Langsung di Excel']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = inputSheet.addRow([`Akun Kas: ${CASH_ACCOUNTS.join(', ')}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      { const r = inputSheet.addRow(['PETUNJUK: Isi kolom B-M. Pilih Tipe, Akun Kas, dan Akun Lawan dari dropdown. Tiap baris otomatis menghasilkan 4 entri jurnal (Pendapatan + HPP).']); r.height = 20; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; r.getCell(1).alignment = { wrapText: true }; }
+      { const r = inputSheet.addRow(['TIP: Kolom N (Total HPP) dihitung otomatis via VLOOKUP ke Katalog Produk. Untuk layanan/non-produk, kosongkan kolom H-M.']); r.height = 20; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; r.getCell(1).alignment = { wrapText: true }; }
+      inputSheet.addRow([]);
+      // Table header (row 7)
+      { const r = inputSheet.addRow(['No', 'Tanggal *', 'Deskripsi *', 'Tipe *', 'Akun Kas *', 'Akun Lawan / Kategori *', 'Nominal * (Rp)', 'Produk 1', 'Qty 1', 'Produk 2', 'Qty 2', 'Produk 3', 'Qty 3', 'Total HPP\n(Auto)', 'Validasi\nAkun', '↩ MENU']); r.height = 32;
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,15].forEach(c => styleHdr(r.getCell(c), c !== 2 && c !== 3 && c !== 5 && c !== 6 && c !== 8 && c !== 10 && c !== 12));
+        styleGrnHdr(r.getCell(14));
+        styleMenuBtn(r.getCell(16), 'DAFTAR ISI'); }
+      // Data rows (row 8 = INPUT_DATA onwards)
+      const dEnd = INPUT_DATA + MAX_INPUTS - 1;
+      for (let i = 1; i <= MAX_INPUTS; i++) {
+        const rn = INPUT_DATA + i - 1;
+        const r = inputSheet.addRow(new Array(16).fill('')); r.height = 20;
+        r.getCell(1).value = fv(`IF(D${rn}="","",${i})`, ''); styleInput(r.getCell(1), true);
+        r.getCell(2).value = ''; styleInput(r.getCell(2));
+        r.getCell(3).value = ''; styleInput(r.getCell(3));
+        r.getCell(4).value = ''; styleInput(r.getCell(4), true);
+        r.getCell(5).value = ''; styleInput(r.getCell(5));
+        r.getCell(6).value = ''; styleInput(r.getCell(6));
+        r.getCell(7).value = 0; r.getCell(7).numFmt = nFmt; styleInput(r.getCell(7), true);
+        [8, 10, 12].forEach(c => { r.getCell(c).value = ''; styleInput(r.getCell(c)); });
+        [9, 11, 13].forEach(c => { r.getCell(c).value = 0; styleInput(r.getCell(c), true); });
+        r.getCell(14).value = fv(
+          `IF(D${rn}="cash-in",`
+          + `IFERROR(IF(H${rn}<>"",VLOOKUP(H${rn},'Katalog Produk'!$A:$B,2,0)*IF(I${rn}>0,I${rn},0),0),0)`
+          + `+IFERROR(IF(J${rn}<>"",VLOOKUP(J${rn},'Katalog Produk'!$A:$B,2,0)*IF(K${rn}>0,K${rn},0),0),0)`
+          + `+IFERROR(IF(L${rn}<>"",VLOOKUP(L${rn},'Katalog Produk'!$A:$B,2,0)*IF(M${rn}>0,M${rn},0),0),0),0)`, 0);
+        r.getCell(14).numFmt = nFmt; styleInput(r.getCell(14), true, true);
+        r.getCell(15).value = fv(`IF(F${rn}="","",IF(ISNUMBER(MATCH(F${rn},${acctRef},0)),"OK","Akun salah!"))`, ''); styleInput(r.getCell(15), true);
       }
-      const isDebitNormal = ['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive';
-      const filteredEntries = reportData.generalJournal.journalEntries.filter(e => e.accountName === accountInfo.name);
-      const maxRows = Math.max(500, filteredEntries.length + 100);
-      let runningSaldo = 0;
-      for (let i = 0; i < maxRows; i++) {
-        const rowRef = 6 + i; const prevRef = rowRef - 1;
-        const createCol = (col: string) =>
-          `IFERROR(INDEX('${journalSheetName}'!${col}:${col},MATCH("${accountInfo.name}"&(ROW()-5),'${journalSheetName}'!H:H,0)),"")`;
-        const saldoF = isDebitNormal
-          ? (i === 0 ? `IF(A${rowRef}="","",E${rowRef}-F${rowRef})` : `IF(A${rowRef}="","",G${prevRef}+E${rowRef}-F${rowRef})`)
-          : (i === 0 ? `IF(A${rowRef}="","",F${rowRef}-E${rowRef})` : `IF(A${rowRef}="","",G${prevRef}+F${rowRef}-E${rowRef})`);
-        const entry = filteredEntries[i];
-        let rowData: any[];
-        if (entry) {
-          const debit  = entry.entryType === 'Debit'  ? entry.amount : 0;
-          const credit = entry.entryType === 'Credit' ? entry.amount : 0;
-          runningSaldo += isDebitNormal ? (debit - credit) : (credit - debit);
-          rowData = [
-            { t: 's', v: format(new Date(entry.date), 'yyyy-MM-dd'), f: createCol('A') },
-            { t: 's', v: entry.id, f: createCol('B') },
-            { t: 's', v: entry.accountName, f: createCol('C') },
-            { t: 's', v: entry.description, f: createCol('D') },
-            { t: 'n', v: debit,  z: nFmt, f: createCol('E') },
-            { t: 'n', v: credit, z: nFmt, f: createCol('F') },
-            { t: 'n', v: runningSaldo, z: nFmt, f: saldoF },
-          ];
-        } else {
-          rowData = [
-            { f: createCol('A') }, { f: createCol('B') }, { f: createCol('C') }, { f: createCol('D') },
-            { t: 'n', z: nFmt, f: createCol('E') }, { t: 'n', z: nFmt, f: createCol('F') },
-            { t: 'n', z: nFmt, f: saldoF },
-          ];
+      // Data Validations — WORKS properly in ExcelJS!
+      inputSheet.dataValidations.add(`D${INPUT_DATA}:D${dEnd}`, { type: 'list', allowBlank: true, formulae: ['"cash-in,cash-out"'] });
+      inputSheet.dataValidations.add(`E${INPUT_DATA}:E${dEnd}`, { type: 'list', allowBlank: true, formulae: [`"${CASH_ACCOUNTS.join(',')}"`] });
+      inputSheet.dataValidations.add(`F${INPUT_DATA}:F${dEnd}`, { type: 'list', allowBlank: true, formulae: [acctRef] });
+      if (inventory.length > 0) {
+        inputSheet.dataValidations.add(`H${INPUT_DATA}:H${dEnd}`, { type: 'list', allowBlank: true, formulae: [katalogRef] });
+        inputSheet.dataValidations.add(`J${INPUT_DATA}:J${dEnd}`, { type: 'list', allowBlank: true, formulae: [katalogRef] });
+        inputSheet.dataValidations.add(`L${INPUT_DATA}:L${dEnd}`, { type: 'list', allowBlank: true, formulae: [katalogRef] });
+      }
+      inputSheet.pageSetup.printArea = `A1:O${dEnd + 1}`; // col P (MENU) excluded
+
+      // ═══════════════════════════════════════════════════════════
+      // 2. JURNAL UMUM
+      // ═══════════════════════════════════════════════════════════
+      const jrnlSheet = workbook.addWorksheet(journalSheetName);
+      setupPage(jrnlSheet);
+      jrnlSheet.columns = [
+        { width: 12 }, { width: 15 }, { width: 30 }, { width: 42 },
+        { width: 16 }, { width: 16 }, { width: 18 },
+        { width: 0.1, hidden: true }, // H: HelperBB
+        { width: 12 },               // I: MENU button (outside print)
+      ];
+      { const r = jrnlSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = jrnlSheet.addRow(['Jurnal Umum']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = jrnlSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      jrnlSheet.addRow([]);
+      { const r = jrnlSheet.addRow(['Tanggal', 'ID Transaksi', 'Nama Akun', 'Keterangan / Deskripsi', 'Debit (Rp)', 'Kredit (Rp)', 'Cek Akun', 'HelperBB', '↩ MENU']); r.height = 24;
+        [1,2,3,4].forEach(c => styleHdr(r.getCell(c))); [5,6,7].forEach(c => styleHdr(r.getCell(c), true));
+        r.getCell(8).font = { name: 'Calibri', size: 7, color: { argb: C.textGray } };
+        styleMenuBtn(r.getCell(9), 'DAFTAR ISI'); }
+      jrnlSheet.views = [{ state: 'frozen', ySplit: 5, showGridLines: false, zoomScale: 100 }];
+
+      let helperCnt: Record<string, number> = {};
+      reportData.generalJournal.journalEntries.forEach((entry, idx) => {
+        const row = JRNL_DATA + idx;
+        const akun = entry.accountName;
+        helperCnt[akun] = (helperCnt[akun] || 0) + 1;
+        const r = jrnlSheet.addRow([format(new Date(entry.date), 'yyyy-MM-dd'), entry.id, akun, entry.description,
+          entry.entryType === 'Debit' ? entry.amount : 0, entry.entryType === 'Credit' ? entry.amount : 0, '', '']);
+        r.height = 18; const alt = idx % 2 === 1;
+        styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt, false, true); styleData(r.getCell(4), alt, false, true);
+        styleData(r.getCell(5), alt, true); r.getCell(5).numFmt = nFmt;
+        styleData(r.getCell(6), alt, true); r.getCell(6).numFmt = nFmt;
+        r.getCell(7).value = fv(`IF(C${row}="","",IF(ISNUMBER(MATCH(C${row},${acctRef},0)),"OK","CEK AKUN!"))`, ''); styleData(r.getCell(7), alt, true);
+        r.getCell(8).value = fv(`IF(C${row}="","",C${row}&COUNTIF($C$${JRNL_DATA}:C${row},C${row}))`, `${akun}${helperCnt[akun]}`);
+      });
+
+      const BLANK_JRNL = JRNL_DATA + reportData.generalJournal.journalEntries.length;
+      for (let i = 0; i < 500; i++) {
+        const row = BLANK_JRNL + i; const alt = i % 2 === 1;
+        const r = jrnlSheet.addRow(['', '', '', '', 0, 0, '', '']); r.height = 18;
+        styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt, false, true); styleData(r.getCell(4), alt, false, true);
+        styleData(r.getCell(5), alt, true); r.getCell(5).numFmt = nFmt;
+        styleData(r.getCell(6), alt, true); r.getCell(6).numFmt = nFmt;
+        r.getCell(7).value = fv(`IF(C${row}="","",IF(ISNUMBER(MATCH(C${row},${acctRef},0)),"OK","CEK AKUN!"))`, ''); styleData(r.getCell(7), alt, true);
+        r.getCell(8).value = fv(`IF(C${row}="","",C${row}&COUNTIF($C$${JRNL_DATA}:C${row},C${row}))`, '');
+      }
+
+      const INPUT_JRNL_START = BLANK_JRNL + 500;
+      for (let i = 1; i <= MAX_INPUTS; i++) {
+        const IR  = INPUT_DATA + i - 1;
+        const dR  = INPUT_JRNL_START + (i - 1) * 4;
+        const cR  = dR + 1; const dH = dR + 2; const cH = dR + 3;
+        const has   = `'Input Tambahan'!D${IR}<>""`;
+        const isCI  = `'Input Tambahan'!D${IR}="cash-in"`;
+        const hasHP = `AND(${has},${isCI},'Input Tambahan'!N${IR}>0)`;
+        const pad   = String(i).padStart(3, '0');
+        const addJRow = (dateF: string, idF: string, akunF: string, descF: string, debitF: string|null, kreditF: string|null, row: number) => {
+          const r = jrnlSheet.addRow(['','','','',0,0,'','']); r.height = 14;
+          r.getCell(1).value = fv(dateF, ''); r.getCell(2).value = fv(idF, '');
+          r.getCell(3).value = fv(akunF, ''); r.getCell(4).value = fv(descF, '');
+          r.getCell(5).value = debitF ? fv(debitF, 0) : 0; r.getCell(5).numFmt = nFmt;
+          r.getCell(6).value = kreditF ? fv(kreditF, 0) : 0; r.getCell(6).numFmt = nFmt;
+          r.getCell(7).value = fv(`IF(C${row}="","",IF(ISNUMBER(MATCH(C${row},${acctRef},0)),"OK","CEK AKUN!"))`, '');
+          r.getCell(8).value = fv(`IF(C${row}="","",C${row}&COUNTIF($C$${JRNL_DATA}:C${row},C${row}))`, '');
+          [1,2,3,4,7].forEach(c => styleData(r.getCell(c))); [5,6].forEach(c => styleData(r.getCell(c), false, true));
+        };
+        addJRow(`IF(${has},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${has},"ADJ-${pad}-D","")`,
+          `IF(${has},IF(${isCI},'Input Tambahan'!E${IR},'Input Tambahan'!F${IR}),"")`,
+          `IF(${has},'Input Tambahan'!C${IR},"")`,
+          `IF(${has},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)`, null, dR);
+        addJRow(`IF(${has},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${has},"ADJ-${pad}-K","")`,
+          `IF(${has},IF(${isCI},'Input Tambahan'!F${IR},'Input Tambahan'!E${IR}),"")`,
+          `IF(${has},'Input Tambahan'!C${IR},"")`,
+          null, `IF(${has},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)`, cR);
+        addJRow(`IF(${hasHP},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${hasHP},"ADJ-${pad}-HD","")`,
+          `IF(${hasHP},"Harga Pokok Penjualan","")`, `IF(${hasHP},'Input Tambahan'!C${IR},"")`,
+          `IF(${hasHP},'Input Tambahan'!N${IR},0)`, null, dH);
+        addJRow(`IF(${hasHP},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${hasHP},"ADJ-${pad}-HK","")`,
+          `IF(${hasHP},"Persediaan Barang Dagang","")`, `IF(${hasHP},'Input Tambahan'!C${IR},"")`,
+          null, `IF(${hasHP},'Input Tambahan'!N${IR},0)`, cH);
+      }
+      const jrnlLastRow = INPUT_JRNL_START + MAX_INPUTS * 4;
+      jrnlSheet.pageSetup.printArea = `A1:G${jrnlLastRow}`; // col H (helper) & I (MENU) excluded
+
+      // ═══════════════════════════════════════════════════════════
+      // 3. KATALOG PRODUK
+      // ═══════════════════════════════════════════════════════════
+      const katSheet = workbook.addWorksheet('Katalog Produk');
+      setupPage(katSheet);
+      katSheet.columns = [{ width: 40 }, { width: 20 }, { width: 15 }, { width: 12 }];
+      { const r = katSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = katSheet.addRow(['Katalog Produk & HPP per Unit']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = katSheet.addRow([`Data inventori per ${today}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      { const r = katSheet.addRow(['Perbarui nilai HPP jika ada perubahan harga beli. Kolom B dipakai otomatis di Input Tambahan via VLOOKUP.']); r.height = 20; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; r.getCell(1).alignment = { wrapText: true }; }
+      katSheet.addRow([]);
+      { const r = katSheet.addRow(['Nama Produk', 'HPP / Unit (Rp)', 'Stok Saat Ini', '↩ MENU']); r.height = 22;
+        styleHdr(r.getCell(1)); styleHdr(r.getCell(2), true); styleHdr(r.getCell(3), true);
+        styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); }
+      inventory.forEach((item, idx) => {
+        const r = katSheet.addRow([item.name, item.costPerUnit, item.stock]); r.height = 18; const alt = idx % 2 === 1;
+        styleData(r.getCell(1), alt); styleData(r.getCell(2), alt, true); r.getCell(2).numFmt = nFmt; styleData(r.getCell(3), alt, true);
+      });
+      if (inventory.length === 0) { const r = katSheet.addRow(['(Belum ada produk di inventori)']); styleData(r.getCell(1)); }
+      katSheet.pageSetup.printArea = `A1:C${KATALOG_DATA_START + inventory.length + 1}`;
+
+      // ═══════════════════════════════════════════════════════════
+      // 4. DAFTAR AKUN
+      // ═══════════════════════════════════════════════════════════
+      const acctSheet = workbook.addWorksheet('Daftar Akun');
+      setupPage(acctSheet);
+      acctSheet.columns = [{ width: 40 }, { width: 20 }, { width: 35 }, { width: 12 }];
+      { const r = acctSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = acctSheet.addRow(['Daftar Akun Referensi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = acctSheet.addRow(['Nama akun WAJIB digunakan persis sama di Jurnal Umum & Input Tambahan.']); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; }
+      acctSheet.addRow([]);
+      { const r = acctSheet.addRow(['Nama Akun', 'Tipe', 'Kategori', '↩ MENU']); r.height = 22;
+        styleHdr(r.getCell(1)); styleHdr(r.getCell(2)); styleHdr(r.getCell(3)); styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); }
+      CHART_OF_ACCOUNTS.forEach((acc, idx) => {
+        const r = acctSheet.addRow([acc.name, acc.type, acc.category]); r.height = 18; const alt = idx % 2 === 1;
+        styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt);
+      });
+      acctSheet.pageSetup.printArea = `A1:C${ACCT_DATA_START + CHART_OF_ACCOUNTS.length + 1}`;
+
+      // ═══════════════════════════════════════════════════════════
+      // 5. LABA RUGI
+      // ═══════════════════════════════════════════════════════════
+      const incomeSheetName = 'Laba Rugi';
+      const incSheet = workbook.addWorksheet(incomeSheetName);
+      setupPage(incSheet);
+      incSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }];
+      { const r = incSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = incSheet.addRow(['Laporan Laba Rugi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = incSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      { const menuR = incSheet.addRow(['', '', '↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const r = incSheet.addRow(['Pendapatan']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const revStart = incSheet.rowCount + 1;
+      CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').forEach(acc => {
+        const r = incSheet.addRow([`  ${acc.name}`]); r.height = 18;
+        r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)`, 0);
+        r.getCell(2).numFmt = nFmt;
+      });
+      const revEnd = incSheet.rowCount; const totalRevRow = incSheet.rowCount + 1;
+      { const r = incSheet.addRow(['Total Pendapatan']); r.height = 22; r.getCell(2).value = fv(`SUM(B${revStart}:B${revEnd})`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      incSheet.addRow([]);
+      { const r = incSheet.addRow(['Beban']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const expStart = incSheet.rowCount + 1;
+      let r_Penyusutan = 0, r_Amortisasi = 0, r_HPP = 0;
+      CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').forEach(acc => {
+        const rn = incSheet.rowCount + 1;
+        if (acc.name === 'Beban Penyusutan') r_Penyusutan = rn;
+        if (acc.name === 'Beban Amortisasi') r_Amortisasi = rn;
+        if (acc.name === 'Harga Pokok Penjualan') r_HPP = rn;
+        const r = incSheet.addRow([`  ${acc.name}`]); r.height = 18;
+        r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)`, 0);
+        r.getCell(2).numFmt = nFmt;
+      });
+      const expEnd = incSheet.rowCount; const totalExpRow = incSheet.rowCount + 1;
+      { const r = incSheet.addRow(['Total Beban']); r.height = 22; r.getCell(2).value = fv(`SUM(B${expStart}:B${expEnd})`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      incSheet.addRow([]);
+      const netIncRow = incSheet.rowCount + 1;
+      { const r = incSheet.addRow(['LABA BERSIH']); r.height = 26; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.navy } }; r.getCell(2).value = fv(`B${totalRevRow}-B${totalExpRow}`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      incSheet.pageSetup.printArea = `A1:B${netIncRow + 2}`;
+
+      // ═══════════════════════════════════════════════════════════
+      // 6. NERACA
+      // ═══════════════════════════════════════════════════════════
+      const balSheetName = 'Neraca';
+      const balSheet = workbook.addWorksheet(balSheetName);
+      setupPage(balSheet);
+      balSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }];
+      { const r = balSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = balSheet.addRow(['Neraca (Posisi Keuangan)']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = balSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      { const menuR = balSheet.addRow(['','','↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const r = balSheet.addRow(['ASET']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const bsRows: Record<string, number> = {};
+      const assetStart = balSheet.rowCount + 1;
+      CHART_OF_ACCOUNTS.filter(a => a.type === 'Assets').forEach(acc => {
+        const rn = balSheet.rowCount + 1; bsRows[acc.name] = rn;
+        const r = balSheet.addRow([`  ${acc.name}`]); r.height = 18;
+        r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)`, 0); r.getCell(2).numFmt = nFmt;
+      });
+      const assetEnd = balSheet.rowCount; const totalAssetRow = balSheet.rowCount + 1;
+      { const r = balSheet.addRow(['Total Aset']); r.height = 22; r.getCell(2).value = fv(`SUM(B${assetStart}:B${assetEnd})`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      balSheet.addRow([]); { const r = balSheet.addRow(['KEWAJIBAN & EKUITAS']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; } { const r = balSheet.addRow(['  Kewajiban']); r.height = 14; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const liabStart = balSheet.rowCount + 1;
+      CHART_OF_ACCOUNTS.filter(a => a.type === 'Liabilities').forEach(acc => {
+        const rn = balSheet.rowCount + 1; bsRows[acc.name] = rn;
+        const r = balSheet.addRow([`    ${acc.name}`]); r.height = 18;
+        r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"${acc.name}",'${journalSheetName}'!E:E)`, 0); r.getCell(2).numFmt = nFmt;
+      });
+      const liabEnd = balSheet.rowCount;
+      { const r = balSheet.addRow(['  Ekuitas']); r.height = 14; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const eqStart = balSheet.rowCount + 1;
+      const r_Modal = balSheet.rowCount + 1; bsRows['Modal Pemilik'] = r_Modal;
+      { const r = balSheet.addRow(['    Modal Pemilik']); r.height = 18; r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Modal Pemilik",'${journalSheetName}'!E:E)`, 0); r.getCell(2).numFmt = nFmt; }
+      const r_LabaDitahan = balSheet.rowCount + 1; bsRows['Laba Ditahan'] = r_LabaDitahan;
+      { const r = balSheet.addRow(['    Laba Ditahan']); r.height = 18; r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!F:F)-SUMIF('${journalSheetName}'!C:C,"Laba Ditahan",'${journalSheetName}'!E:E)`, 0); r.getCell(2).numFmt = nFmt; }
+      { const r = balSheet.addRow(['    Laba Bersih (Periode Berjalan)']); r.height = 18; r.getCell(2).value = fv(`'${incomeSheetName}'!B${netIncRow}`, 0); r.getCell(2).numFmt = nFmt; }
+      const r_Prive = balSheet.rowCount + 1; bsRows['Prive'] = r_Prive;
+      { const r = balSheet.addRow(['    Prive']); r.height = 18; r.getCell(2).value = fv(`SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!E:E)-SUMIF('${journalSheetName}'!C:C,"Prive",'${journalSheetName}'!F:F)`, 0); r.getCell(2).numFmt = nFmt; }
+      const totalLERow = balSheet.rowCount + 1;
+      const liabSumF = liabStart > liabEnd ? '0' : `SUM(B${liabStart}:B${liabEnd})`;
+      const eqSumF   = `B${eqStart}+B${eqStart+1}+B${eqStart+2}-B${eqStart+3}`;
+      { const r = balSheet.addRow(['Total Kewajiban & Ekuitas']); r.height = 22; r.getCell(2).value = fv(`${liabSumF}+${eqSumF}`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      balSheet.pageSetup.printArea = `A1:B${totalLERow + 2}`;
+
+      // ═══════════════════════════════════════════════════════════
+      // 7. ARUS KAS
+      // ═══════════════════════════════════════════════════════════
+      const cashFlowName = 'Arus Kas';
+      const cfSheet = workbook.addWorksheet(cashFlowName);
+      setupPage(cfSheet); cfSheet.columns = [{ width: 46 }, { width: 22 }, { width: 12 }];
+      { const r = cfSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = cfSheet.addRow(['Laporan Arus Kas (Indirect Method)']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = cfSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      { const menuR = cfSheet.addRow(['','','↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const r = cfSheet.addRow(['Aktivitas Operasi']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const opStart = cfSheet.rowCount + 1;
+      { const r = cfSheet.addRow(['  Laba Bersih']); r.height = 18; r.getCell(2).value = fv(`'${incomeSheetName}'!B${netIncRow}`, 0); r.getCell(2).numFmt = nFmt; }
+      if (r_Penyusutan) { const r = cfSheet.addRow(['  Penyesuaian Penyusutan']); r.height = 18; r.getCell(2).value = fv(`'${incomeSheetName}'!B${r_Penyusutan}`, 0); r.getCell(2).numFmt = nFmt; }
+      if (r_Amortisasi) { const r = cfSheet.addRow(['  Penyesuaian Amortisasi']); r.height = 18; r.getCell(2).value = fv(`'${incomeSheetName}'!B${r_Amortisasi}`, 0); r.getCell(2).numFmt = nFmt; }
+      CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Assets' && !CASH_ACCOUNTS.includes(a.name)).forEach(acc => { const ref = bsRows[acc.name]; if (!ref) return; const r = cfSheet.addRow([`  Penurunan/(Kenaikan) ${acc.name}`]); r.height = 18; r.getCell(2).value = fv(`-'${balSheetName}'!B${ref}`, 0); r.getCell(2).numFmt = nFmt; });
+      CHART_OF_ACCOUNTS.filter(a => a.category === 'Current Liabilities').forEach(acc => { const ref = bsRows[acc.name]; if (!ref) return; const r = cfSheet.addRow([`  Kenaikan/(Penurunan) ${acc.name}`]); r.height = 18; r.getCell(2).value = fv(`'${balSheetName}'!B${ref}`, 0); r.getCell(2).numFmt = nFmt; });
+      const opEnd = cfSheet.rowCount; const opTotalRow = cfSheet.rowCount + 1;
+      { const r = cfSheet.addRow(['Kas Bersih Aktivitas Operasi']); r.height = 22; r.getCell(2).value = fv(`SUM(B${opStart}:B${opEnd})`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      cfSheet.addRow([]); { const r = cfSheet.addRow(['Aktivitas Investasi']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const invStart = cfSheet.rowCount + 1;
+      CHART_OF_ACCOUNTS.filter(a => ['Fixed Assets', 'Intangible Assets'].includes(a.category) && !a.name.startsWith('Akumulasi')).forEach(acc => { const ref = bsRows[acc.name]; if (!ref) return; const r = cfSheet.addRow([`  Pembelian/(Penjualan) ${acc.name}`]); r.height = 18; r.getCell(2).value = fv(`-'${balSheetName}'!B${ref}`, 0); r.getCell(2).numFmt = nFmt; });
+      const invEnd = cfSheet.rowCount; const invTotalRow = cfSheet.rowCount + 1;
+      { const r = cfSheet.addRow(['Kas Bersih Aktivitas Investasi']); r.height = 22; r.getCell(2).value = fv(invStart > invEnd ? '0' : `SUM(B${invStart}:B${invEnd})`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      cfSheet.addRow([]); { const r = cfSheet.addRow(['Aktivitas Pendanaan']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      const finStart = cfSheet.rowCount + 1;
+      CHART_OF_ACCOUNTS.filter(a => a.category === 'Long-term Liabilities').forEach(acc => { const ref = bsRows[acc.name]; if (!ref) return; const r = cfSheet.addRow([`  Penerimaan/(Pelunasan) ${acc.name}`]); r.height = 18; r.getCell(2).value = fv(`'${balSheetName}'!B${ref}`, 0); r.getCell(2).numFmt = nFmt; });
+      CHART_OF_ACCOUNTS.filter(a => a.category === 'Owner Equity').forEach(acc => { const ref = bsRows[acc.name]; if (!ref) return; const lbl = acc.name === 'Prive' ? `  (Penarikan Prive)` : `  Penambahan ${acc.name}`; const r = cfSheet.addRow([lbl]); r.height = 18; r.getCell(2).value = fv(acc.name === 'Prive' ? `-'${balSheetName}'!B${ref}` : `'${balSheetName}'!B${ref}`, 0); r.getCell(2).numFmt = nFmt; });
+      const finEnd = cfSheet.rowCount; const finTotalRow = cfSheet.rowCount + 1;
+      { const r = cfSheet.addRow(['Kas Bersih Aktivitas Pendanaan']); r.height = 22; r.getCell(2).value = fv(finStart > finEnd ? '0' : `SUM(B${finStart}:B${finEnd})`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      cfSheet.addRow([]);
+      const netChangRow = cfSheet.rowCount + 1;
+      { const r = cfSheet.addRow(['Kenaikan (Penurunan) Bersih Kas']); r.height = 22; r.getCell(2).value = fv(`B${opTotalRow}+B${invTotalRow}+B${finTotalRow}`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      { const r = cfSheet.addRow(['Saldo Kas & Bank Awal']); r.height = 18; r.getCell(2).value = 0; r.getCell(2).numFmt = nFmt; }
+      const endCashRow = cfSheet.rowCount + 1;
+      { const r = cfSheet.addRow(['Saldo Kas & Bank Akhir']); r.height = 22; r.getCell(2).value = fv(`B${netChangRow}+B${netChangRow+1}`, 0); r.getCell(2).numFmt = nFmt; styleTotal(r.getCell(1)); styleTotal(r.getCell(2), true); }
+      { const r = cfSheet.addRow(['[Cek ke Neraca]']); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; const cekF = CASH_ACCOUNTS.filter(n => bsRows[n]).map(n => `'${balSheetName}'!B${bsRows[n]}`).join('+') || '0'; r.getCell(2).value = fv(cekF, 0); r.getCell(2).numFmt = nFmt; }
+      cfSheet.pageSetup.printArea = `A1:B${cfSheet.rowCount + 2}`;
+
+      // ═══════════════════════════════════════════════════════════
+      // 8. BUKU BESAR
+      // ═══════════════════════════════════════════════════════════
+      CHART_OF_ACCOUNTS.forEach(accountInfo => {
+        const sheetName = sanitizeSheetName(accountInfo.name);
+        const ldSheet = workbook.addWorksheet(sheetName);
+        setupPage(ldSheet);
+        ldSheet.columns = [{ width: 12 }, { width: 10 }, { width: 25 }, { width: 42 }, { width: 16 }, { width: 16 }, { width: 16 }];
+        { const r = ldSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+        { const r = ldSheet.addRow([`Buku Besar: ${accountInfo.name}`]); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+        { const r = ldSheet.addRow([`Per Tanggal Cetak: ${today}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+        ldSheet.addRow([]);
+        { const r = ldSheet.addRow(['Tanggal', 'ID', 'Akun', 'Keterangan', 'Debit (Rp)', 'Kredit (Rp)', 'Saldo (Rp)']); r.height = 22;
+          [1,2,3,4].forEach(c => styleHdr(r.getCell(c))); [5,6,7].forEach(c => styleHdr(r.getCell(c), true)); }
+        ldSheet.views = [{ state: 'frozen', ySplit: 5, showGridLines: false, zoomScale: 100 }];
+        const isDebitNormal = ['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive';
+        const filteredEntries = reportData.generalJournal.journalEntries.filter(e => e.accountName === accountInfo.name);
+        const maxRows = Math.max(300, filteredEntries.length + 50);
+        let runningSaldo = 0;
+        for (let i = 0; i < maxRows; i++) {
+          const rowRef = 6 + i; const prevRef = rowRef - 1;
+          const colF = (col: string) => `IFERROR(INDEX('${journalSheetName}'!${col}:${col},MATCH("${accountInfo.name}"&(ROW()-5),'${journalSheetName}'!H:H,0)),"")`;
+          const saldoF = isDebitNormal
+            ? (i === 0 ? `IF(A${rowRef}="","",E${rowRef}-F${rowRef})` : `IF(A${rowRef}="","",G${prevRef}+E${rowRef}-F${rowRef})`)
+            : (i === 0 ? `IF(A${rowRef}="","",F${rowRef}-E${rowRef})` : `IF(A${rowRef}="","",G${prevRef}+F${rowRef}-E${rowRef})`);
+          const entry = filteredEntries[i]; const alt = i % 2 === 1;
+          const r = ldSheet.addRow(['','','','',0,0,0]); r.height = 18;
+          const debit  = entry && entry.entryType === 'Debit'  ? entry.amount : 0;
+          const credit = entry && entry.entryType === 'Credit' ? entry.amount : 0;
+          r.getCell(1).value = fv(colF('A'), entry ? format(new Date(entry.date), 'yyyy-MM-dd') : '');
+          r.getCell(2).value = fv(colF('B'), entry?.id ?? '');
+          r.getCell(3).value = fv(colF('C'), entry?.accountName ?? '');
+          r.getCell(4).value = fv(colF('D'), entry?.description ?? '');
+          r.getCell(5).value = fv(colF('E'), debit);  r.getCell(5).numFmt = nFmt;
+          r.getCell(6).value = fv(colF('F'), credit); r.getCell(6).numFmt = nFmt;
+          if (entry) runningSaldo += isDebitNormal ? (debit - credit) : (credit - debit);
+          r.getCell(7).value = fv(saldoF, entry ? runningSaldo : 0); r.getCell(7).numFmt = nFmt;
+          [1,2].forEach(c => styleData(r.getCell(c), alt));
+          [3,4].forEach(c => styleData(r.getCell(c), alt, false, true));
+          [5,6,7].forEach(c => styleData(r.getCell(c), alt, true));
         }
-        XLSX.utils.sheet_add_aoa(wsLedger, [rowData], { origin: `A${rowRef}` });
-      }
-      wsLedger['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 25 }, { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
-      setUI(wsLedger);
-      XLSX.utils.book_append_sheet(wb, wsLedger, sheetName);
-    });
+        ldSheet.pageSetup.printArea = `A1:G${5 + maxRows}`;
+      });
 
-    // 9. AUDIT & INVESTOR
-    const auditData: any[] = [
-      [{ v: companyName, s: sTitle }, '', '', '', backBtn],
-      [{ v: 'Laporan Executive Audit & Investor Dashboard', s: sSub }],
-      [{ v: periodString, s: sPer }],
-      [],
-      [{ v: 'Kesimpulan Analisis', s: sBold }, '', { v: 'Keterangan', s: sBold }],
-      ['Status Kesehatan', { t: 'str', f: `IF(B12=0,"EMPTY",IF(B10<B17,"CRITICAL ALERT",IF(B19<0.15,"WARNING - MARGIN RENDAH",IF(AND(B26>0.20,B19>0.30),"KEUANGAN SANGAT PRIMA","SEHAT & PROFITABLE"))))` }, '-'],
-      ['Deskripsi', { t: 'str', f: `IF(B12=0,"Belum ada data.",IF(B10<B17,"Perusahaan mengalami kerugian operasional.",IF(B19<0.15,"Berhasil melewati impas, namun margin rentan.",IF(AND(B26>0.20,B19>0.30),"ROI tinggi, margin aman. Risiko rendah.","Fundamental sehat. Berada aman di atas Titik Impas."))))` }, '-'],
-      [],
-      [{ v: 'Komponen Operasional', s: sBold }, '', 'Rumus'],
-      ['Total Pendapatan', { t: 'n', f: `'${incomeSheetName}'!B${totalRevRow}`, z: nFmt }, 'Dari Laba Rugi'],
-      ['Total Biaya Variabel (HPP)', { t: 'n', f: r_HPP ? `'${incomeSheetName}'!B${r_HPP}` : '0', z: nFmt }, 'Dari HPP'],
-      ['Total Biaya Tetap', { t: 'n', f: `IF(B10>0,'${incomeSheetName}'!B${totalExpRow}-B11,0)`, z: nFmt }, 'Total Beban - HPP'],
-      ['Margin Kontribusi', { t: 'n', f: `IF(B10>0,B10-B11,0)`, z: nFmt }, 'Pendapatan - HPP'],
-      ['Rasio Margin Kontribusi', { t: 'n', f: `IF(B10>0,B13/B10,0)`, z: '0.00%' }, 'Margin / Pendapatan'],
-      [],
-      [{ v: 'Indikator BEP & Target', s: sBold }, '', 'Rumus'],
-      ['Titik Impas / BEP (Rp)', { t: 'n', f: `IF(B14>0,B12/B14,0)`, z: nFmt }, 'Biaya Tetap / Rasio Margin'],
-      ['Batas Aman / MoS (Rp)', { t: 'n', f: `IF(B10>0,B10-B17,0)`, z: nFmt }, 'Pendapatan - BEP'],
-      ['Margin of Safety (%)', { t: 'n', f: `IF(B10>0,B18/B10,0)`, z: '0.00%' }, 'MoS / Pendapatan'],
-      [],
-      [{ v: 'Kinerja Investasi (ROI & ROA)', s: sBold }, '', 'Rumus'],
-      ['Modal Pemilik', { t: 'n', f: `'${balSheetName}'!B${r_Modal}`, z: nFmt }, 'Modal Disetor'],
-      ['Laba Ditahan', { t: 'n', f: `'${balSheetName}'!B${r_LabaDitahan}`, z: nFmt }, 'Laba Masa Lalu'],
-      ['Total Ekuitas Penjamin', { t: 'n', f: 'B22+B23', z: nFmt }, 'Modal + Laba Ditahan'],
-      ['Total Aset', { t: 'n', f: `'${balSheetName}'!B${totalAssetRow}`, z: nFmt }, 'Dari Neraca'],
-      ['Laba Bersih', { t: 'n', f: `'${incomeSheetName}'!B${netIncRow}`, z: nFmt }, 'Dari Laba Rugi'],
-      ['Return on Investment (ROI)', { t: 'n', f: 'IF(B24>0,B26/B24,0)', z: '0.00%' }, 'Laba / Total Ekuitas'],
-      ['Return on Asset (ROA)', { t: 'n', f: 'IF(B25>0,B26/B25,0)', z: '0.00%' }, 'Laba / Total Aset'],
-    ];
-    const wsAudit = XLSX.utils.aoa_to_sheet(auditData);
-    wsAudit['!cols'] = [{ wch: 40 }, { wch: 25 }, { wch: 40 }];
-    setUI(wsAudit);
-    XLSX.utils.book_append_sheet(wb, wsAudit, 'Audit & Investor');
+      // ═══════════════════════════════════════════════════════════
+      // 9. AUDIT & INVESTOR
+      // ═══════════════════════════════════════════════════════════
+      const auditSheet = workbook.addWorksheet('Audit & Investor');
+      setupPage(auditSheet); auditSheet.columns = [{ width: 40 }, { width: 25 }, { width: 40 }];
+      { const r = auditSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
+      { const r = auditSheet.addRow(['Laporan Executive Audit & Investor Dashboard']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
+      { const r = auditSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
+      { const menuR = auditSheet.addRow(['','','↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      const aR = (lbl: string, f: string|null, note = '-', pct = false) => {
+        const r = auditSheet.addRow([lbl, '', note]); r.height = 18;
+        if (f) { r.getCell(2).value = fv(f, 0); r.getCell(2).numFmt = pct ? '0.00%' : nFmt; }
+        return r;
+      };
+      { const r = auditSheet.addRow(['Kesimpulan Analisis','','Keterangan']); r.height = 16; [1,3].forEach(c => { r.getCell(c).font = { name: 'Calibri', bold: true, size: 10 }; }); }
+      aR('Status Kesehatan', `IF(B12=0,"EMPTY",IF(B10<B17,"CRITICAL ALERT",IF(B19<0.15,"WARNING",IF(AND(B26>0.20,B19>0.30),"KEUANGAN SANGAT PRIMA","SEHAT & PROFITABLE"))))`, '-');
+      aR('Deskripsi', `IF(B12=0,"Belum ada data.",IF(B10<B17,"Perusahaan mengalami kerugian operasional.",IF(B19<0.15,"Berhasil melewati impas, margin rentan.",IF(AND(B26>0.20,B19>0.30),"ROI tinggi, margin aman.","Fundamental sehat, aman di atas Titik Impas."))))`, '-');
+      auditSheet.addRow([]);
+      { const r = auditSheet.addRow(['Komponen Operasional','','Rumus']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      aR('Total Pendapatan',           `'${incomeSheetName}'!B${totalRevRow}`, 'Dari Laba Rugi');
+      aR('Total Biaya Variabel (HPP)', r_HPP ? `'${incomeSheetName}'!B${r_HPP}` : '0', 'Dari HPP');
+      aR('Total Biaya Tetap',          `IF(B10>0,'${incomeSheetName}'!B${totalExpRow}-B11,0)`, 'Total Beban - HPP');
+      aR('Margin Kontribusi',          `IF(B10>0,B10-B11,0)`, 'Pendapatan - HPP');
+      aR('Rasio Margin Kontribusi',    `IF(B10>0,B13/B10,0)`, 'Margin / Pendapatan', true);
+      auditSheet.addRow([]);
+      { const r = auditSheet.addRow(['Indikator BEP & Target','','Rumus']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      aR('Titik Impas / BEP (Rp)',     `IF(B14>0,B12/B14,0)`, 'Biaya Tetap / Rasio Margin');
+      aR('Batas Aman / MoS (Rp)',      `IF(B10>0,B10-B17,0)`, 'Pendapatan - BEP');
+      aR('Margin of Safety (%)',       `IF(B10>0,B18/B10,0)`, 'MoS / Pendapatan', true);
+      auditSheet.addRow([]);
+      { const r = auditSheet.addRow(['Kinerja Investasi (ROI & ROA)','','Rumus']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
+      aR('Modal Pemilik',          `'${balSheetName}'!B${r_Modal}`, 'Modal Disetor');
+      aR('Laba Ditahan',           `'${balSheetName}'!B${r_LabaDitahan}`, 'Laba Masa Lalu');
+      aR('Total Ekuitas Penjamin', 'B22+B23', 'Modal + Laba Ditahan');
+      aR('Total Aset',             `'${balSheetName}'!B${totalAssetRow}`, 'Dari Neraca');
+      aR('Laba Bersih',            `'${incomeSheetName}'!B${netIncRow}`, 'Dari Laba Rugi');
+      aR('Return on Investment (ROI)', 'IF(B24>0,B26/B24,0)', 'Laba / Total Ekuitas', true);
+      aR('Return on Asset (ROA)',      'IF(B25>0,B26/B25,0)', 'Laba / Total Aset', true);
+      auditSheet.pageSetup.printArea = `A1:B${auditSheet.rowCount + 2}`;
 
-    XLSX.writeFile(wb, 'Laporan Keuangan FinansiaProf.xlsx');
+      // ═══════════════════════════════════════════════════════════
+      // DOWNLOAD via browser Blob
+      // ═══════════════════════════════════════════════════════════
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'Laporan Keuangan FinansiaProf.xlsx';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err: any) {
+      console.error('Export XLSX error:', err);
+      alert(`Gagal export XLSX: ${err?.message || err}`);
+    }
   };
+
 
 
   const handlePrintPDF = async () => {
