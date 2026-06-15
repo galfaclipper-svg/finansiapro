@@ -57,7 +57,7 @@ export function ShareReportDialog({ open, onOpenChange, type, data, onDownloadXL
 
   // Generate preview text
   useEffect(() => {
-    let text = `Yth. ${recipient?.name || 'Bapak/Ibu'},\n\n`;
+    let text = `Yth. ${recipient?.salutation ? recipient.salutation + ' ' : ''}${recipient?.name || 'Bapak/Ibu'},\n\n`;
 
     if (type === 'financial') {
       text += `Berikut adalah ringkasan Laporan Keuangan dari *${companyProfile.name}*:\n\n`;

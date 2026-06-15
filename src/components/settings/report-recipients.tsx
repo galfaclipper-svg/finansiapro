@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useAppState } from '@/hooks/use-app-state';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, UserPlus, Pencil, Save, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { ReportRecipient } from '@/lib/types';
 
 export function ReportRecipientsManager() {
@@ -86,13 +87,31 @@ export function ReportRecipientsManager() {
                 {isEditing === recipient.id ? (
                   <div className="border p-4 rounded-md space-y-3 bg-muted/30">
                     <div className="grid gap-3">
-                      <div>
-                        <Label>Nama Penerima / Jabatan</Label>
-                        <Input 
-                          placeholder="Mis: Budi - Manajer" 
-                          value={editForm.name || ''} 
-                          onChange={(e) => setEditForm({...editForm, name: e.target.value})} 
-                        />
+                      <div className="grid grid-cols-4 gap-3">
+                        <div className="col-span-1">
+                          <Label>Sapaan</Label>
+                          <Select 
+                            value={editForm.salutation || 'none'} 
+                            onValueChange={(val) => setEditForm({...editForm, salutation: val === 'none' ? undefined : val as 'Bapak' | 'Ibu'})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="-" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">-</SelectItem>
+                              <SelectItem value="Bapak">Bapak</SelectItem>
+                              <SelectItem value="Ibu">Ibu</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-3">
+                          <Label>Nama Penerima / Jabatan</Label>
+                          <Input 
+                            placeholder="Mis: Budi - Manajer" 
+                            value={editForm.name || ''} 
+                            onChange={(e) => setEditForm({...editForm, name: e.target.value})} 
+                          />
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -126,7 +145,9 @@ export function ReportRecipientsManager() {
                 ) : (
                   <div className="flex items-center justify-between p-3 border rounded-md">
                     <div>
-                      <p className="font-medium text-sm">{recipient.name}</p>
+                      <p className="font-medium text-sm">
+                        {recipient.salutation ? `${recipient.salutation} ` : ''}{recipient.name}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {recipient.whatsapp && `WA: ${recipient.whatsapp}`}
                         {recipient.whatsapp && recipient.email && ' | '}
@@ -149,13 +170,31 @@ export function ReportRecipientsManager() {
             {isEditing && !recipients.find(r => r.id === isEditing) && (
                <div className="border p-4 rounded-md space-y-3 bg-muted/30">
                <div className="grid gap-3">
-                 <div>
-                   <Label>Nama Penerima / Jabatan</Label>
-                   <Input 
-                     placeholder="Mis: Budi - Manajer" 
-                     value={editForm.name || ''} 
-                     onChange={(e) => setEditForm({...editForm, name: e.target.value})} 
-                   />
+                 <div className="grid grid-cols-4 gap-3">
+                   <div className="col-span-1">
+                     <Label>Sapaan</Label>
+                     <Select 
+                       value={editForm.salutation || 'none'} 
+                       onValueChange={(val) => setEditForm({...editForm, salutation: val === 'none' ? undefined : val as 'Bapak' | 'Ibu'})}
+                     >
+                       <SelectTrigger>
+                         <SelectValue placeholder="-" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="none">-</SelectItem>
+                         <SelectItem value="Bapak">Bapak</SelectItem>
+                         <SelectItem value="Ibu">Ibu</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+                   <div className="col-span-3">
+                     <Label>Nama Penerima / Jabatan</Label>
+                     <Input 
+                       placeholder="Mis: Budi - Manajer" 
+                       value={editForm.name || ''} 
+                       onChange={(e) => setEditForm({...editForm, name: e.target.value})} 
+                     />
+                   </div>
                  </div>
                  <div className="grid grid-cols-2 gap-3">
                    <div>

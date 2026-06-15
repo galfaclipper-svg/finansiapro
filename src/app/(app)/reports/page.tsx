@@ -27,10 +27,22 @@ import { id } from 'date-fns/locale';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ReportsPage() {
-  const { transactions, inventory, companyProfile, dateRange } = useAppState();
+  const { transactions, inventory, companyProfile, dateRange, setDateRange } = useAppState();
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [quickMonth, setQuickMonth] = useState<string>((new Date().getMonth() + 1).toString());
+  const [quickYear, setQuickYear] = useState<string>(new Date().getFullYear().toString());
+
+  const handleQuickSelect = () => {
+    const year = parseInt(quickYear);
+    const month = parseInt(quickMonth);
+    setDateRange({
+      from: new Date(year, month - 1, 1),
+      to: new Date(year, month, 0)
+    });
+  };
 
   const reportData = useMemo(() => {
     // --- 0. Generate Virtual Depreciation Transactions ---
@@ -1185,6 +1197,39 @@ export default function ReportsPage() {
         description="Hasilkan dan lihat laporan keuangan bisnis Anda."
       >
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 border rounded-md p-1 bg-muted/20">
+            <Select value={quickMonth} onValueChange={setQuickMonth}>
+              <SelectTrigger className="w-[120px] h-9 border-none bg-transparent shadow-none focus:ring-0">
+                <SelectValue placeholder="Bulan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Januari</SelectItem>
+                <SelectItem value="2">Februari</SelectItem>
+                <SelectItem value="3">Maret</SelectItem>
+                <SelectItem value="4">April</SelectItem>
+                <SelectItem value="5">Mei</SelectItem>
+                <SelectItem value="6">Juni</SelectItem>
+                <SelectItem value="7">Juli</SelectItem>
+                <SelectItem value="8">Agustus</SelectItem>
+                <SelectItem value="9">September</SelectItem>
+                <SelectItem value="10">Oktober</SelectItem>
+                <SelectItem value="11">November</SelectItem>
+                <SelectItem value="12">Desember</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={quickYear} onValueChange={setQuickYear}>
+              <SelectTrigger className="w-[100px] h-9 border-none bg-transparent shadow-none focus:ring-0">
+                <SelectValue placeholder="Tahun" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({length: 10}, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
+                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleQuickSelect} className="h-8">Terapkan</Button>
+          </div>
+          <span className="text-muted-foreground text-sm px-2">atau</span>
           <DatePickerWithRange />
           <Button variant="outline" className="border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
             <Send className="mr-2 h-4 w-4" />

@@ -3,6 +3,7 @@ export type ReportRecipient = {
   name: string;
   whatsapp?: string;
   email?: string;
+  salutation?: 'Bapak' | 'Ibu' | '';
 };
 
 export type CompanyProfile = {
