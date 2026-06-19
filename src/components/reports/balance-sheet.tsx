@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from '@/lib/constants';
 
 interface BalanceSheetData {
     assets: { [key: string]: number };
@@ -16,15 +16,19 @@ interface BalanceSheetData {
 }
 
 export function BalanceSheet({ data }: { data: BalanceSheetData }) {
+    const { accounts } = useAppState();
+    const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
     const { assets, liabilities, equity, totalAssets, totalLiabilitiesAndEquity } = data;
 
+    const sortAccounts = (aName: string, bName: string) => {
+        const aId = activeAccounts.find(acc => acc.name === aName)?.id || '9999';
+        const bId = activeAccounts.find(acc => acc.name === bName)?.id || '9999';
+        return aId.localeCompare(bId);
+    };
+
     // Sort assets by account ID for consistent, standard ordering
-    const sortedAssets = Object.entries(assets).sort(([aName], [bName]) => {
-      const aId = CHART_OF_ACCOUNTS.find(acc => acc.name === aName)?.id || '9999';
-      const bId = CHART_OF_ACCOUNTS.find(acc => acc.name === bName)?.id || '9999';
-      return aId.localeCompare(bId);
-    });
-    const sortedLiabilities = Object.entries(liabilities).sort(([a], [b]) => a.localeCompare(b));
+    const sortedAssets = Object.entries(assets).sort(([aName], [bName]) => sortAccounts(aName, bName));
+    const sortedLiabilities = Object.entries(liabilities).sort(([a], [b]) => sortAccounts(a, b));
 
     return (
         <Card>

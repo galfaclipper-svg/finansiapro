@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import { useAppState } from "@/hooks/use-app-state";
-import { CHART_OF_ACCOUNTS } from "@/lib/constants";
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -81,7 +81,8 @@ const EXCLUDED_MANUAL_CATEGORIES = [
 ];
 
 export default function EditTransactionPage({ transactionId }: { transactionId: string }) {
-  const { transactions, updateTransaction, inventory } = useAppState();
+  const { transactions, updateTransaction, inventory, accounts } = useAppState();
+  const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
   const { toast } = useToast();
   const router = useRouter();
 
@@ -143,7 +144,7 @@ export default function EditTransactionPage({ transactionId }: { transactionId: 
         acc.name === 'Prive';
     }
 
-    return CHART_OF_ACCOUNTS
+    return activeAccounts
       .filter(acc => 
           baseFilter(acc) && 
           !EXCLUDED_MANUAL_CATEGORIES.includes(acc.name)
@@ -158,7 +159,7 @@ export default function EditTransactionPage({ transactionId }: { transactionId: 
     }
   }, [watchedType, watchedCategory, filteredCategories, form, transaction]);
 
-  const isInventorySale = !!CHART_OF_ACCOUNTS.find(acc => acc.name === watchedCategory && acc.category === 'Sales Revenue');
+  const isInventorySale = !!activeAccounts.find(acc => acc.name === watchedCategory && acc.category === 'Sales Revenue');
   const isInventoryPurchase = watchedCategory === 'Persediaan Barang Dagang';
   const isInventoryAdjustment = ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi'].includes(watchedCategory || '');
   const isInventoryTransaction = isInventorySale || isInventoryPurchase || isInventoryAdjustment;

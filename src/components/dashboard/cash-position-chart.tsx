@@ -11,7 +11,7 @@ import { useAppState } from '@/hooks/use-app-state';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
 import { Wallet } from 'lucide-react';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import { eachDayOfInterval, format, startOfDay } from 'date-fns';
 import type { Transaction } from '@/lib/types';
 
@@ -23,7 +23,8 @@ const chartConfig = {
 };
 
 export function CashPositionChart() {
-  const { transactions, inventory, dateRange } = useAppState();
+  const { transactions, inventory, dateRange, accounts } = useAppState();
+  const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
 
   const { chartData, finalBalance } = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) {
@@ -33,9 +34,10 @@ export function CashPositionChart() {
     // 1. Re-use the correct, robust balance calculation logic from reports/overview
     const calculateBalances = (transactionSet: typeof transactions, currentInventory: typeof inventory) => {
         let baseJournalEntries = transactionSet.flatMap(t => {
-            const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+            const account = activeAccounts.find(a => a.name === t.category);
             const accountType = account?.type;
-            const cashAccountName = "Kas";
+            const cashAccount = activeAccounts.find(a => a.id === t.accountId);
+            const cashAccountName = cashAccount?.name ?? 'Kas';
 
             if (t.category === 'Beban Penyusutan') {
                 return [{ ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }];
@@ -70,10 +72,10 @@ export function CashPositionChart() {
 
         const allJournalEntries = [...baseJournalEntries, ...cogsEntries];
         const accountBalances: { [key: string]: number } = {};
-        CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
+        activeAccounts.forEach(acc => { accountBalances[acc.name] = 0; });
 
         allJournalEntries.forEach(entry => {
-            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+            const accountInfo = activeAccounts.find(a => a.name === entry.accountName);
             if (!accountInfo) return;
             const amount = entry.amount;
             if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {

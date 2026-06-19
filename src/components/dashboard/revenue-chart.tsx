@@ -13,7 +13,7 @@ import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { useAppState } from '@/hooks/use-app-state';
 import { formatCurrency } from '@/lib/utils';
 import { useMemo } from 'react';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import { eachDayOfInterval, eachMonthOfInterval, format, differenceInDays, startOfDay } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -30,7 +30,8 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function RevenueChart() {
-  const { transactions, inventory, dateRange } = useAppState();
+  const { transactions, dateRange, accounts, inventory } = useAppState();
+  const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
 
   const chartData = useMemo(() => {
     if (!dateRange || !dateRange.from || !dateRange.to) {
@@ -44,8 +45,8 @@ export function RevenueChart() {
         return transactionDate >= (dateRange.from as Date) && transactionDate <= toDate;
     });
     
-    const revenueAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Revenue').map(a => a.name);
-    const expenseAccountNames = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expenses').map(a => a.name);
+    const revenueAccountNames = activeAccounts.filter(a => a.type === 'Revenue').map(a => a.name);
+    const expenseAccountNames = activeAccounts.filter(a => a.type === 'Expenses').map(a => a.name);
     
     const days = differenceInDays(dateRange.to, dateRange.from);
 

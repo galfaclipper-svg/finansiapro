@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAppState } from '@/hooks/use-app-state';
-import { CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 
 export function AiSummary() {
   const [summary, setSummary] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { transactions, inventory, dateRange } = useAppState();
+  const { transactions, inventory, dateRange, accounts } = useAppState();
+  const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
 
   const reportData = useMemo(() => {
     const periodTransactions = transactions.filter(t => {
@@ -37,9 +38,10 @@ export function AiSummary() {
     
     const calculateBalances = (transactionSet: typeof transactions, currentInventory: typeof inventory) => {
         let baseJournalEntries = transactionSet.flatMap(t => {
-            const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+            const account = activeAccounts.find(a => a.name === t.category);
             const accountType = account?.type;
-            const cashAccountName = "Kas";
+            const cashAccount = activeAccounts.find(a => a.id === t.accountId);
+            const cashAccountName = cashAccount?.name ?? 'Kas Fisik';
 
             if (t.category === 'Beban Penyusutan') {
                 return [{ ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }];
@@ -74,10 +76,10 @@ export function AiSummary() {
 
         const allJournalEntries = [...baseJournalEntries, ...cogsEntries];
         const accountBalances: { [key: string]: number } = {};
-        CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
+        activeAccounts.forEach(acc => { accountBalances[acc.name] = 0; });
 
         allJournalEntries.forEach(entry => {
-            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+            const accountInfo = activeAccounts.find(a => a.name === entry.accountName);
             if (!accountInfo) return;
             const amount = entry.amount;
             if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
@@ -92,14 +94,14 @@ export function AiSummary() {
     const periodBalances = calculateBalances(periodTransactions, inventory);
     const finalBalances = calculateBalances(allTransactionsToPeriodEnd, inventory);
 
-    const totalRevenue = Object.entries(periodBalances).reduce((sum, [name, bal]) => CHART_OF_ACCOUNTS.find(a=>a.name===name)?.type === 'Revenue' ? sum + bal : sum, 0);
-    const totalExpenses = Object.entries(periodBalances).reduce((sum, [name, bal]) => CHART_OF_ACCOUNTS.find(a=>a.name===name)?.type === 'Expenses' ? sum + bal : sum, 0);
+    const totalRevenue = Object.entries(periodBalances).reduce((sum, [name, bal]) => activeAccounts.find(a=>a.name===name)?.type === 'Revenue' ? sum + bal : sum, 0);
+    const totalExpenses = Object.entries(periodBalances).reduce((sum, [name, bal]) => activeAccounts.find(a=>a.name===name)?.type === 'Expenses' ? sum + bal : sum, 0);
     const netIncome = totalRevenue - totalExpenses;
 
     const assets: { [key: string]: number } = {};
     const liabilities: { [key: string]: number } = {};
     Object.entries(finalBalances).forEach(([accountName, balance]) => {
-      const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === accountName);
+      const accountInfo = activeAccounts.find(a => a.name === accountName);
       if (accountInfo?.type === 'Assets') assets[accountName] = balance;
       if (accountInfo?.type === 'Liabilities') liabilities[accountName] = balance;
     });

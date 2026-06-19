@@ -5,10 +5,11 @@ import { DollarSign, ReceiptText, TrendingUp, Wallet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useAppState } from '@/hooks/use-app-state';
 import { useMemo } from 'react';
-import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from '@/lib/constants';
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from '@/lib/constants';
 
 export function OverviewCards() {
-  const { transactions, inventory, dateRange } = useAppState();
+  const { transactions, inventory, dateRange, accounts } = useAppState();
+  const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
 
   const { totalRevenue, netIncome, cashBalance, totalTransactions } = useMemo(() => {
     
@@ -29,10 +30,10 @@ export function OverviewCards() {
 
     const calculateMetrics = (transactionSet: typeof transactions) => {
         let baseJournalEntries = transactionSet.flatMap(t => {
-            const account = CHART_OF_ACCOUNTS.find(a => a.name === t.category);
+            const account = activeAccounts.find(a => a.name === t.category);
             const accountType = account?.type;
             // Resolve actual cash account from accountId, fallback to 'Kas Fisik'
-            const cashAccount = CHART_OF_ACCOUNTS.find(a => a.id === t.accountId);
+            const cashAccount = activeAccounts.find(a => a.id === t.accountId);
             const cashAccountName = cashAccount?.name ?? 'Kas Fisik';
 
             if (t.category === 'Beban Penyusutan') {
@@ -81,10 +82,10 @@ export function OverviewCards() {
 
         const allJournalEntries = [...baseJournalEntries, ...cogsEntries];
         const accountBalances: { [key: string]: number } = {};
-        CHART_OF_ACCOUNTS.forEach(acc => { accountBalances[acc.name] = 0; });
+        activeAccounts.forEach(acc => { accountBalances[acc.name] = 0; });
 
         allJournalEntries.forEach(entry => {
-            const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === entry.accountName);
+            const accountInfo = activeAccounts.find(a => a.name === entry.accountName);
             if (!accountInfo) return;
             const amount = entry.amount;
             if (['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive') {
@@ -100,12 +101,12 @@ export function OverviewCards() {
     const finalBalances = calculateMetrics(allTransactionsToPeriodEnd);
 
     const totalRevenue = Object.entries(periodBalances).reduce((sum, [name, balance]) => {
-        const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === name);
+        const accountInfo = activeAccounts.find(a => a.name === name);
         return accountInfo?.type === 'Revenue' ? sum + balance : sum;
     }, 0);
     
     const totalExpenses = Object.entries(periodBalances).reduce((sum, [name, balance]) => {
-        const accountInfo = CHART_OF_ACCOUNTS.find(a => a.name === name);
+        const accountInfo = activeAccounts.find(a => a.name === name);
         return accountInfo?.type === 'Expenses' ? sum + balance : sum;
     }, 0);
 

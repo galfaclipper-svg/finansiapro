@@ -11,7 +11,7 @@ import {
 } from "@/ai/flows/scan-and-categorize-transaction-flow";
 
 import { useAppState } from "@/hooks/use-app-state";
-import { CHART_OF_ACCOUNTS, CASH_ACCOUNTS } from "@/lib/constants";
+import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import {
@@ -115,7 +115,8 @@ const EXCLUDED_MANUAL_CATEGORIES = [
 ];
 
 export default function NewTransactionPage() {
-  const { addTransaction, inventory } = useAppState();
+  const { addTransaction, inventory, accounts } = useAppState();
+  const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
   const { toast } = useToast();
   const router = useRouter();
   const [isScanning, setIsScanning] = useState(false);
@@ -167,7 +168,7 @@ export default function NewTransactionPage() {
         acc.name === 'Prive';
     }
 
-    return CHART_OF_ACCOUNTS
+    return activeAccounts
       .filter(acc => 
           baseFilter(acc) && 
           !EXCLUDED_MANUAL_CATEGORIES.includes(acc.name)
@@ -175,7 +176,7 @@ export default function NewTransactionPage() {
       .map(acc => acc.name);
   }, [watchedType]);
 
-  const isInventorySale = !!CHART_OF_ACCOUNTS.find(acc => acc.name === watchedCategory && acc.category === 'Sales Revenue');
+  const isInventorySale = !!activeAccounts.find(acc => acc.name === watchedCategory && acc.category === 'Sales Revenue');
   const isInventoryPurchase = watchedCategory === 'Persediaan Barang Dagang';
   const isInventoryAdjustment = ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi'].includes(watchedCategory || '');
   const isInventoryTransaction = isInventorySale || isInventoryPurchase || isInventoryAdjustment;
@@ -242,7 +243,7 @@ export default function NewTransactionPage() {
         try {
           const result = await scanAndCategorizeTransaction({
             imageDataUri: compressedDataUri,
-            coaCategories: CHART_OF_ACCOUNTS.map(acc => acc.name),
+            coaCategories: activeAccounts.map(acc => acc.name),
           });
           
           form.reset({

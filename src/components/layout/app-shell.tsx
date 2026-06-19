@@ -17,7 +17,7 @@ import { useAppState } from '@/hooks/use-app-state';
 import { SidebarNav } from './sidebar-nav';
 import { Header } from './header';
 import Link from 'next/link';
-import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator, Users, FileText } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator, Users, FileText, ListTree } from 'lucide-react';
 import { SecretAdminGate } from '@/components/secret-admin-gate';
 import { BottomNav } from './bottom-nav';
 
@@ -58,6 +58,11 @@ const NAV_ITEMS: NavItem[] = [
     title: 'Perencana Bisnis',
     href: '/business-planner',
     icon: <Calculator size={20} />,
+  },
+  {
+    title: 'Bagan Akun',
+    href: '/accounts',
+    icon: <ListTree size={20} />,
   },
   {
     title: 'Pengaturan',

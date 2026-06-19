@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy } from 'firebase/firestore';
-import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice } from '@/lib/types';
+import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 import { useAuth } from '@/contexts/auth-provider';
@@ -37,6 +37,10 @@ interface AppContextType {
   addInvoice: (invoice: Omit<Invoice, 'id'>) => Promise<void>;
   updateInvoice: (invoiceId: string, invoice: Omit<Invoice, 'id'>) => Promise<void>;
   deleteInvoice: (invoiceId: string) => Promise<void>;
+  accounts: Account[];
+  addAccount: (account: Account) => Promise<void>;
+  updateAccount: (account: Account) => Promise<void>;
+  deleteAccount: (accountId: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -49,6 +53,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [plannerState, setPlannerState] = useState<PlannerState>({
     businessType: 'retail',
@@ -83,6 +88,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInventory([]);
       setClients([]);
       setInvoices([]);
+      setAccounts([]);
       return;
     }
 
@@ -124,12 +130,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInvoices(invcs);
     });
 
+    // Accounts subscription and auto-seed
+    const accountsRef = fsCollection(db, `users/${user.uid}/accounts`);
+    const unsubAccounts = fsOnSnapshot(fsQuery(accountsRef, fsOrderBy('id', 'asc')), async (snapshot) => {
+      if (snapshot.empty) {
+        // Auto-seed with default CHART_OF_ACCOUNTS
+        const seedPromises = CHART_OF_ACCOUNTS.map(acc => fsSetDoc(fsDoc(db, `users/${user.uid}/accounts`, acc.id), acc));
+        try {
+          await Promise.all(seedPromises);
+        } catch (e) {
+          console.error('Failed to auto-seed accounts:', e);
+        }
+      } else {
+        const accs = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Account));
+        setAccounts(accs);
+      }
+    });
+
     return () => {
       unsubCompany();
       unsubTx();
       unsubInv();
       unsubClient();
       unsubInvc();
+      unsubAccounts();
     };
   }, [user]);
 
@@ -367,6 +391,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addAccount = async (account: Account) => {
+    if (!user) return;
+    await fsSetDoc(fsDoc(db, `users/${user.uid}/accounts`, account.id), account);
+  };
+
+  const updateAccount = async (account: Account) => {
+    if (!user) return;
+    await fsSetDoc(fsDoc(db, `users/${user.uid}/accounts`, account.id), account);
+  };
+
+  const deleteAccount = async (accountId: string) => {
+    if (!user) return;
+    await fsDeleteDoc(fsDoc(db, `users/${user.uid}/accounts`, accountId));
+  };
+
   const resetData = async () => {
     if (!user) return;
     try {
@@ -401,17 +440,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const { getDocs } = await import('firebase/firestore');
 
       // ── STEP 1: Clear all existing data first ──────────────────────────
-      const [txSnap, invSnap, clSnap, ivSnap] = await Promise.all([
+      const [txSnap, invSnap, clSnap, ivSnap, accSnap] = await Promise.all([
         getDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))),
         getDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))),
         getDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))),
         getDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))),
+        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/accounts`))),
       ]);
       await Promise.all([
         ...txSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...invSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...clSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...ivSnap.docs.map(d => fsDeleteDoc(d.ref)),
+        ...accSnap.docs.map(d => fsDeleteDoc(d.ref)),
       ]);
 
       // Helper: sanitize item for Firestore (remove undefined, convert Timestamps)
@@ -472,6 +513,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await Promise.all(ivPromises);
       }
 
+      // ── STEP 7: Restore Accounts ───────────────────────────────────────
+      if (Array.isArray(data.accounts) && data.accounts.length > 0) {
+        const accPromises = data.accounts
+          .filter((acc: any) => acc && acc.id)
+          .map((acc: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/accounts`, acc.id), sanitize(acc)));
+        await Promise.all(accPromises);
+      }
+
     } catch (err) {
       console.error('Error restoring backup data', err);
       throw err;
@@ -508,6 +557,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addInvoice,
     updateInvoice,
     deleteInvoice,
+    accounts,
+    addAccount,
+    updateAccount,
+    deleteAccount,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

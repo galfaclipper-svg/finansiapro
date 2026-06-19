@@ -19,6 +19,7 @@ export type Account = {
   name: string;
   type: 'Assets' | 'Liabilities' | 'Equity' | 'Revenue' | 'Expenses';
   category: 'Current Assets' | 'Fixed Assets' | 'Intangible Assets' | 'Current Liabilities' | 'Long-term Liabilities' | 'Owner Equity' | 'Sales Revenue' | 'Other Revenue' | 'Cost of Goods Sold' | 'Operating Expenses';
+  isSystem?: boolean;
 };
 
 export type TransactionItem = {
