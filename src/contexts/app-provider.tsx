@@ -398,51 +398,86 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const restoreBackupData = async (data: any) => {
     if (!user) return;
     try {
-      // 1. Restore Company Profile
-      if (data.companyProfile) {
-        await fsSetDoc(fsDoc(db, `users/${user.uid}/companyProfile`, 'data'), data.companyProfile);
+      const { getDocs } = await import('firebase/firestore');
+
+      // ── STEP 1: Clear all existing data first ──────────────────────────
+      const [txSnap, invSnap, clSnap, ivSnap] = await Promise.all([
+        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))),
+        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))),
+        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))),
+        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))),
+      ]);
+      await Promise.all([
+        ...txSnap.docs.map(d => fsDeleteDoc(d.ref)),
+        ...invSnap.docs.map(d => fsDeleteDoc(d.ref)),
+        ...clSnap.docs.map(d => fsDeleteDoc(d.ref)),
+        ...ivSnap.docs.map(d => fsDeleteDoc(d.ref)),
+      ]);
+
+      // Helper: sanitize item for Firestore (remove undefined, convert Timestamps)
+      const sanitize = (obj: any): any => {
+        if (!obj || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(sanitize);
+        const result: any = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (v === undefined) continue;
+          // Convert Firestore Timestamp-like objects back to ISO strings
+          if (v && typeof v === 'object' && '_seconds' in (v as any)) {
+            result[k] = new Date((v as any)._seconds * 1000).toISOString();
+          } else if (v && typeof v === 'object' && 'seconds' in (v as any) && 'nanoseconds' in (v as any)) {
+            result[k] = new Date((v as any).seconds * 1000).toISOString();
+          } else if (typeof v === 'object' && !Array.isArray(v)) {
+            result[k] = sanitize(v);
+          } else {
+            result[k] = v;
+          }
+        }
+        return result;
+      };
+
+      // ── STEP 2: Restore Company Profile ────────────────────────────────
+      if (data.companyProfile && typeof data.companyProfile === 'object') {
+        await fsSetDoc(fsDoc(db, `users/${user.uid}/companyProfile`, 'data'), sanitize(data.companyProfile));
       }
 
-      // 2. Restore Transactions
-      if (data.transactions && Array.isArray(data.transactions)) {
-        const txPromises = data.transactions.map((tx: any) => {
-           const cleanTx = Object.fromEntries(Object.entries(tx).filter(([_, v]) => v !== undefined));
-           return fsSetDoc(fsDoc(db, `users/${user.uid}/transactions`, tx.id), cleanTx);
-        });
+      // ── STEP 3: Restore Transactions ───────────────────────────────────
+      if (Array.isArray(data.transactions) && data.transactions.length > 0) {
+        const txPromises = data.transactions
+          .filter((tx: any) => tx && tx.id)
+          .map((tx: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/transactions`, tx.id), sanitize(tx)));
         await Promise.all(txPromises);
       }
 
-      // 3. Restore Inventory
-      if (data.inventory && Array.isArray(data.inventory)) {
-        const invPromises = data.inventory.map((inv: any) => {
-           const cleanInv = Object.fromEntries(Object.entries(inv).filter(([_, v]) => v !== undefined));
-           return fsSetDoc(fsDoc(db, `users/${user.uid}/inventory`, inv.id), cleanInv);
-        });
+      // ── STEP 4: Restore Inventory ──────────────────────────────────────
+      if (Array.isArray(data.inventory) && data.inventory.length > 0) {
+        const invPromises = data.inventory
+          .filter((inv: any) => inv && inv.id)
+          .map((inv: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/inventory`, inv.id), sanitize(inv)));
         await Promise.all(invPromises);
       }
 
-      // 4. Restore Clients
-      if (data.clients && Array.isArray(data.clients)) {
-        const clPromises = data.clients.map((cl: any) => {
-           const cleanCl = Object.fromEntries(Object.entries(cl).filter(([_, v]) => v !== undefined));
-           return fsSetDoc(fsDoc(db, `users/${user.uid}/clients`, cl.id), cleanCl);
-        });
+      // ── STEP 5: Restore Clients ────────────────────────────────────────
+      if (Array.isArray(data.clients) && data.clients.length > 0) {
+        const clPromises = data.clients
+          .filter((cl: any) => cl && cl.id)
+          .map((cl: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/clients`, cl.id), sanitize(cl)));
         await Promise.all(clPromises);
       }
 
-      // 5. Restore Invoices
-      if (data.invoices && Array.isArray(data.invoices)) {
-        const ivPromises = data.invoices.map((iv: any) => {
-           const cleanIv = Object.fromEntries(Object.entries(iv).filter(([_, v]) => v !== undefined));
-           return fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, iv.id), cleanIv);
-        });
+      // ── STEP 6: Restore Invoices ───────────────────────────────────────
+      if (Array.isArray(data.invoices) && data.invoices.length > 0) {
+        const ivPromises = data.invoices
+          .filter((iv: any) => iv && iv.id)
+          .map((iv: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/invoices`, iv.id), sanitize(iv)));
         await Promise.all(ivPromises);
       }
+
     } catch (err) {
       console.error('Error restoring backup data', err);
       throw err;
     }
   };
+
 
   const value = {
     companyProfile,

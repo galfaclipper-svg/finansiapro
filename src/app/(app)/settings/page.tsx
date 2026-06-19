@@ -29,7 +29,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function SettingsPage() {
-    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData } = useAppState();
+    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData, clients, invoices } = useAppState();
     const { user } = useAuth();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -186,18 +186,23 @@ export default function SettingsPage() {
 
     const handleBackupJSON = () => {
         const backupData = {
+            version: '2.0',
+            exportedAt: new Date().toISOString(),
+            companyProfile,
             transactions,
             inventory,
-            companyProfile
+            clients: clients || [],
+            invoices: invoices || [],
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", `Backup_FinansiaProf_${new Date().toISOString().split('T')[0]}.json`);
-        document.body.appendChild(downloadAnchorNode); 
+        document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
-        toast({ title: "Backup Berhasil", description: "File backup JSON telah diunduh dengan aman." });
+        const totalRecords = (transactions?.length || 0) + (inventory?.length || 0) + (clients?.length || 0) + (invoices?.length || 0);
+        toast({ title: "Backup Berhasil", description: `File backup JSON berhasil diunduh. Total ${totalRecords} record tersimpan.` });
     };
 
     const handleRestoreJSONClick = () => {
@@ -208,27 +213,59 @@ export default function SettingsPage() {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        // Validate file type
+        if (!file.name.endsWith('.json') && file.type !== 'application/json') {
+            toast({ variant: 'destructive', title: 'File Tidak Valid', description: 'Harap pilih file backup berformat .json' });
+            if (event.target) event.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const data = JSON.parse(e.target?.result as string);
-                if (data.transactions && data.inventory) {
-                    await restoreBackupData(data);
+                const raw = e.target?.result as string;
+                if (!raw || raw.trim() === '') throw new Error('File kosong atau tidak dapat dibaca.');
 
-                    toast({
-                        title: 'Restore Berhasil',
-                        description: `Data aplikasi berhasil dipulihkan dari file backup JSON.`
-                    });
-                } else {
-                    throw new Error("Format backup tidak valid.");
+                let data: any;
+                try {
+                    data = JSON.parse(raw);
+                } catch {
+                    throw new Error('File bukan JSON yang valid. Pastikan file tidak rusak.');
                 }
+
+                // Accept backup if it has at least one recognizable key
+                const hasValidStructure = data && (
+                    Array.isArray(data.transactions) ||
+                    Array.isArray(data.inventory) ||
+                    Array.isArray(data.clients) ||
+                    Array.isArray(data.invoices) ||
+                    (data.companyProfile && typeof data.companyProfile === 'object')
+                );
+
+                if (!hasValidStructure) {
+                    throw new Error('Format file backup tidak dikenali. File mungkin bukan dari FinansiaProf.');
+                }
+
+                await restoreBackupData(data);
+
+                const totalTx  = data.transactions?.length  || 0;
+                const totalInv = data.inventory?.length     || 0;
+                const totalCl  = data.clients?.length       || 0;
+                const totalIv  = data.invoices?.length      || 0;
+                toast({
+                    title: 'Restore Berhasil ✅',
+                    description: `Data berhasil dipulihkan: ${totalTx} transaksi, ${totalInv} produk, ${totalCl} klien, ${totalIv} invoice.`
+                });
             } catch (error: any) {
-                 toast({
+                toast({
                     variant: 'destructive',
                     title: 'Restore Gagal',
                     description: error.message || 'Terjadi kesalahan saat memproses file JSON.'
                 });
             }
+        };
+        reader.onerror = () => {
+            toast({ variant: 'destructive', title: 'Gagal Membaca File', description: 'Tidak dapat membaca file. Coba lagi.' });
         };
         reader.readAsText(file);
         if (event.target) event.target.value = '';
