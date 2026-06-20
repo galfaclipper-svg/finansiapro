@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableFooter, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { CASH_ACCOUNTS, CHART_OF_ACCOUNTS } from '@/lib/constants';
+import { useAppState } from '@/hooks/use-app-state';
 
 interface BalanceSheetData {
     assets: { [key: string]: number };
