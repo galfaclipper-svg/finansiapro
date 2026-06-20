@@ -99,7 +99,7 @@ export default function SettingsPage() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = e.target?.result;
                 const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
@@ -162,10 +162,26 @@ export default function SettingsPage() {
                 }).filter(t => t !== null) as Transaction[];
 
 
-                setTransactions(importedTransactions);
+                // We do not overwrite all transactions, but we can't easily add them via addTransaction without exposing the raw Firebase methods or an addTransactions bulk method.
+                // Since this is a simple fix without refactoring app-provider, we'll just keep setTransactions for now but add a warning, or I can import the Firebase utilities here.
+                
+                // Let's import the Firebase utilities and save them to Firestore.
+                const { db, fsSetDoc, fsDoc } = await import('@/lib/firebase');
+                const { getAuth } = await import('firebase/auth');
+                const auth = getAuth();
+                const currentUser = auth.currentUser;
+                
+                if (currentUser) {
+                    const txPromises = importedTransactions.map((tx) => 
+                        fsSetDoc(fsDoc(db, `users/${currentUser.uid}/transactions`, tx.id), tx)
+                    );
+                    await Promise.all(txPromises);
+                }
+
+                setTransactions([...transactions, ...importedTransactions]);
                 toast({
                     title: 'Impor Berhasil',
-                    description: `${importedTransactions.length} transaksi berhasil diimpor dari file.`
+                    description: `${importedTransactions.length} transaksi berhasil diimpor dan disimpan ke database.`
                 });
 
             } catch (error: any) {

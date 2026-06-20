@@ -15,10 +15,15 @@ interface GeneralJournalData {
 export function GeneralJournal({ data }: { data: GeneralJournalData }) {
     const { journalEntries } = data;
 
-    const groupedEntries = journalEntries.reduce((acc, entry) => {
-        (acc[entry.id] = acc[entry.id] || []).push(entry);
+    const groupedEntriesMap = journalEntries.reduce((acc, entry) => {
+        if (!acc.has(entry.id)) {
+            acc.set(entry.id, []);
+        }
+        acc.get(entry.id)!.push(entry);
         return acc;
-    }, {} as Record<string, any[]>);
+    }, new Map<string, any[]>());
+
+    const groupedEntriesList = Array.from(groupedEntriesMap.values());
 
 
     return (
@@ -38,7 +43,7 @@ export function GeneralJournal({ data }: { data: GeneralJournalData }) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {Object.values(groupedEntries).map((entries) => (
+                        {groupedEntriesList.map((entries) => (
                            <React.Fragment key={entries[0].id}>
                                 {entries.map((entry, entryIndex) => (
                                     <TableRow key={`${entry.id}-${entry.entryType}`} data-entry-type={entry.entryType}>
