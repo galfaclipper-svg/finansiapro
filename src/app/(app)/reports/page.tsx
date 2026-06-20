@@ -962,6 +962,10 @@ export default function ReportsPage() {
         theme: 'striped',
         styles: { valign: 'middle' },
         headStyles: { fillColor: primaryColor, valign: 'middle' },
+        columnStyles: { 
+            0: { cellWidth: 145 }, 
+            1: { cellWidth: 35, halign: 'right' } 
+        },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Laba Rugi'),
     });
     
@@ -982,6 +986,10 @@ export default function ReportsPage() {
         theme: 'striped',
         styles: { valign: 'middle' },
         headStyles: { fillColor: primaryColor, valign: 'middle' },
+        columnStyles: { 
+            0: { cellWidth: 145 }, 
+            1: { cellWidth: 35, halign: 'right' } 
+        },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
     });
 
@@ -1045,6 +1053,12 @@ export default function ReportsPage() {
         theme: 'striped',
         styles: { valign: 'middle' },
         headStyles: { fillColor: primaryColor, valign: 'middle' },
+        columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 85 },
+            2: { cellWidth: 35, halign: 'right' },
+            3: { cellWidth: 35, halign: 'right' }
+        },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Jurnal Umum'),
     });
 
@@ -1067,6 +1081,10 @@ export default function ReportsPage() {
         styles: { valign: 'middle' },
         headStyles: { fillColor: primaryColor, valign: 'middle' },
         footStyles: { fontStyle: 'bold', valign: 'middle' },
+        columnStyles: { 
+            0: { cellWidth: 145 }, 
+            1: { cellWidth: 35, halign: 'right' } 
+        },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Arus Kas'),
     });
 
@@ -1080,6 +1098,13 @@ export default function ReportsPage() {
             theme: 'striped',
             styles: { valign: 'middle' },
             headStyles: { fillColor: primaryColor, valign: 'middle' },
+            columnStyles: {
+                0: { cellWidth: 25 },
+                1: { cellWidth: 50 },
+                2: { cellWidth: 35, halign: 'right' },
+                3: { cellWidth: 35, halign: 'right' },
+                4: { cellWidth: 35, halign: 'right' }
+            },
             head: [['Tanggal', 'Keterangan', 'Debit', 'Kredit', 'Saldo']],
             body: account.entries.map((entry: any) => [
                 format(new Date(entry.date), 'd MMM y', { locale: id }),
@@ -1139,7 +1164,10 @@ export default function ReportsPage() {
         theme: 'striped',
         styles: { cellPadding: 4, valign: 'middle' },
         headStyles: { fillColor: primaryColor, valign: 'middle' },
-        columnStyles: { 0: { cellWidth: 70 } },
+        columnStyles: { 
+            0: { cellWidth: 120 },
+            1: { cellWidth: 60, halign: 'right' }
+        },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Audit & Investor Executive Dashboard'),
     });
 
