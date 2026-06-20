@@ -111,16 +111,16 @@ export default function TransactionsPage() {
 
           doc.setFontSize(16);
           doc.setFont('helvetica', 'bold');
-          doc.text(companyProfile.name || "Perusahaan Saya", pageWidth / 2, 16, { align: 'center' });
+          doc.text(companyProfile.name || "Perusahaan Saya", 20, 16);
           
           doc.setFontSize(12);
           doc.setFont('helvetica', 'normal');
-          doc.text("LAPORAN REKAPITULASI TRANSAKSI KAS", pageWidth / 2, 23, { align: 'center' });
+          doc.text("LAPORAN REKAPITULASI TRANSAKSI KAS", 20, 23);
           
           doc.setFontSize(10);
-          doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth / 2, 30, { align: 'center' });
+          doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 20, 30);
           
-          doc.text(`Total Baris Transaksi: ${transactions.length} Entri`, 14, 40);
+          doc.text(`Total Baris Transaksi: ${transactions.length} Entri`, 20, 40);
 
           const tableData = transactions.map((t, index) => [
               index + 1,
@@ -144,11 +144,11 @@ export default function TransactionsPage() {
               styles: { fontSize: 9, cellPadding: { top: 4, right: 4, bottom: 4, left: 4 }, valign: 'middle' },
               columnStyles: {
                   0: { halign: 'center', cellWidth: 12 },   
-                  1: { halign: 'center', cellWidth: 25 },   
-                  2: { cellWidth: 56 },                     
-                  3: { halign: 'center', cellWidth: 16 },   
-                  4: { cellWidth: 36 },    
-                  5: { halign: 'right', cellWidth: 37 }     
+                  1: { halign: 'center', cellWidth: 22 },   
+                  2: { cellWidth: 52 },                     
+                  3: { halign: 'center', cellWidth: 18 },   
+                  4: { cellWidth: 41 },    
+                  5: { halign: 'right', cellWidth: 35 }     
               },
               willDrawCell: (data) => {
                   if (data.row.index >= tableData.length - 3) {
@@ -158,7 +158,7 @@ export default function TransactionsPage() {
                       }
                   }
               },
-              margin: { left: 14, right: 14 }
+              margin: { left: 20, right: 10, top: 20, bottom: 20 }
           });
 
           doc.save(`Laporan_Transaksi_${new Date().toISOString().split('T')[0]}.pdf`);
