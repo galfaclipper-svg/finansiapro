@@ -1034,18 +1034,18 @@ export default function ReportsPage() {
                 { content: entry.entryType === 'Credit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } }
              ]);
           });
-          rows.push(['', {content: `(${firstEntry.description})`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: { top: 4, right: 4, bottom: 4, left: 12 }}}]);
+          rows.push(['', {content: `(${firstEntry.description})`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: { top: 3, right: 2, bottom: 3, left: 10 }}}]);
           
            if (cogsEntries.length > 0) {
                 cogsEntries.forEach((entry) => {
                     rows.push([
                         '',
-                        { content: entry.accountName, styles: { cellPadding: { top: 4, right: 4, bottom: 4, left: entry.entryType === 'Credit' ? 12 : 4 }}},
+                        { content: entry.accountName, styles: { cellPadding: { top: 3, right: 2, bottom: 3, left: entry.entryType === 'Credit' ? 10 : 2 }}},
                         { content: entry.entryType === 'Debit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } },
                         { content: entry.entryType === 'Credit' ? formatCurrency(entry.amount) : '', styles: { halign: 'right' } }
                     ]);
                 });
-                rows.push(['', {content: `(Mencatat HPP untuk penjualan)`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: { top: 4, right: 4, bottom: 4, left: 12 }}}]);
+                rows.push(['', {content: `(Mencatat HPP untuk penjualan)`, colSpan: 3, styles: {textColor: [150, 150, 150], fontStyle: 'italic', cellPadding: { top: 3, right: 2, bottom: 3, left: 10 }}}]);
            }
 
           return rows;
@@ -1054,8 +1054,8 @@ export default function ReportsPage() {
         styles: { valign: 'middle' },
         headStyles: { fillColor: primaryColor, valign: 'middle' },
         columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 85 },
+            0: { cellWidth: 26 },
+            1: { cellWidth: 84 },
             2: { cellWidth: 35, halign: 'right' },
             3: { cellWidth: 35, halign: 'right' }
         },
@@ -1099,8 +1099,8 @@ export default function ReportsPage() {
             styles: { valign: 'middle' },
             headStyles: { fillColor: primaryColor, valign: 'middle' },
             columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 50 },
+                0: { cellWidth: 26 },
+                1: { cellWidth: 49 },
                 2: { cellWidth: 35, halign: 'right' },
                 3: { cellWidth: 35, halign: 'right' },
                 4: { cellWidth: 35, halign: 'right' }

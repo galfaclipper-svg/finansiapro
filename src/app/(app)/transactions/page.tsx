@@ -141,13 +141,13 @@ export default function TransactionsPage() {
               body: tableData,
               theme: 'grid',
               headStyles: { fillColor: [41, 128, 185], halign: 'center', valign: 'middle' },
-              styles: { fontSize: 9, cellPadding: { top: 4, right: 4, bottom: 4, left: 4 }, valign: 'middle' },
+              styles: { fontSize: 9, cellPadding: { top: 3, right: 2, bottom: 3, left: 2 }, valign: 'middle' },
               columnStyles: {
-                  0: { halign: 'center', cellWidth: 12 },   
-                  1: { halign: 'center', cellWidth: 22 },   
-                  2: { cellWidth: 52 },                     
+                  0: { halign: 'center', cellWidth: 14 },   
+                  1: { halign: 'center', cellWidth: 26 },   
+                  2: { cellWidth: 50 },                     
                   3: { halign: 'center', cellWidth: 18 },   
-                  4: { cellWidth: 41 },    
+                  4: { cellWidth: 37 },    
                   5: { halign: 'right', cellWidth: 35 }     
               },
               willDrawCell: (data) => {
