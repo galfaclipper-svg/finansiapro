@@ -99,11 +99,14 @@ export default function TransactionsPage() {
           const doc = new jsPDF('p', 'mm', 'a4');
           const pageWidth = doc.internal.pageSize.getWidth();
           
+          let textOffsetX = 20;
+
           if (companyProfile.logoUrl) {
               try {
                   const typeMatch = companyProfile.logoUrl.match(/^data:image\/(png|jpeg|jpg);/);
                   const imgType = typeMatch ? (typeMatch[1] === 'jpg' ? 'JPEG' : typeMatch[1].toUpperCase()) : 'PNG';
-                  doc.addImage(companyProfile.logoUrl, imgType, 14, 10, 16, 16);
+                  doc.addImage(companyProfile.logoUrl, imgType, 20, 10, 16, 16);
+                  textOffsetX = 40;
               } catch(e) {
                   console.warn("Gagal menampilkan logo", e);
               }
@@ -111,14 +114,14 @@ export default function TransactionsPage() {
 
           doc.setFontSize(16);
           doc.setFont('helvetica', 'bold');
-          doc.text(companyProfile.name || "Perusahaan Saya", 20, 16);
+          doc.text(companyProfile.name || "Perusahaan Saya", textOffsetX, 16);
           
           doc.setFontSize(12);
           doc.setFont('helvetica', 'normal');
-          doc.text("LAPORAN REKAPITULASI TRANSAKSI KAS", 20, 23);
+          doc.text("LAPORAN REKAPITULASI TRANSAKSI KAS", textOffsetX, 23);
           
           doc.setFontSize(10);
-          doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 20, 30);
+          doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, textOffsetX, 30);
           
           doc.text(`Total Baris Transaksi: ${transactions.length} Entri`, 20, 40);
 
