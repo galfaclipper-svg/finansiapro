@@ -108,12 +108,22 @@ export default function SettingsPage() {
                 if (!worksheet) {
                     throw new Error(`Sheet "${journalSheetName}" tidak ditemukan di file XLSX.`);
                 }
-                const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+                // Skip the 4 header rows (range: 4) so row 5 becomes the keys
+                const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { range: 4 });
 
-                // This is a simplified import logic. It reconstructs transactions from a journal.
-                // It groups entries by ID and tries to build a single transaction.
-                const entriesById = jsonData.reduce((acc, row) => {
+                // Map exported columns to expected internal keys
+                const mappedData = jsonData.map(row => ({
+                    ID: row['ID Transaksi'],
+                    Tanggal: row['Tanggal'],
+                    Akun: row['Nama Akun'],
+                    Deskripsi: row['Keterangan / Deskripsi'],
+                    Debit: row['Debit (Rp)'],
+                    Kredit: row['Kredit (Rp)']
+                }));
+
+                const entriesById = mappedData.reduce((acc, row) => {
                     const id = row.ID;
+                    if (!id) return acc;
                     if (!acc[id]) {
                         acc[id] = [];
                     }
@@ -130,21 +140,39 @@ export default function SettingsPage() {
                         return null;
                     }
 
-                    const cashEntry = entries.find(e => e.Akun === 'Kas');
-                    const nonCashEntry = entries.find(e => e.Akun !== 'Kas');
+                    const isCashAccount = (acc: string) => acc && (acc.includes('Kas') || acc.includes('Bank') || acc.includes('Dana') || acc.includes('Pay') || acc.includes('OVO'));
+                    const cashEntry = entries.find(e => isCashAccount(e.Akun));
+                    const nonCashEntry = entries.find(e => !isCashAccount(e.Akun));
                     
+                    let dateStr = '';
+                    if (firstEntry.Tanggal) {
+                        try {
+                             // Handle Excel serial date or ISO string
+                             const d = new Date(firstEntry.Tanggal);
+                             if (!isNaN(d.getTime())) {
+                                 dateStr = d.toISOString().split('T')[0];
+                             } else {
+                                 // Fallback if string cannot be parsed normally
+                                 dateStr = String(firstEntry.Tanggal);
+                             }
+                        } catch (e) {
+                             dateStr = new Date().toISOString().split('T')[0];
+                        }
+                    } else {
+                        dateStr = new Date().toISOString().split('T')[0];
+                    }
+
                     if (!nonCashEntry) {
-                        // Handle cases like prive/modal which might only have one other side vs Kas
                          const otherEntry = entries.find(e => e.ID === firstEntry.ID);
-                         if (!otherEntry) return null; // Should not happen
+                         if (!otherEntry) return null; 
                          return {
                              id: firstEntry.ID,
-                             date: new Date(firstEntry.Tanggal).toISOString().split('T')[0],
-                             description: firstEntry.Deskripsi,
-                             category: otherEntry.Akun,
-                             amount: parseFloat(otherEntry.Debit || otherEntry.Kredit || 0),
+                             date: dateStr,
+                             description: firstEntry.Deskripsi || '',
+                             category: otherEntry.Akun || 'Uncategorized',
+                             amount: parseFloat(String(otherEntry.Debit || otherEntry.Kredit || 0)),
                              type: (otherEntry.Debit || 0) > 0 ? 'cash-out' : 'cash-in',
-                             accountId: '', 
+                             accountId: 'Kas Bank BCA', 
                          };
                     }
 
@@ -152,12 +180,12 @@ export default function SettingsPage() {
 
                     return {
                         id: firstEntry.ID,
-                        date: new Date(firstEntry.Tanggal).toISOString().split('T')[0],
-                        description: firstEntry.Deskripsi,
-                        category: nonCashEntry.Akun,
-                        amount: parseFloat(firstEntry.Debit || firstEntry.Kredit || 0),
-                        type: type,
-                        accountId: '', // Not available in this format
+                        date: dateStr,
+                        description: firstEntry.Deskripsi || '',
+                        category: nonCashEntry.Akun || 'Uncategorized',
+                        amount: parseFloat(String(firstEntry.Debit || firstEntry.Kredit || 0)),
+                        type: type as "cash-in" | "cash-out" | "transfer",
+                        accountId: cashEntry ? cashEntry.Akun : 'Kas Bank BCA',
                     };
                 }).filter(t => t !== null) as Transaction[];
 

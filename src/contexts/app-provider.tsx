@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy } from 'firebase/firestore';
+import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy, getDocs as fsGetDocs } from 'firebase/firestore';
 import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
@@ -413,20 +413,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await fsSetDoc(fsDoc(db, `users/${user.uid}/companyProfile`, 'data'), INITIAL_COMPANY_PROFILE);
       
       // 2. Clear all transactions
-      const txSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))));
+      const txSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`)));
       const txDeletes = txSnapshot.docs.map(doc => fsDeleteDoc(doc.ref));
       await Promise.all(txDeletes);
       
       // 3. Clear all inventory
-      const invSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))));
+      const invSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`)));
       const invDeletes = invSnapshot.docs.map(doc => fsDeleteDoc(doc.ref));
       await Promise.all(invDeletes);
 
       // 4. Clear clients and invoices
-      const clSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))));
+      const clSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`)));
       await Promise.all(clSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
 
-      const ivSnapshot = await import('firebase/firestore').then(m => m.getDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))));
+      const ivSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`)));
       await Promise.all(ivSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
 
     } catch (err) {
@@ -437,15 +437,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const restoreBackupData = async (data: any) => {
     if (!user) return;
     try {
-      const { getDocs } = await import('firebase/firestore');
 
       // ── STEP 1: Clear all existing data first ──────────────────────────
       const [txSnap, invSnap, clSnap, ivSnap, accSnap] = await Promise.all([
-        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))),
-        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))),
-        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))),
-        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))),
-        getDocs(fsQuery(fsCollection(db, `users/${user.uid}/accounts`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/accounts`))),
       ]);
       await Promise.all([
         ...txSnap.docs.map(d => fsDeleteDoc(d.ref)),
