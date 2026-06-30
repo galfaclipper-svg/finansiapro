@@ -432,6 +432,12 @@ export default function ReportsPage() {
         cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.blue } };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       };
+      const styleDashBtn = (cell: any) => {
+        cell.value     = { text: '📊 DASH', hyperlink: `#'📊 DASHBOARD'!A1` };
+        cell.font      = { name: 'Calibri', bold: true, size: 9, color: { argb: C.white } };
+        cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6C5CE7' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      };
 
       const setupPage = (sheet: any, landscape = false) => {
         sheet.views = [{ showGridLines: false, zoomScale: 100 }];
@@ -461,6 +467,699 @@ export default function ReportsPage() {
       const MAX_INPUTS = 200;
 
       // ═══════════════════════════════════════════════════════════
+      // DASHBOARD — Power BI Executive Summary (Tab pertama)
+      // ═══════════════════════════════════════════════════════════
+      const DASH_NAME = '📊 DASHBOARD';
+      const dashSheet = workbook.addWorksheet(DASH_NAME);
+      dashSheet.views = [{ showGridLines: false, zoomScale: 85 }];
+      dashSheet.pageSetup.paperSize    = 9;
+      dashSheet.pageSetup.orientation  = 'landscape';
+      dashSheet.pageSetup.fitToPage    = true;
+      dashSheet.pageSetup.fitToWidth   = 1;
+      dashSheet.pageSetup.fitToHeight  = 0;
+      dashSheet.pageSetup.margins      = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 };
+
+      // Dashboard color palette (dark theme)
+      const DC = {
+        bg:       'FF0F1923',  // Very dark bg
+        navy:     'FF1A2B40',  // Card bg
+        navyMd:   'FF243555',  // Card alt bg
+        navyLt:   'FF2E4268',  // Lighter navy
+        accent:   'FF0D84FF',  // Bright blue accent
+        green:    'FF00D085',  // Vibrant green
+        greenDk:  'FF00875A',  // Dark green
+        red:      'FFFF4757',  // Vibrant red
+        redDk:    'FFB02030',  // Dark red
+        gold:     'FFFFD32A',  // Gold
+        purple:   'FF6C5CE7',  // Purple
+        teal:     'FF00CEC9',  // Teal
+        orange:   'FFFD9644',  // Orange
+        white:    'FFFFFFFF',
+        whiteD:   'FFBBC9D9',  // Dimmed white
+        gray:     'FF6B8099',  // Gray text
+        border:   'FF1E3A5F',  // Border color
+        barFull:  'FF0D84FF',  // Bar filled
+        barEmpty: 'FF1A2B40',  // Bar empty
+      };
+
+      // Dash helper: solid fill cell
+      const df = (cell: any, bg: string, fg = DC.white, sz = 10, bold = false, center = false, wrap = false) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.font = { name: 'Calibri', size: sz, bold, color: { argb: fg } };
+        cell.alignment = { horizontal: center ? 'center' : 'left', vertical: 'middle', wrapText: wrap };
+      };
+      const dfc = (cell: any, bg: string, fg = DC.white, sz = 10, bold = false) => df(cell, bg, fg, sz, bold, true);
+      const dfBorder = (cell: any, bg: string) => {
+        cell.border = { top: { style: 'thin', color: { argb: DC.border } }, bottom: { style: 'thin', color: { argb: DC.border } }, left: { style: 'thin', color: { argb: DC.border } }, right: { style: 'thin', color: { argb: DC.border } } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+      };
+      const dMerge = (sheet: any, range: string, bg: string) => {
+        try { sheet.mergeCells(range); } catch(e) {}
+        const [startCell] = range.split(':');
+        dfBorder(sheet.getCell(startCell), bg);
+      };
+
+      // Helper: make horizontal bar string
+      const mkBar = (val: number, maxVal: number, len = 12) => {
+        if (maxVal === 0) return '░'.repeat(len);
+        const n = Math.max(0, Math.min(len, Math.round((Math.abs(val) / Math.abs(maxVal)) * len)));
+        return '█'.repeat(n) + '░'.repeat(len - n);
+      };
+      const fmtRp = (v: number) => {
+        if (Math.abs(v) >= 1_000_000_000) return `Rp ${(v/1_000_000_000).toFixed(1)}M`;
+        if (Math.abs(v) >= 1_000_000) return `Rp ${(v/1_000_000).toFixed(1)}Jt`;
+        if (Math.abs(v) >= 1_000) return `Rp ${(v/1_000).toFixed(0)}Rb`;
+        return `Rp ${v.toFixed(0)}`;
+      };
+
+      // Column widths (14 cols: A-N)
+      dashSheet.columns = [
+        { width: 1.2 },   // A margin
+        { width: 14.5 },  // B
+        { width: 0.8 },   // C gutter
+        { width: 14.5 },  // D
+        { width: 0.8 },   // E
+        { width: 14.5 },  // F
+        { width: 0.8 },   // G
+        { width: 14.5 },  // H
+        { width: 0.8 },   // I
+        { width: 14.5 },  // J
+        { width: 0.8 },   // K
+        { width: 14.5 },  // L
+        { width: 1.2 },   // M margin
+      ];
+
+      // === PRECOMPUTE VALUES FROM REPORT DATA ===
+      const dash_rev    = reportData.incomeStatement.totalRevenue;
+      const dash_exp    = reportData.incomeStatement.totalExpenses;
+      const dash_net    = reportData.incomeStatement.netIncome;
+      const dash_assets = reportData.balanceSheet.totalAssets;
+      const dash_cash   = reportData.cashFlow.endingCash;
+      const dash_roi    = dash_assets > 0 ? (dash_net / dash_assets) * 100 : 0;
+      const dash_opCF   = reportData.cashFlow.totalOperating;
+      const dash_invCF  = reportData.cashFlow.totalInvesting;
+      const dash_finCF  = reportData.cashFlow.totalFinancing;
+      const dash_txCount = transactions.filter(t => {
+        if (!dateRange?.from) return true;
+        const d = new Date(t.date).getTime();
+        const f = dateRange.from.getTime();
+        const to = dateRange?.to ? dateRange.to.getTime() : Date.now();
+        return d >= f && d <= to;
+      }).length;
+
+      // Sort revenue & expense items
+      const revItems = Object.entries(reportData.incomeStatement.revenues)
+        .sort((a,b) => b[1]-a[1]).slice(0, 6);
+      const expItems = Object.entries(reportData.incomeStatement.expenses)
+        .sort((a,b) => b[1]-a[1]).slice(0, 6);
+      const maxRev = revItems.length > 0 ? revItems[0][1] : 1;
+      const maxExp = expItems.length > 0 ? expItems[0][1] : 1;
+
+      // Top inventory by stock value
+      const topInv = [...inventory]
+        .map(i => ({ ...i, val: (i.stock || 0) * (i.costPerUnit || 0) }))
+        .sort((a,b) => b.val - a.val).slice(0, 5);
+
+      // Health determination
+      const gpMargin = dash_rev > 0 ? (dash_net / dash_rev) * 100 : 0;
+      const dash_health = dash_rev === 0 ? { label: 'BELUM ADA DATA', color: DC.gray, icon: '⬜' }
+        : dash_net < 0               ? { label: 'CRITICAL — MERUGI', color: DC.red, icon: '🔴' }
+        : gpMargin < 10              ? { label: 'WARNING — MARGIN TIPIS', color: DC.orange, icon: '🟡' }
+        : gpMargin >= 30             ? { label: 'EXCELLENT — PRIMA', color: DC.green, icon: '🟢' }
+                                     : { label: 'SEHAT & PROFITABLE', color: DC.teal, icon: '🔵' };
+
+      // ── ROW HELPERS ─────────────────────────────────────────────
+      const dRow = (h = 18) => { const r = dashSheet.addRow([]); r.height = h; return r; };
+      const fillRow = (rn: number, bg: string) => {
+        for (let c = 1; c <= 13; c++) df(dashSheet.getRow(rn).getCell(c), bg);
+      };
+
+      // ════════════════════════════════════════════════════════
+      // ROW 1-4: HEADER BANNER
+      // ════════════════════════════════════════════════════════
+      // Row 1
+      let dr = dRow(10); fillRow(dr.number, DC.bg);
+      // Row 2 — Company + Title
+      dr = dRow(32); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:I${dr.number}`);
+      const h2cell = dashSheet.getCell(`B${dr.number}`);
+      h2cell.value = `📊  DASHBOARD KEUANGAN  —  ${companyName.toUpperCase()}`;
+      h2cell.font = { name: 'Calibri', bold: true, size: 20, color: { argb: DC.white } };
+      h2cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } };
+      h2cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      dashSheet.mergeCells(`J${dr.number}:L${dr.number}`);
+      const h2badge = dashSheet.getCell(`J${dr.number}`);
+      h2badge.value = `${dash_health.icon}  ${dash_health.label}`;
+      h2badge.font = { name: 'Calibri', bold: true, size: 11, color: { argb: DC.white } };
+      h2badge.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: dash_health.color } };
+      h2badge.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Row 3 — Period info
+      dr = dRow(20); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:F${dr.number}`);
+      const h3cell = dashSheet.getCell(`B${dr.number}`);
+      h3cell.value = `${periodString}   |   Dicetak: ${today}   |   Total Transaksi: ${dash_txCount}`;
+      h3cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } };
+      h3cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } };
+      h3cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      // Row 4 — accent line
+      dr = dRow(5); fillRow(dr.number, DC.accent);
+
+      // ════════════════════════════════════════════════════════
+      // ROW 5: NAVIGATION BAR
+      // ════════════════════════════════════════════════════════
+      dr = dRow(22); fillRow(dr.number, DC.navy);
+      const navRow = dr.number;
+      const navSheets: Array<{name: string, sheet: string, col: string, bg: string}> = [
+        { name: '📋 Input',     sheet: 'Input Tambahan',  col: 'B', bg: 'FF0D84FF' },
+        { name: '📓 Jurnal',    sheet: 'Jurnal Umum',     col: 'D', bg: 'FF247BA0' },
+        { name: '🏷️ Katalog',  sheet: 'Katalog Produk',  col: 'F', bg: 'FF1B6B38' },
+        { name: '📑 Akun',      sheet: 'Daftar Akun',     col: 'H', bg: 'FF0D84FF' },
+        { name: '💹 Laba Rugi', sheet: 'Laba Rugi',       col: 'J', bg: 'FF00875A' },
+        { name: '⚖️ Neraca',   sheet: 'Neraca',           col: 'L', bg: 'FF2E4268' },
+      ];
+      navSheets.forEach(ns => {
+        const nc = dashSheet.getCell(`${ns.col}${navRow}`);
+        nc.value = { text: ns.name, hyperlink: `#'${ns.sheet}'!A1` };
+        nc.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.white } };
+        nc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ns.bg } };
+        nc.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+      // Extra nav links in same row col note
+      const navSheets2: Array<{name: string, sheet: string, col: string, bg: string}> = [
+        { name: '💸 Arus Kas',   sheet: 'Arus Kas',          col: 'B', bg: 'FF4A90D9' },
+        { name: '🔍 Audit',      sheet: 'Audit & Investor',  col: 'D', bg: 'FF6C5CE7' },
+        { name: '📋 Daftar Isi', sheet: 'DAFTAR ISI',        col: 'J', bg: 'FF34495E' },
+      ];
+
+      // ════════════════════════════════════════════════════════
+      // ROW 6: SPACER + secondary nav
+      // ════════════════════════════════════════════════════════
+      dr = dRow(20); fillRow(dr.number, DC.bg);
+      const navRow2 = dr.number;
+      navSheets2.forEach(ns => {
+        const nc = dashSheet.getCell(`${ns.col}${navRow2}`);
+        nc.value = { text: ns.name, hyperlink: `#'${ns.sheet}'!A1` };
+        nc.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.white } };
+        nc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ns.bg } };
+        nc.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+
+      // ════════════════════════════════════════════════════════
+      // ROWS 7-8: SPACER
+      // ════════════════════════════════════════════════════════
+      dr = dRow(10); fillRow(dr.number, DC.bg);
+
+      // ════════════════════════════════════════════════════════
+      // KPI CARDS (6 CARDS across 2 rows: B D F H J L)
+      // ════════════════════════════════════════════════════════
+      const kpiCols = ['B', 'D', 'F', 'H', 'J', 'L'];
+      const kpiCards = [
+        {
+          icon: '💰', label: 'TOTAL PENDAPATAN',
+          value: fmtRp(dash_rev),
+          sub: dash_rev > 0 ? `${Object.keys(reportData.incomeStatement.revenues).length} sumber` : 'Belum ada',
+          bg: 'FF0D2137', accent: DC.teal,
+          trend: dash_rev > 0 ? '▲ AKTIF' : '—',
+          trendColor: dash_rev > 0 ? DC.green : DC.gray,
+        },
+        {
+          icon: '📉', label: 'TOTAL BEBAN',
+          value: fmtRp(dash_exp),
+          sub: dash_exp > 0 ? `${Object.keys(reportData.incomeStatement.expenses).length} kategori` : 'Belum ada',
+          bg: 'FF1A1226', accent: DC.purple,
+          trend: dash_exp > 0 ? '▲ TERCATAT' : '—',
+          trendColor: DC.purple,
+        },
+        {
+          icon: dash_net >= 0 ? '💎' : '⚠️', label: 'LABA BERSIH',
+          value: fmtRp(dash_net),
+          sub: `Margin: ${dash_rev > 0 ? gpMargin.toFixed(1)+'%' : 'N/A'}`,
+          bg: dash_net >= 0 ? 'FF0A2518' : 'FF250A0A', accent: dash_net >= 0 ? DC.green : DC.red,
+          trend: dash_net >= 0 ? '▲ UNTUNG' : '▼ RUGI',
+          trendColor: dash_net >= 0 ? DC.green : DC.red,
+        },
+        {
+          icon: '🏦', label: 'TOTAL ASET',
+          value: fmtRp(dash_assets),
+          sub: `${Object.keys(reportData.balanceSheet.assets).length} akun aset`,
+          bg: 'FF0D1E2E', accent: DC.accent,
+          trend: dash_assets > 0 ? '▲ TERCATAT' : '—',
+          trendColor: DC.accent,
+        },
+        {
+          icon: '💵', label: 'SALDO KAS',
+          value: fmtRp(dash_cash),
+          sub: `Kas Bersih Akhir`,
+          bg: 'FF0D2137', accent: DC.teal,
+          trend: dash_cash >= 0 ? '▲ POSITIF' : '▼ DEFISIT',
+          trendColor: dash_cash >= 0 ? DC.green : DC.red,
+        },
+        {
+          icon: '📈', label: 'ROI',
+          value: `${dash_roi.toFixed(1)}%`,
+          sub: `Return on Assets`,
+          bg: dash_roi >= 20 ? 'FF1F1A00' : dash_roi >= 10 ? 'FF0A2518' : 'FF1A0D00',
+          accent: dash_roi >= 20 ? DC.gold : dash_roi >= 10 ? DC.green : DC.orange,
+          trend: dash_roi >= 20 ? '🏆 EXCELLENT' : dash_roi >= 10 ? '✅ BAGUS' : dash_roi >= 0 ? '⚠️ LEMAH' : '❌ NEGATIF',
+          trendColor: dash_roi >= 20 ? DC.gold : dash_roi >= 10 ? DC.green : dash_roi >= 0 ? DC.orange : DC.red,
+        },
+      ];
+
+      // Draw KPI cards (5 rows each: label, value, sub, trend, spacer)
+      const kpiStartRow = dashSheet.rowCount + 1;
+      // Row: icon + label
+      dr = dRow(20); fillRow(dr.number, DC.bg);
+      kpiCards.forEach((card, i) => {
+        const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
+        cell.value = `  ${card.icon}  ${card.label}`;
+        cell.font = { name: 'Calibri', bold: true, size: 8, color: { argb: card.accent } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.bg } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        // fill gutter
+        const gcol = String.fromCharCode(kpiCols[i].charCodeAt(0) + 1);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), card.bg);
+      });
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Row: big value
+      dr = dRow(30); fillRow(dr.number, DC.bg);
+      kpiCards.forEach((card, i) => {
+        const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
+        cell.value = card.value;
+        cell.font = { name: 'Calibri', bold: true, size: 18, color: { argb: DC.white } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.bg } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        const gcol = String.fromCharCode(kpiCols[i].charCodeAt(0) + 1);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), card.bg);
+      });
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Row: sub label
+      dr = dRow(16); fillRow(dr.number, DC.bg);
+      kpiCards.forEach((card, i) => {
+        const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
+        cell.value = `  ${card.sub}`;
+        cell.font = { name: 'Calibri', size: 9, italic: true, color: { argb: DC.gray } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.bg } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        const gcol = String.fromCharCode(kpiCols[i].charCodeAt(0) + 1);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), card.bg);
+      });
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Row: trend indicator
+      dr = dRow(18); fillRow(dr.number, DC.bg);
+      kpiCards.forEach((card, i) => {
+        const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
+        cell.value = `  ${card.trend}`;
+        cell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: card.trendColor } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.bg } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        const gcol = String.fromCharCode(kpiCols[i].charCodeAt(0) + 1);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), card.bg);
+      });
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Row: bottom accent bar for each card
+      dr = dRow(5); fillRow(dr.number, DC.bg);
+      kpiCards.forEach((card, i) => {
+        const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.accent } };
+        const gcol = String.fromCharCode(kpiCols[i].charCodeAt(0) + 1);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), DC.bg);
+      });
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Spacer
+      dr = dRow(10); fillRow(dr.number, DC.bg);
+
+      // ════════════════════════════════════════════════════════
+      // SECTION: REVENUE & EXPENSE BREAKDOWN (side by side)
+      // ════════════════════════════════════════════════════════
+      // Section headers
+      dr = dRow(22); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:F${dr.number}`);
+      const revHdr = dashSheet.getCell(`B${dr.number}`);
+      revHdr.value = '  💰 RINCIAN PENDAPATAN';
+      revHdr.font = { name: 'Calibri', bold: true, size: 11, color: { argb: DC.teal } };
+      revHdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
+      revHdr.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`G${dr.number}`), DC.bg);
+      dashSheet.mergeCells(`H${dr.number}:L${dr.number}`);
+      const expHdr = dashSheet.getCell(`H${dr.number}`);
+      expHdr.value = '  📉 RINCIAN BEBAN';
+      expHdr.font = { name: 'Calibri', bold: true, size: 11, color: { argb: DC.purple } };
+      expHdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
+      expHdr.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Column sub-headers
+      dr = dRow(18); fillRow(dr.number, DC.bg);
+      ['B','D'].forEach(c => {
+        const cell = dashSheet.getCell(`${c}${dr.number}`);
+        cell.value = c === 'B' ? '  Nama Akun Pendapatan' : '  Bar';
+        cell.font = { name: 'Calibri', bold: true, size: 8, color: { argb: DC.gray } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      });
+      const fCell = dashSheet.getCell(`F${dr.number}`);
+      fCell.value = '  Nominal';
+      fCell.font = { name: 'Calibri', bold: true, size: 8, color: { argb: DC.gray } };
+      fCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      fCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      df(dashSheet.getCell(`C${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`E${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`G${dr.number}`), DC.bg);
+      ['H','J'].forEach(c => {
+        const cell = dashSheet.getCell(`${c}${dr.number}`);
+        cell.value = c === 'H' ? '  Nama Akun Beban' : '  Bar';
+        cell.font = { name: 'Calibri', bold: true, size: 8, color: { argb: DC.gray } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+        cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      });
+      const lCell = dashSheet.getCell(`L${dr.number}`);
+      lCell.value = '  Nominal';
+      lCell.font = { name: 'Calibri', bold: true, size: 8, color: { argb: DC.gray } };
+      lCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      lCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      ['I','K'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), DC.bg));
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Data rows (max 6 items each side)
+      const maxRevExpRows = Math.max(revItems.length, expItems.length, 1);
+      for (let ri = 0; ri < Math.min(maxRevExpRows, 6); ri++) {
+        dr = dRow(18); fillRow(dr.number, DC.bg);
+        const alt = ri % 2 === 1;
+        const rowBg = alt ? DC.navyMd : DC.navy;
+        // Revenue side
+        if (ri < revItems.length) {
+          const [rName, rVal] = revItems[ri];
+          const pct = maxRev > 0 ? rVal / maxRev : 0;
+          const bar = mkBar(rVal, maxRev, 10);
+          const nameC = dashSheet.getCell(`B${dr.number}`);
+          nameC.value = `  ${rName}`;
+          nameC.font = { name: 'Calibri', size: 9, color: { argb: DC.whiteD } };
+          nameC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          nameC.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
+          const barC = dashSheet.getCell(`D${dr.number}`);
+          barC.value = bar;
+          barC.font = { name: 'Consolas', size: 9, color: { argb: pct > 0.5 ? DC.teal : DC.gray } };
+          barC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          barC.alignment = { vertical: 'middle', horizontal: 'left' };
+          const valC = dashSheet.getCell(`F${dr.number}`);
+          valC.value = rVal;
+          valC.numFmt = '#,##0';
+          valC.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.teal } };
+          valC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          valC.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else {
+          ['B','D','F'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), rowBg));
+        }
+        df(dashSheet.getCell(`C${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`E${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`G${dr.number}`), DC.bg);
+        // Expense side
+        if (ri < expItems.length) {
+          const [eName, eVal] = expItems[ri];
+          const ePct = maxExp > 0 ? eVal / maxExp : 0;
+          const eBar = mkBar(eVal, maxExp, 10);
+          const eNameC = dashSheet.getCell(`H${dr.number}`);
+          eNameC.value = `  ${eName}`;
+          eNameC.font = { name: 'Calibri', size: 9, color: { argb: DC.whiteD } };
+          eNameC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          eNameC.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
+          const eBarC = dashSheet.getCell(`J${dr.number}`);
+          eBarC.value = eBar;
+          eBarC.font = { name: 'Consolas', size: 9, color: { argb: ePct > 0.5 ? DC.purple : DC.gray } };
+          eBarC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          eBarC.alignment = { vertical: 'middle', horizontal: 'left' };
+          const eValC = dashSheet.getCell(`L${dr.number}`);
+          eValC.value = eVal;
+          eValC.numFmt = '#,##0';
+          eValC.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.purple } };
+          eValC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          eValC.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else {
+          ['H','J','L'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), rowBg));
+        }
+        ['I','K'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), DC.bg));
+        df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+      }
+      // Total rows
+      dr = dRow(20); fillRow(dr.number, DC.bg);
+      const revTotCell = dashSheet.getCell(`B${dr.number}`);
+      revTotCell.value = '  TOTAL PENDAPATAN';
+      revTotCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.teal } };
+      revTotCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      revTotCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`D${dr.number}`), DC.navyLt);
+      const revTotVal = dashSheet.getCell(`F${dr.number}`);
+      revTotVal.value = dash_rev;
+      revTotVal.numFmt = '#,##0';
+      revTotVal.font = { name: 'Calibri', bold: true, size: 10, color: { argb: DC.teal } };
+      revTotVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      revTotVal.alignment = { vertical: 'middle', horizontal: 'right' };
+      df(dashSheet.getCell(`C${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`E${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`G${dr.number}`), DC.bg);
+      const expTotCell = dashSheet.getCell(`H${dr.number}`);
+      expTotCell.value = '  TOTAL BEBAN';
+      expTotCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.purple } };
+      expTotCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      expTotCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`J${dr.number}`), DC.navyLt);
+      const expTotVal = dashSheet.getCell(`L${dr.number}`);
+      expTotVal.value = dash_exp;
+      expTotVal.numFmt = '#,##0';
+      expTotVal.font = { name: 'Calibri', bold: true, size: 10, color: { argb: DC.purple } };
+      expTotVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      expTotVal.alignment = { vertical: 'middle', horizontal: 'right' };
+      ['I','K'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), DC.bg));
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Spacer
+      dr = dRow(10); fillRow(dr.number, DC.bg);
+
+      // ════════════════════════════════════════════════════════
+      // SECTION: CASH FLOW VISUAL BARS
+      // ════════════════════════════════════════════════════════
+      dr = dRow(22); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:L${dr.number}`);
+      const cfTitle = dashSheet.getCell(`B${dr.number}`);
+      cfTitle.value = '  💸 LAPORAN ARUS KAS — Ringkasan Visual';
+      cfTitle.font = { name: 'Calibri', bold: true, size: 11, color: { argb: DC.gold } };
+      cfTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
+      cfTitle.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      const maxCF = Math.max(Math.abs(dash_opCF), Math.abs(dash_invCF), Math.abs(dash_finCF), 1);
+      const cfItems = [
+        { label: '⚙️  Aktivitas Operasi', val: dash_opCF, color: dash_opCF >= 0 ? DC.green : DC.red },
+        { label: '🏗️  Aktivitas Investasi', val: dash_invCF, color: dash_invCF >= 0 ? DC.teal : DC.orange },
+        { label: '💳 Aktivitas Pendanaan', val: dash_finCF, color: DC.accent },
+      ];
+      cfItems.forEach((cf, ci) => {
+        dr = dRow(22); fillRow(dr.number, DC.bg);
+        const cfAlt = ci % 2 === 0 ? DC.navy : DC.navyMd;
+        const lblC = dashSheet.getCell(`B${dr.number}`);
+        lblC.value = `  ${cf.label}`;
+        lblC.font = { name: 'Calibri', size: 9, color: { argb: DC.whiteD } };
+        lblC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cfAlt } };
+        lblC.alignment = { vertical: 'middle', horizontal: 'left' };
+        df(dashSheet.getCell(`C${dr.number}`), DC.bg);
+        // bar across D-J
+        const barStr = mkBar(cf.val, maxCF, 14);
+        const barC = dashSheet.getCell(`D${dr.number}`);
+        dashSheet.mergeCells(`D${dr.number}:J${dr.number}`);
+        barC.value = `  ${barStr}  ${cf.val >= 0 ? '+' : ''}${fmtRp(cf.val)}`;
+        barC.font = { name: 'Consolas', bold: true, size: 11, color: { argb: cf.color } };
+        barC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cfAlt } };
+        barC.alignment = { vertical: 'middle', horizontal: 'left' };
+        df(dashSheet.getCell(`K${dr.number}`), DC.bg);
+        const cfStatus = dashSheet.getCell(`L${dr.number}`);
+        cfStatus.value = cf.val >= 0 ? 'SURPLUS ▲' : 'DEFISIT ▼';
+        cfStatus.font = { name: 'Calibri', bold: true, size: 9, color: { argb: cf.val >= 0 ? DC.green : DC.red } };
+        cfStatus.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: cfAlt } };
+        cfStatus.alignment = { vertical: 'middle', horizontal: 'center' };
+        df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+      });
+      // Net cash total
+      dr = dRow(22); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:D${dr.number}`);
+      const netCFLbl = dashSheet.getCell(`B${dr.number}`);
+      netCFLbl.value = '  📍 SALDO KAS AKHIR';
+      netCFLbl.font = { name: 'Calibri', bold: true, size: 10, color: { argb: DC.gold } };
+      netCFLbl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      netCFLbl.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`E${dr.number}`), DC.navyLt);
+      dashSheet.mergeCells(`F${dr.number}:H${dr.number}`);
+      const netCFVal = dashSheet.getCell(`F${dr.number}`);
+      netCFVal.value = dash_cash;
+      netCFVal.numFmt = '#,##0;(#,##0)';
+      netCFVal.font = { name: 'Calibri', bold: true, size: 12, color: { argb: dash_cash >= 0 ? DC.green : DC.red } };
+      netCFVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+      netCFVal.alignment = { vertical: 'middle', horizontal: 'center' };
+      ['I','J','K','L'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), DC.navyLt));
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Spacer
+      dr = dRow(10); fillRow(dr.number, DC.bg);
+
+      // ════════════════════════════════════════════════════════
+      // SECTION: BALANCE SHEET SNAPSHOT + INVENTORY
+      // ════════════════════════════════════════════════════════
+      dr = dRow(22); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:F${dr.number}`);
+      const bsTitle = dashSheet.getCell(`B${dr.number}`);
+      bsTitle.value = '  ⚖️  NERACA — Posisi Keuangan';
+      bsTitle.font = { name: 'Calibri', bold: true, size: 11, color: { argb: DC.accent } };
+      bsTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
+      bsTitle.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`G${dr.number}`), DC.bg);
+      dashSheet.mergeCells(`H${dr.number}:L${dr.number}`);
+      const invTitle = dashSheet.getCell(`H${dr.number}`);
+      invTitle.value = '  🏷️  INVENTARIS — Top Produk';
+      invTitle.font = { name: 'Calibri', bold: true, size: 11, color: { argb: DC.orange } };
+      invTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
+      invTitle.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // BS items (aset, kewajiban, ekuitas)
+      const bsData = [
+        { label: '  TOTAL ASET',               val: dash_assets,       color: DC.accent },
+        { label: '  Total Kewajiban',           val: reportData.balanceSheet.totalAssets - (reportData.balanceSheet.totalAssets), color: DC.orange },
+        { label: '  Laba Bersih Periode',       val: dash_net,          color: dash_net >= 0 ? DC.green : DC.red },
+      ];
+      // use assets breakdown for display
+      const assetsList = Object.entries(reportData.balanceSheet.assets).sort((a,b) => b[1]-a[1]).slice(0, 4);
+      const liabsList  = Object.entries(reportData.balanceSheet.liabilities).sort((a,b) => b[1]-a[1]).slice(0, 2);
+      const bsRows2 = [
+        ...assetsList.map(([n,v]) => ({ label: `  ${n}`, val: v, color: DC.whiteD, bg: DC.navy })),
+        { label: '  ━━ TOTAL ASET',  val: dash_assets, color: DC.accent, bg: DC.navyLt },
+        ...liabsList.map(([n,v]) => ({ label: `  ${n}`, val: v, color: DC.orange, bg: DC.navy })),
+        { label: '  ━━ Laba Bersih', val: dash_net,    color: dash_net >= 0 ? DC.green : DC.red, bg: DC.navyLt },
+      ];
+      bsRows2.forEach((bsr, bsi) => {
+        dr = dRow(18); fillRow(dr.number, DC.bg);
+        const bsLbl = dashSheet.getCell(`B${dr.number}`);
+        bsLbl.value = bsr.label;
+        bsLbl.font = { name: 'Calibri', size: 9, bold: bsr.label.includes('━━') || bsr.label.includes('TOTAL'), color: { argb: bsr.color } };
+        bsLbl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsr.bg } };
+        bsLbl.alignment = { vertical: 'middle', horizontal: 'left' };
+        df(dashSheet.getCell(`C${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`D${dr.number}`), bsr.bg);
+        df(dashSheet.getCell(`E${dr.number}`), DC.bg);
+        const bsVal = dashSheet.getCell(`F${dr.number}`);
+        bsVal.value = bsr.val;
+        bsVal.numFmt = '#,##0;(#,##0)';
+        bsVal.font = { name: 'Calibri', bold: true, size: 9, color: { argb: bsr.color } };
+        bsVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsr.bg } };
+        bsVal.alignment = { vertical: 'middle', horizontal: 'right' };
+        df(dashSheet.getCell(`G${dr.number}`), DC.bg);
+        // Inventory side
+        if (bsi < topInv.length) {
+          const inv = topInv[bsi];
+          const invLbl = dashSheet.getCell(`H${dr.number}`);
+          invLbl.value = `  ${inv.name}`;
+          invLbl.font = { name: 'Calibri', size: 9, color: { argb: DC.whiteD } };
+          invLbl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsi % 2 === 0 ? DC.navy : DC.navyMd } };
+          invLbl.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
+          df(dashSheet.getCell(`I${dr.number}`), bsi % 2 === 0 ? DC.navy : DC.navyMd);
+          const invStk = dashSheet.getCell(`J${dr.number}`);
+          invStk.value = `Stok: ${inv.stock}`;
+          invStk.font = { name: 'Calibri', size: 9, color: { argb: DC.gray } };
+          invStk.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsi % 2 === 0 ? DC.navy : DC.navyMd } };
+          invStk.alignment = { vertical: 'middle', horizontal: 'center' };
+          df(dashSheet.getCell(`K${dr.number}`), bsi % 2 === 0 ? DC.navy : DC.navyMd);
+          const invVal = dashSheet.getCell(`L${dr.number}`);
+          invVal.value = inv.val;
+          invVal.numFmt = '#,##0';
+          invVal.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.orange } };
+          invVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsi % 2 === 0 ? DC.navy : DC.navyMd } };
+          invVal.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else {
+          ['H','I','J','K','L'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), DC.navy));
+        }
+        df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+      });
+
+      // Spacer
+      dr = dRow(10); fillRow(dr.number, DC.bg);
+
+      // ════════════════════════════════════════════════════════
+      // SECTION: FINANCIAL HEALTH + KEY RATIOS
+      // ════════════════════════════════════════════════════════
+      dr = dRow(22); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:L${dr.number}`);
+      const healthTitle = dashSheet.getCell(`B${dr.number}`);
+      healthTitle.value = `  🩺 STATUS KESEHATAN KEUANGAN:   ${dash_health.icon}  ${dash_health.label}`;
+      healthTitle.font = { name: 'Calibri', bold: true, size: 12, color: { argb: dash_health.color } };
+      healthTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
+      healthTitle.alignment = { vertical: 'middle', horizontal: 'left' };
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // Key ratios row
+      dr = dRow(22); fillRow(dr.number, DC.bg);
+      const ratios = [
+        { label: 'Margin Laba', val: `${gpMargin.toFixed(1)}%`, color: gpMargin >= 20 ? DC.green : gpMargin >= 10 ? DC.teal : DC.orange, col: 'B' },
+        { label: 'ROI', val: `${dash_roi.toFixed(1)}%`, color: dash_roi >= 20 ? DC.gold : dash_roi >= 10 ? DC.green : DC.orange, col: 'D' },
+        { label: 'Total Transaksi', val: `${dash_txCount}`, color: DC.accent, col: 'F' },
+        { label: 'Total Akun Aktif', val: `${activeAccounts.length}`, color: DC.whiteD, col: 'H' },
+        { label: 'Jml. Produk', val: `${inventory.length}`, color: DC.orange, col: 'J' },
+        { label: 'Laba Bersih', val: fmtRp(dash_net), color: dash_net >= 0 ? DC.green : DC.red, col: 'L' },
+      ];
+      ratios.forEach(ratio => {
+        const rCell = dashSheet.getCell(`${ratio.col}${dr.number}`);
+        rCell.value = `${ratio.label}: ${ratio.val}`;
+        rCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: ratio.color } };
+        rCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
+        rCell.alignment = { vertical: 'middle', horizontal: 'center' };
+        const gcol = String.fromCharCode(ratio.col.charCodeAt(0) + 1);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), DC.bg);
+      });
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+
+      // ════════════════════════════════════════════════════════
+      // FOOTER
+      // ════════════════════════════════════════════════════════
+      dr = dRow(8); fillRow(dr.number, DC.accent);
+      dr = dRow(18); fillRow(dr.number, DC.bg);
+      dashSheet.mergeCells(`B${dr.number}:H${dr.number}`);
+      const footCell = dashSheet.getCell(`B${dr.number}`);
+      footCell.value = `⚡ Dibuat otomatis oleh FinansiaProf  |  ${today}  |  Data bersifat RAHASIA & KONFIDENSIAL`;
+      footCell.font = { name: 'Calibri', size: 8, italic: true, color: { argb: DC.gray } };
+      footCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } };
+      footCell.alignment = { vertical: 'middle', horizontal: 'left' };
+      dashSheet.mergeCells(`I${dr.number}:L${dr.number}`);
+      const copyCell = dashSheet.getCell(`I${dr.number}`);
+      copyCell.value = `© ${new Date().getFullYear()} ${companyName} — All Rights Reserved`;
+      copyCell.font = { name: 'Calibri', size: 8, italic: true, color: { argb: DC.gray } };
+      copyCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } };
+      copyCell.alignment = { vertical: 'middle', horizontal: 'right' };
+      df(dashSheet.getCell(`A${dr.number}`), DC.bg);
+      df(dashSheet.getCell(`M${dr.number}`), DC.bg);
+      dr = dRow(6); fillRow(dr.number, DC.bg);
+
+      dashSheet.pageSetup.printArea = `A1:M${dashSheet.rowCount}`;
+
+      // ═══════════════════════════════════════════════════════════
       // 0. DAFTAR ISI
       // ═══════════════════════════════════════════════════════════
       const tocSheet = workbook.addWorksheet('DAFTAR ISI');
@@ -481,6 +1180,12 @@ export default function ReportsPage() {
       };
       tR('LAPORAN KEUANGAN', 16, true, true); tR(companyName, 13, true, true); tR(periodString, 10, false, false, true); tR(`Dicetak: ${today}`, 9, false, false, true);
       tR(''); { const r = tocSheet.addRow(['', 'DAFTAR ISI — Klik link di bawah untuk berpindah ke sheet:']); r.height = 18; r.getCell(2).font = { name: 'Calibri', size: 11, bold: true, color: { argb: C.navy } }; } tR('');
+      { const r = tocSheet.addRow(['  ★ ', '📊 BUKA DASHBOARD EKSEKUTIF  →']); r.height = 22;
+        r.getCell(2).value = { text: '📊  BUKA DASHBOARD EKSEKUTIF  ★', hyperlink: `#'${DASH_NAME}'!A1` };
+        r.getCell(2).font  = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' }, underline: false };
+        r.getCell(2).fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6C5CE7' } };
+        r.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' }; }
+      tR('');
       tR('1.  ENTRI & REFERENSI', 11, true);
       tL('    Input Tambahan (Entri Transaksi)', 'Input Tambahan');
       tL('    Jurnal Umum', journalSheetName);
@@ -507,7 +1212,8 @@ export default function ReportsPage() {
         { width: 5 }, { width: 13 }, { width: 30 }, { width: 14 }, { width: 20 }, { width: 28 },
         { width: 16 }, { width: 25 }, { width: 7 }, { width: 25 }, { width: 7 }, { width: 25 },
         { width: 7 }, { width: 17 }, { width: 16 },
-        { width: 12 }, // Col P: MENU button — outside print area
+        { width: 12 }, // Col P: MENU button
+        { width: 10 }, // Col Q: DASHBOARD button
       ];
       // Info rows 1-6
       { const r = inputSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
@@ -517,10 +1223,10 @@ export default function ReportsPage() {
       { const r = inputSheet.addRow(['TIP: Kolom N (Total HPP) dihitung otomatis via VLOOKUP ke Katalog Produk. Untuk layanan/non-produk, kosongkan kolom H-M.']); r.height = 20; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; r.getCell(1).alignment = { wrapText: true }; }
       inputSheet.addRow([]);
       // Table header (row 7)
-      { const r = inputSheet.addRow(['No', 'Tanggal *', 'Deskripsi *', 'Tipe *', 'Akun Kas *', 'Akun Lawan / Kategori *', 'Nominal * (Rp)', 'Produk 1', 'Qty 1', 'Produk 2', 'Qty 2', 'Produk 3', 'Qty 3', 'Total HPP\n(Auto)', 'Validasi\nAkun', '↩ MENU']); r.height = 32;
+      { const r = inputSheet.addRow(['No', 'Tanggal *', 'Deskripsi *', 'Tipe *', 'Akun Kas *', 'Akun Lawan / Kategori *', 'Nominal * (Rp)', 'Produk 1', 'Qty 1', 'Produk 2', 'Qty 2', 'Produk 3', 'Qty 3', 'Total HPP\n(Auto)', 'Validasi\nAkun', '↩ MENU', '📊 DASH']); r.height = 32;
         [1,2,3,4,5,6,7,8,9,10,11,12,13,15].forEach(c => styleHdr(r.getCell(c), c !== 2 && c !== 3 && c !== 5 && c !== 6 && c !== 8 && c !== 10 && c !== 12));
         styleGrnHdr(r.getCell(14));
-        styleMenuBtn(r.getCell(16), 'DAFTAR ISI'); }
+        styleMenuBtn(r.getCell(16), 'DAFTAR ISI'); styleDashBtn(r.getCell(17)); }
       // Data rows (row 8 = INPUT_DATA onwards)
       const dEnd = INPUT_DATA + MAX_INPUTS - 1;
       for (let i = 1; i <= MAX_INPUTS; i++) {
@@ -563,16 +1269,17 @@ export default function ReportsPage() {
         { width: 12 }, { width: 15 }, { width: 30 }, { width: 42 },
         { width: 16 }, { width: 16 }, { width: 18 },
         { width: 0.1, hidden: true }, // H: HelperBB
-        { width: 12 },               // I: MENU button (outside print)
+        { width: 12 },               // I: MENU button
+        { width: 10 },               // J: DASHBOARD button
       ];
       { const r = jrnlSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = jrnlSheet.addRow(['Jurnal Umum']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = jrnlSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
       jrnlSheet.addRow([]);
-      { const r = jrnlSheet.addRow(['Tanggal', 'ID Transaksi', 'Nama Akun', 'Keterangan / Deskripsi', 'Debit (Rp)', 'Kredit (Rp)', 'Cek Akun', 'HelperBB', '↩ MENU']); r.height = 24;
+      { const r = jrnlSheet.addRow(['Tanggal', 'ID Transaksi', 'Nama Akun', 'Keterangan / Deskripsi', 'Debit (Rp)', 'Kredit (Rp)', 'Cek Akun', 'HelperBB', '↩ MENU', '📊 DASH']); r.height = 24;
         [1,2,3,4].forEach(c => styleHdr(r.getCell(c))); [5,6,7].forEach(c => styleHdr(r.getCell(c), true));
         r.getCell(8).font = { name: 'Calibri', size: 7, color: { argb: C.textGray } };
-        styleMenuBtn(r.getCell(9), 'DAFTAR ISI'); }
+        styleMenuBtn(r.getCell(9), 'DAFTAR ISI'); styleDashBtn(r.getCell(10)); }
       jrnlSheet.views = [{ state: 'frozen', ySplit: 5, showGridLines: false, zoomScale: 100 }];
 
       let helperCnt: Record<string, number> = {};
@@ -643,15 +1350,15 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const katSheet = workbook.addWorksheet('Katalog Produk');
       setupPage(katSheet);
-      katSheet.columns = [{ width: 40 }, { width: 20 }, { width: 15 }, { width: 12 }];
+      katSheet.columns = [{ width: 40 }, { width: 20 }, { width: 15 }, { width: 12 }, { width: 10 }];
       { const r = katSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = katSheet.addRow(['Katalog Produk & HPP per Unit']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = katSheet.addRow([`Data inventori per ${today}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
       { const r = katSheet.addRow(['Perbarui nilai HPP jika ada perubahan harga beli. Kolom B dipakai otomatis di Input Tambahan via VLOOKUP.']); r.height = 20; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; r.getCell(1).alignment = { wrapText: true }; }
       katSheet.addRow([]);
-      { const r = katSheet.addRow(['Nama Produk', 'HPP / Unit (Rp)', 'Stok Saat Ini', '↩ MENU']); r.height = 22;
+      { const r = katSheet.addRow(['Nama Produk', 'HPP / Unit (Rp)', 'Stok Saat Ini', '↩ MENU', '📊 DASH']); r.height = 22;
         styleHdr(r.getCell(1)); styleHdr(r.getCell(2), true); styleHdr(r.getCell(3), true);
-        styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); }
+        styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); styleDashBtn(r.getCell(5)); }
       inventory.forEach((item, idx) => {
         const r = katSheet.addRow([item.name, item.costPerUnit, item.stock]); r.height = 18; const alt = idx % 2 === 1;
         styleData(r.getCell(1), alt); styleData(r.getCell(2), alt, true); r.getCell(2).numFmt = nFmt; styleData(r.getCell(3), alt, true);
@@ -664,13 +1371,13 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const acctSheet = workbook.addWorksheet('Daftar Akun');
       setupPage(acctSheet);
-      acctSheet.columns = [{ width: 20 }, { width: 40 }, { width: 20 }, { width: 12 }];
+      acctSheet.columns = [{ width: 20 }, { width: 40 }, { width: 20 }, { width: 12 }, { width: 10 }];
       { const r = acctSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = acctSheet.addRow(['Daftar Akun Referensi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = acctSheet.addRow(['Nama akun WAJIB digunakan persis sama di Jurnal Umum & Input Tambahan.']); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; }
       acctSheet.addRow([]);
-      { const r = acctSheet.addRow(['ID Akun', 'Nama Akun', 'Tipe', '↩ MENU']); r.height = 22;
-        styleHdr(r.getCell(1)); styleHdr(r.getCell(2)); styleHdr(r.getCell(3)); styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); }
+      { const r = acctSheet.addRow(['ID Akun', 'Nama Akun', 'Tipe', '↩ MENU', '📊 DASH']); r.height = 22;
+        styleHdr(r.getCell(1)); styleHdr(r.getCell(2)); styleHdr(r.getCell(3)); styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); styleDashBtn(r.getCell(5)); }
       activeAccounts.forEach((acc, idx) => {
         const r = acctSheet.addRow([acc.id, acc.name, acc.type]); r.height = 18; const alt = idx % 2 === 1;
         styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt);
@@ -683,11 +1390,11 @@ export default function ReportsPage() {
       const incomeSheetName = 'Laba Rugi';
       const incSheet = workbook.addWorksheet(incomeSheetName);
       setupPage(incSheet);
-      incSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }];
+      incSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }, { width: 10 }];
       { const r = incSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = incSheet.addRow(['Laporan Laba Rugi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = incSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
-      { const menuR = incSheet.addRow(['', '', '↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const menuR = incSheet.addRow(['', '', '↩ MENU', '📊 DASH']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); styleDashBtn(menuR.getCell(4)); }
       { const r = incSheet.addRow(['Pendapatan']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
       const revStart = incSheet.rowCount + 1;
       activeAccounts.filter(a => a.type === 'Revenue').forEach(acc => {
@@ -723,11 +1430,11 @@ export default function ReportsPage() {
       const balSheetName = 'Neraca';
       const balSheet = workbook.addWorksheet(balSheetName);
       setupPage(balSheet);
-      balSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }];
+      balSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }, { width: 10 }];
       { const r = balSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = balSheet.addRow(['Neraca (Posisi Keuangan)']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = balSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
-      { const menuR = balSheet.addRow(['','','↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const menuR = balSheet.addRow(['','','↩ MENU','📊 DASH']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); styleDashBtn(menuR.getCell(4)); }
       { const r = balSheet.addRow(['ASET']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
       const bsRows: Record<string, number> = {};
       const assetStart = balSheet.rowCount + 1;
@@ -766,11 +1473,11 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const cashFlowName = 'Arus Kas';
       const cfSheet = workbook.addWorksheet(cashFlowName);
-      setupPage(cfSheet); cfSheet.columns = [{ width: 46 }, { width: 22 }, { width: 12 }];
+      setupPage(cfSheet); cfSheet.columns = [{ width: 46 }, { width: 22 }, { width: 12 }, { width: 10 }];
       { const r = cfSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = cfSheet.addRow(['Laporan Arus Kas (Indirect Method)']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = cfSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
-      { const menuR = cfSheet.addRow(['','','↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const menuR = cfSheet.addRow(['','','↩ MENU','📊 DASH']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); styleDashBtn(menuR.getCell(4)); }
       { const r = cfSheet.addRow(['Aktivitas Operasi']); r.height = 16; r.getCell(1).font = { name: 'Calibri', bold: true, size: 10 }; }
       const opStart = cfSheet.rowCount + 1;
       { const r = cfSheet.addRow(['  Laba Bersih']); r.height = 18; r.getCell(2).value = fv(`'${incomeSheetName}'!B${netIncRow}`, 0); r.getCell(2).numFmt = nFmt; }
@@ -807,13 +1514,14 @@ export default function ReportsPage() {
         const sheetName = sanitizeSheetName(accountInfo.name);
         const ldSheet = workbook.addWorksheet(sheetName);
         setupPage(ldSheet);
-        ldSheet.columns = [{ width: 12 }, { width: 10 }, { width: 25 }, { width: 42 }, { width: 16 }, { width: 16 }, { width: 16 }];
+        ldSheet.columns = [{ width: 12 }, { width: 10 }, { width: 25 }, { width: 42 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 10 }];
         { const r = ldSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
         { const r = ldSheet.addRow([`Buku Besar: ${accountInfo.name}`]); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
         { const r = ldSheet.addRow([`Per Tanggal Cetak: ${today}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
         ldSheet.addRow([]);
-        { const r = ldSheet.addRow(['Tanggal', 'ID', 'Akun', 'Keterangan', 'Debit (Rp)', 'Kredit (Rp)', 'Saldo (Rp)']); r.height = 22;
-          [1,2,3,4].forEach(c => styleHdr(r.getCell(c))); [5,6,7].forEach(c => styleHdr(r.getCell(c), true)); }
+        { const r = ldSheet.addRow(['Tanggal', 'ID', 'Akun', 'Keterangan', 'Debit (Rp)', 'Kredit (Rp)', 'Saldo (Rp)', '📊 DASH']); r.height = 22;
+          [1,2,3,4].forEach(c => styleHdr(r.getCell(c))); [5,6,7].forEach(c => styleHdr(r.getCell(c), true));
+          styleDashBtn(r.getCell(8)); }
         ldSheet.views = [{ state: 'frozen', ySplit: 5, showGridLines: false, zoomScale: 100 }];
         const isDebitNormal = ['Assets', 'Expenses'].includes(accountInfo.type) || accountInfo.name === 'Prive';
         const filteredEntries = reportData.generalJournal.journalEntries.filter(e => e.accountName === accountInfo.name);
@@ -848,11 +1556,11 @@ export default function ReportsPage() {
       // 9. AUDIT & INVESTOR
       // ═══════════════════════════════════════════════════════════
       const auditSheet = workbook.addWorksheet('Audit & Investor');
-      setupPage(auditSheet); auditSheet.columns = [{ width: 40 }, { width: 25 }, { width: 40 }];
+      setupPage(auditSheet); auditSheet.columns = [{ width: 40 }, { width: 25 }, { width: 40 }, { width: 10 }];
       { const r = auditSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = auditSheet.addRow(['Laporan Executive Audit & Investor Dashboard']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = auditSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
-      { const menuR = auditSheet.addRow(['','','↩ MENU']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); }
+      { const menuR = auditSheet.addRow(['','','↩ MENU','📊 DASH']); menuR.height = 14; styleMenuBtn(menuR.getCell(3), 'DAFTAR ISI'); styleDashBtn(menuR.getCell(4)); }
       const aR = (lbl: string, f: string|null, note = '-', pct = false) => {
         const r = auditSheet.addRow([lbl, '', note]); r.height = 18;
         if (f) { r.getCell(2).value = fv(f, 0); r.getCell(2).numFmt = pct ? '0.00%' : nFmt; }
