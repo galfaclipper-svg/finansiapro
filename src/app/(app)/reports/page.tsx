@@ -446,7 +446,7 @@ export default function ReportsPage() {
         sheet.pageSetup.fitToPage    = true;
         sheet.pageSetup.fitToWidth   = 1;
         sheet.pageSetup.fitToHeight  = 0;
-        sheet.pageSetup.margins      = { left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+        sheet.pageSetup.margins      = { left: 0.8, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
       };
 
       const fv = (formula: string, result: any = 0) => ({ formula, result });
@@ -477,7 +477,7 @@ export default function ReportsPage() {
       dashSheet.pageSetup.fitToPage    = true;
       dashSheet.pageSetup.fitToWidth   = 1;
       dashSheet.pageSetup.fitToHeight  = 0;
-      dashSheet.pageSetup.margins      = { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 };
+      dashSheet.pageSetup.margins      = { left: 0.8, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
       // Dashboard color palette (dark theme)
       const DC = {
