@@ -1303,10 +1303,10 @@ export default function ReportsPage() {
         const row = JRNL_DATA + idx;
         const akun = entry.accountName;
         helperCnt[akun] = (helperCnt[akun] || 0) + 1;
-        const r = jrnlSheet.addRow([format(new Date(entry.date), 'yyyy-MM-dd'), entry.id, akun, entry.description,
+        const r = jrnlSheet.addRow([new Date(entry.date), entry.id, akun, entry.description,
           entry.entryType === 'Debit' ? entry.amount : 0, entry.entryType === 'Credit' ? entry.amount : 0, '', '']);
         r.height = 18; const alt = idx % 2 === 1;
-        styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt, false, true); styleData(r.getCell(4), alt, false, true);
+        styleData(r.getCell(1), alt); r.getCell(1).numFmt = 'yyyy-mm-dd'; styleData(r.getCell(2), alt); styleData(r.getCell(3), alt, false, true); styleData(r.getCell(4), alt, false, true);
         styleData(r.getCell(5), alt, true); r.getCell(5).numFmt = nFmt;
         styleData(r.getCell(6), alt, true); r.getCell(6).numFmt = nFmt;
         r.getCell(7).value = fv(`IF(C${row}="","",IF(ISNUMBER(MATCH(C${row},${acctRef},0)),"OK","CEK AKUN!"))`, ''); styleData(r.getCell(7), alt, true);
@@ -1335,7 +1335,7 @@ export default function ReportsPage() {
         const pad   = String(i).padStart(3, '0');
         const addJRow = (dateF: string, idF: string, akunF: string, descF: string, debitF: string|null, kreditF: string|null, row: number) => {
           const r = jrnlSheet.addRow(['','','','',0,0,'','']); r.height = 14;
-          r.getCell(1).value = fv(dateF, ''); r.getCell(2).value = fv(idF, '');
+          r.getCell(1).value = fv(dateF, ''); r.getCell(1).numFmt = 'yyyy-mm-dd'; r.getCell(2).value = fv(idF, '');
           r.getCell(3).value = fv(akunF, ''); r.getCell(4).value = fv(descF, '');
           r.getCell(5).value = debitF ? fv(debitF, 0) : 0; r.getCell(5).numFmt = nFmt;
           r.getCell(6).value = kreditF ? fv(kreditF, 0) : 0; r.getCell(6).numFmt = nFmt;
@@ -1343,18 +1343,18 @@ export default function ReportsPage() {
           r.getCell(8).value = fv(`IF(C${row}="","",C${row}&COUNTIF($C$${JRNL_DATA}:C${row},C${row}))`, '');
           [1,2,3,4,7].forEach(c => styleData(r.getCell(c))); [5,6].forEach(c => styleData(r.getCell(c), false, true));
         };
-        addJRow(`IF(${has},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${has},"ADJ-${pad}-D","")`,
+        addJRow(`IF(${has},'Input Tambahan'!B${IR},"")`, `IF(${has},"ADJ-${pad}-D","")`,
           `IF(${has},IF(${isCI},'Input Tambahan'!E${IR},'Input Tambahan'!F${IR}),"")`,
           `IF(${has},'Input Tambahan'!C${IR},"")`,
           `IF(${has},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)`, null, dR);
-        addJRow(`IF(${has},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${has},"ADJ-${pad}-K","")`,
+        addJRow(`IF(${has},'Input Tambahan'!B${IR},"")`, `IF(${has},"ADJ-${pad}-K","")`,
           `IF(${has},IF(${isCI},'Input Tambahan'!F${IR},'Input Tambahan'!E${IR}),"")`,
           `IF(${has},'Input Tambahan'!C${IR},"")`,
           null, `IF(${has},IF(ISNUMBER('Input Tambahan'!G${IR}),'Input Tambahan'!G${IR},0),0)`, cR);
-        addJRow(`IF(${hasHP},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${hasHP},"ADJ-${pad}-HD","")`,
+        addJRow(`IF(${hasHP},'Input Tambahan'!B${IR},"")`, `IF(${hasHP},"ADJ-${pad}-HD","")`,
           `IF(${hasHP},"Harga Pokok Penjualan","")`, `IF(${hasHP},'Input Tambahan'!C${IR},"")`,
           `IF(${hasHP},'Input Tambahan'!N${IR},0)`, null, dH);
-        addJRow(`IF(${hasHP},TEXT('Input Tambahan'!B${IR},"yyyy-mm-dd"),"")`, `IF(${hasHP},"ADJ-${pad}-HK","")`,
+        addJRow(`IF(${hasHP},'Input Tambahan'!B${IR},"")`, `IF(${hasHP},"ADJ-${pad}-HK","")`,
           `IF(${hasHP},"Persediaan Barang Dagang","")`, `IF(${hasHP},'Input Tambahan'!C${IR},"")`,
           null, `IF(${hasHP},'Input Tambahan'!N${IR},0)`, cH);
       }
@@ -1557,7 +1557,8 @@ export default function ReportsPage() {
           const r = ldSheet.addRow(['','','','',0,0,0]); r.height = 18;
           const debit  = entry && entry.entryType === 'Debit'  ? entry.amount : 0;
           const credit = entry && entry.entryType === 'Credit' ? entry.amount : 0;
-          r.getCell(1).value = fv(colF('A'), entry ? format(new Date(entry.date), 'yyyy-MM-dd') : '');
+          r.getCell(1).value = fv(colF('A'), entry ? new Date(entry.date) : '');
+          r.getCell(1).numFmt = 'yyyy-mm-dd';
           r.getCell(2).value = fv(colF('B'), entry?.id ?? '');
           r.getCell(3).value = fv(colF('C'), entry?.accountName ?? '');
           r.getCell(4).value = fv(colF('D'), entry?.description ?? '');
