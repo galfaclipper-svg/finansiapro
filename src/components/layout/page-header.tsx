@@ -20,7 +20,7 @@ export function PageHeader({ title, description, children }: PageHeaderProps) {
           </p>
         )}
       </div>
-      {children && <div className="flex shrink-0 gap-2">{children}</div>}
+      {children && <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0">{children}</div>}
     </div>
   );
 }

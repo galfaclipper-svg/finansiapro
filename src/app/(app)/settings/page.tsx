@@ -14,7 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAppState } from '@/hooks/use-app-state';
 import { useAuth } from '@/contexts/auth-provider';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileUp, FileDown, Database, Trash2, Package } from 'lucide-react';
+import { Upload, FileUp, FileDown, Database, Trash2, Package, Users, FileText, Briefcase, ListTree, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import type { Transaction } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -324,6 +325,29 @@ export default function SettingsPage() {
         title="Pengaturan"
         description="Kelola profil perusahaan dan data aplikasi Anda."
       />
+
+      {/* Mobile Shortcut Menu (Only visible on small screens) */}
+      <div className="md:hidden grid grid-cols-2 gap-3 mb-6">
+        {[
+          { title: 'Inventaris', href: '/inventory', icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { title: 'Pelanggan', href: '/clients', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { title: 'Tagihan', href: '/invoices', icon: FileText, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+          { title: 'Bagan Akun', href: '/accounts', icon: ListTree, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+          { title: 'Perencanaan', href: '/business-planner', icon: Briefcase, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+        ].map(item => (
+          <Link key={item.href} href={item.href}>
+            <div className="flex items-center justify-between p-3 bg-card border rounded-lg shadow-sm active:scale-95 transition-transform">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${item.bg}`}>
+                  <item.icon className={`h-5 w-5 ${item.color}`} />
+                </div>
+                <span className="font-medium text-sm">{item.title}</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </Link>
+        ))}
+      </div>
       
       <div className="grid gap-8 md:grid-cols-2">
         <Card>

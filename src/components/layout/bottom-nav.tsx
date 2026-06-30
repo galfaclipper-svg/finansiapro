@@ -12,7 +12,6 @@ export function BottomNav() {
     { title: 'Dasbor', href: '/dashboard', icon: LayoutDashboard },
     { title: 'Transaksi', href: '/transactions', icon: ReceiptText },
     { title: 'Laporan', href: '/reports', icon: LineChart },
-    { title: 'Tagihan', href: '/invoices', icon: FileText },
     { title: 'Pengaturan', href: '/settings', icon: Settings },
   ];
 

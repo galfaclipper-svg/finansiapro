@@ -446,7 +446,7 @@ export default function ReportsPage() {
         sheet.pageSetup.fitToPage    = true;
         sheet.pageSetup.fitToWidth   = 1;
         sheet.pageSetup.fitToHeight  = 0;
-        sheet.pageSetup.margins      = { left: 0.8, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+        sheet.pageSetup.margins      = { left: 1.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
       };
 
       const fv = (formula: string, result: any = 0) => ({ formula, result });
@@ -477,7 +477,7 @@ export default function ReportsPage() {
       dashSheet.pageSetup.fitToPage    = true;
       dashSheet.pageSetup.fitToWidth   = 1;
       dashSheet.pageSetup.fitToHeight  = 0;
-      dashSheet.pageSetup.margins      = { left: 0.8, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+      dashSheet.pageSetup.margins      = { left: 1.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
       // Dashboard color palette (dark theme)
       const DC = {
@@ -614,14 +614,27 @@ export default function ReportsPage() {
       h2badge.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: dash_health.color } };
       h2badge.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // Row 3 — Period info
+      // Row 3 — Dashboard Controls
       dr = dRow(20); fillRow(dr.number, DC.bg);
-      dashSheet.mergeCells(`B${dr.number}:F${dr.number}`);
-      const h3cell = dashSheet.getCell(`B${dr.number}`);
-      h3cell.value = `${periodString}   |   Dicetak: ${today}   |   Total Transaksi: ${dash_txCount}`;
-      h3cell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } };
-      h3cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } };
-      h3cell.alignment = { vertical: 'middle', horizontal: 'left' };
+      
+      const lbl1 = dashSheet.getCell(`B${dr.number}`); lbl1.value = 'Filter Tahun:'; lbl1.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl1.alignment = { horizontal: 'right', vertical: 'middle' };
+      const yrCell = dashSheet.getCell(`C${dr.number}`);
+      yrCell.value = new Date().getFullYear(); yrCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; yrCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; yrCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      dashSheet.dataValidations.add(`C${dr.number}:C${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"2023,2024,2025,2026,2027,2028,2029,2030"'] });
+
+      const lbl2 = dashSheet.getCell(`D${dr.number}`); lbl2.value = 'Dari Bulan:'; lbl2.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl2.alignment = { horizontal: 'right', vertical: 'middle' };
+      const mo1Cell = dashSheet.getCell(`E${dr.number}`);
+      mo1Cell.value = 1; mo1Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; mo1Cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; mo1Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      dashSheet.dataValidations.add(`E${dr.number}:E${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"1,2,3,4,5,6,7,8,9,10,11,12"'] });
+
+      const lbl3 = dashSheet.getCell(`F${dr.number}`); lbl3.value = 's.d Bulan:'; lbl3.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl3.alignment = { horizontal: 'right', vertical: 'middle' };
+      const mo2Cell = dashSheet.getCell(`G${dr.number}`);
+      mo2Cell.value = 12; mo2Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; mo2Cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; mo2Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      dashSheet.dataValidations.add(`G${dr.number}:G${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"1,2,3,4,5,6,7,8,9,10,11,12"'] });
+
+      const sdCell = dashSheet.getCell(`N1`); sdCell.value = { formula: `DATE(C${dr.number}, E${dr.number}, 1)` };
+      const edCell = dashSheet.getCell(`O1`); edCell.value = { formula: `EOMONTH(DATE(C${dr.number}, G${dr.number}, 1), 0)` };
+
       // Row 4 — accent line
       dr = dRow(5); fillRow(dr.number, DC.accent);
 
@@ -673,56 +686,60 @@ export default function ReportsPage() {
       // ════════════════════════════════════════════════════════
       // KPI CARDS (6 CARDS across 2 rows: B D F H J L)
       // ════════════════════════════════════════════════════════
-      const kpiCols = ['B', 'D', 'F', 'H', 'J', 'L'];
       const kpiCards = [
         {
           icon: '💰', label: 'TOTAL PENDAPATAN',
-          value: fmtRp(dash_rev),
-          sub: dash_rev > 0 ? `${Object.keys(reportData.incomeStatement.revenues).length} sumber` : 'Belum ada',
+          value: fv(`SUMIFS('Daftar Akun'!D:D, 'Daftar Akun'!C:C, "Revenue")`, 0),
+          numFmt: '"Rp "#,##0',
+          sub: `Diperbarui otomatis`,
           bg: 'FF0D2137', accent: DC.teal,
-          trend: dash_rev > 0 ? '▲ AKTIF' : '—',
-          trendColor: dash_rev > 0 ? DC.green : DC.gray,
+          trend: '▲ AKTIF',
+          trendColor: DC.green,
         },
         {
           icon: '📉', label: 'TOTAL BEBAN',
-          value: fmtRp(dash_exp),
-          sub: dash_exp > 0 ? `${Object.keys(reportData.incomeStatement.expenses).length} kategori` : 'Belum ada',
+          value: fv(`SUMIFS('Daftar Akun'!D:D, 'Daftar Akun'!C:C, "Expenses")`, 0),
+          numFmt: '"Rp "#,##0',
+          sub: `Diperbarui otomatis`,
           bg: 'FF1A1226', accent: DC.purple,
-          trend: dash_exp > 0 ? '▲ TERCATAT' : '—',
+          trend: '▲ TERCATAT',
           trendColor: DC.purple,
         },
         {
-          icon: dash_net >= 0 ? '💎' : '⚠️', label: 'LABA BERSIH',
-          value: fmtRp(dash_net),
-          sub: `Margin: ${dash_rev > 0 ? gpMargin.toFixed(1)+'%' : 'N/A'}`,
-          bg: dash_net >= 0 ? 'FF0A2518' : 'FF250A0A', accent: dash_net >= 0 ? DC.green : DC.red,
-          trend: dash_net >= 0 ? '▲ UNTUNG' : '▼ RUGI',
-          trendColor: dash_net >= 0 ? DC.green : DC.red,
+          icon: '💎', label: 'LABA BERSIH',
+          value: fv(`B9-D9`, 0),
+          numFmt: '"Rp "#,##0',
+          sub: `Pendapatan - Beban`,
+          bg: 'FF0A2518', accent: DC.green,
+          trend: '▲ DINAMIS',
+          trendColor: DC.green,
         },
         {
           icon: '🏦', label: 'TOTAL ASET',
-          value: fmtRp(dash_assets),
-          sub: `${Object.keys(reportData.balanceSheet.assets).length} akun aset`,
+          value: fv(`SUMIFS('Daftar Akun'!D:D, 'Daftar Akun'!C:C, "Assets")`, 0),
+          numFmt: '"Rp "#,##0',
+          sub: `Diperbarui otomatis`,
           bg: 'FF0D1E2E', accent: DC.accent,
-          trend: dash_assets > 0 ? '▲ TERCATAT' : '—',
+          trend: '▲ TERCATAT',
           trendColor: DC.accent,
         },
         {
           icon: '💵', label: 'SALDO KAS',
-          value: fmtRp(dash_cash),
+          value: fv(`SUMIFS('Daftar Akun'!D:D, 'Daftar Akun'!C:C, "Assets", 'Daftar Akun'!B:B, "*Kas*") + SUMIFS('Daftar Akun'!D:D, 'Daftar Akun'!C:C, "Assets", 'Daftar Akun'!B:B, "*Bank*")`, 0),
+          numFmt: '"Rp "#,##0',
           sub: `Kas Bersih Akhir`,
           bg: 'FF0D2137', accent: DC.teal,
-          trend: dash_cash >= 0 ? '▲ POSITIF' : '▼ DEFISIT',
-          trendColor: dash_cash >= 0 ? DC.green : DC.red,
+          trend: '▲ DINAMIS',
+          trendColor: DC.green,
         },
         {
           icon: '📈', label: 'ROI',
-          value: `${dash_roi.toFixed(1)}%`,
-          sub: `Return on Assets`,
-          bg: dash_roi >= 20 ? 'FF1F1A00' : dash_roi >= 10 ? 'FF0A2518' : 'FF1A0D00',
-          accent: dash_roi >= 20 ? DC.gold : dash_roi >= 10 ? DC.green : DC.orange,
-          trend: dash_roi >= 20 ? '🏆 EXCELLENT' : dash_roi >= 10 ? '✅ BAGUS' : dash_roi >= 0 ? '⚠️ LEMAH' : '❌ NEGATIF',
-          trendColor: dash_roi >= 20 ? DC.gold : dash_roi >= 10 ? DC.green : dash_roi >= 0 ? DC.orange : DC.red,
+          value: fv(`IF(H9>0, (F9/H9), 0)`, 0),
+          numFmt: '0.0%',
+          sub: `Laba / Total Aset`,
+          bg: 'FF1A0D00', accent: DC.orange,
+          trend: '✅ DINAMIS',
+          trendColor: DC.orange,
         },
       ];
 
@@ -748,6 +765,7 @@ export default function ReportsPage() {
       kpiCards.forEach((card, i) => {
         const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
         cell.value = card.value;
+        if ((card as any).numFmt) cell.numFmt = (card as any).numFmt;
         cell.font = { name: 'Calibri', bold: true, size: 18, color: { argb: DC.white } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.bg } };
         cell.alignment = { vertical: 'middle', horizontal: 'left' };
@@ -855,6 +873,7 @@ export default function ReportsPage() {
 
       // Data rows (max 6 items each side)
       const maxRevExpRows = Math.max(revItems.length, expItems.length, 1);
+      const dataStartRow = dr.number + 1;
       for (let ri = 0; ri < Math.min(maxRevExpRows, 6); ri++) {
         dr = dRow(18); fillRow(dr.number, DC.bg);
         const alt = ri % 2 === 1;
@@ -862,24 +881,22 @@ export default function ReportsPage() {
         // Revenue side
         if (ri < revItems.length) {
           const [rName, rVal] = revItems[ri];
-          const pct = maxRev > 0 ? rVal / maxRev : 0;
-          const bar = mkBar(rVal, maxRev, 10);
           const nameC = dashSheet.getCell(`B${dr.number}`);
           nameC.value = `  ${rName}`;
           nameC.font = { name: 'Calibri', size: 9, color: { argb: DC.whiteD } };
           nameC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
           nameC.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
-          const barC = dashSheet.getCell(`D${dr.number}`);
-          barC.value = bar;
-          barC.font = { name: 'Consolas', size: 9, color: { argb: pct > 0.5 ? DC.teal : DC.gray } };
-          barC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
-          barC.alignment = { vertical: 'middle', horizontal: 'left' };
           const valC = dashSheet.getCell(`F${dr.number}`);
-          valC.value = rVal;
+          valC.value = fv(`IFERROR(VLOOKUP(TRIM(MID(B${dr.number},3,100)), 'Daftar Akun'!$B:$D, 3, FALSE), 0)`, rVal);
           valC.numFmt = '#,##0';
           valC.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.teal } };
           valC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
           valC.alignment = { vertical: 'middle', horizontal: 'right' };
+          const barC = dashSheet.getCell(`D${dr.number}`);
+          barC.value = fv(`IF(MAX($F$${dataStartRow}:$F$${dataStartRow+5})=0, REPT("░",10), REPT("█", ROUND(F${dr.number}/MAX($F$${dataStartRow}:$F$${dataStartRow+5})*10, 0)) & REPT("░", 10 - ROUND(F${dr.number}/MAX($F$${dataStartRow}:$F$${dataStartRow+5})*10, 0)))`, '');
+          barC.font = { name: 'Consolas', size: 9, color: { argb: DC.teal } };
+          barC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          barC.alignment = { vertical: 'middle', horizontal: 'left' };
         } else {
           ['B','D','F'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), rowBg));
         }
@@ -889,24 +906,22 @@ export default function ReportsPage() {
         // Expense side
         if (ri < expItems.length) {
           const [eName, eVal] = expItems[ri];
-          const ePct = maxExp > 0 ? eVal / maxExp : 0;
-          const eBar = mkBar(eVal, maxExp, 10);
           const eNameC = dashSheet.getCell(`H${dr.number}`);
           eNameC.value = `  ${eName}`;
           eNameC.font = { name: 'Calibri', size: 9, color: { argb: DC.whiteD } };
           eNameC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
           eNameC.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
-          const eBarC = dashSheet.getCell(`J${dr.number}`);
-          eBarC.value = eBar;
-          eBarC.font = { name: 'Consolas', size: 9, color: { argb: ePct > 0.5 ? DC.purple : DC.gray } };
-          eBarC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
-          eBarC.alignment = { vertical: 'middle', horizontal: 'left' };
           const eValC = dashSheet.getCell(`L${dr.number}`);
-          eValC.value = eVal;
+          eValC.value = fv(`IFERROR(VLOOKUP(TRIM(MID(H${dr.number},3,100)), 'Daftar Akun'!$B:$D, 3, FALSE), 0)`, eVal);
           eValC.numFmt = '#,##0';
           eValC.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.purple } };
           eValC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
           eValC.alignment = { vertical: 'middle', horizontal: 'right' };
+          const eBarC = dashSheet.getCell(`J${dr.number}`);
+          eBarC.value = fv(`IF(MAX($L$${dataStartRow}:$L$${dataStartRow+5})=0, REPT("░",10), REPT("█", ROUND(L${dr.number}/MAX($L$${dataStartRow}:$L$${dataStartRow+5})*10, 0)) & REPT("░", 10 - ROUND(L${dr.number}/MAX($L$${dataStartRow}:$L$${dataStartRow+5})*10, 0)))`, '');
+          eBarC.font = { name: 'Consolas', size: 9, color: { argb: DC.purple } };
+          eBarC.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } };
+          eBarC.alignment = { vertical: 'middle', horizontal: 'left' };
         } else {
           ['H','J','L'].forEach(c => df(dashSheet.getCell(`${c}${dr.number}`), rowBg));
         }
@@ -917,13 +932,13 @@ export default function ReportsPage() {
       // Total rows
       dr = dRow(20); fillRow(dr.number, DC.bg);
       const revTotCell = dashSheet.getCell(`B${dr.number}`);
-      revTotCell.value = '  TOTAL PENDAPATAN';
+      revTotCell.value = '  TOTAL PENDAPATAN (TOP 6)';
       revTotCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.teal } };
       revTotCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
       revTotCell.alignment = { vertical: 'middle', horizontal: 'left' };
       df(dashSheet.getCell(`D${dr.number}`), DC.navyLt);
       const revTotVal = dashSheet.getCell(`F${dr.number}`);
-      revTotVal.value = dash_rev;
+      revTotVal.value = fv(`SUM(F${dataStartRow}:F${dataStartRow+5})`, dash_rev);
       revTotVal.numFmt = '#,##0';
       revTotVal.font = { name: 'Calibri', bold: true, size: 10, color: { argb: DC.teal } };
       revTotVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
@@ -932,13 +947,13 @@ export default function ReportsPage() {
       df(dashSheet.getCell(`E${dr.number}`), DC.bg);
       df(dashSheet.getCell(`G${dr.number}`), DC.bg);
       const expTotCell = dashSheet.getCell(`H${dr.number}`);
-      expTotCell.value = '  TOTAL BEBAN';
+      expTotCell.value = '  TOTAL BEBAN (TOP 6)';
       expTotCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.purple } };
       expTotCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
       expTotCell.alignment = { vertical: 'middle', horizontal: 'left' };
       df(dashSheet.getCell(`J${dr.number}`), DC.navyLt);
       const expTotVal = dashSheet.getCell(`L${dr.number}`);
-      expTotVal.value = dash_exp;
+      expTotVal.value = fv(`SUM(L${dataStartRow}:L${dataStartRow+5})`, dash_exp);
       expTotVal.numFmt = '#,##0';
       expTotVal.font = { name: 'Calibri', bold: true, size: 10, color: { argb: DC.purple } };
       expTotVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
@@ -1371,18 +1386,22 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const acctSheet = workbook.addWorksheet('Daftar Akun');
       setupPage(acctSheet);
-      acctSheet.columns = [{ width: 20 }, { width: 40 }, { width: 20 }, { width: 12 }, { width: 10 }];
+      acctSheet.columns = [{ width: 12 }, { width: 40 }, { width: 15 }, { width: 20 }, { width: 10 }, { width: 10 }];
       { const r = acctSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = acctSheet.addRow(['Daftar Akun Referensi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = acctSheet.addRow(['Nama akun WAJIB digunakan persis sama di Jurnal Umum & Input Tambahan.']); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; }
       acctSheet.addRow([]);
-      { const r = acctSheet.addRow(['ID Akun', 'Nama Akun', 'Tipe', '↩ MENU', '📊 DASH']); r.height = 22;
-        styleHdr(r.getCell(1)); styleHdr(r.getCell(2)); styleHdr(r.getCell(3)); styleMenuBtn(r.getCell(4), 'DAFTAR ISI'); styleDashBtn(r.getCell(5)); }
+      { const r = acctSheet.addRow(['ID Akun', 'Nama Akun', 'Tipe', 'Saldo Dinamis', '↩ MENU', '📊 DASH']); r.height = 22;
+        [1,2,3,4].forEach(c => styleHdr(r.getCell(c))); styleMenuBtn(r.getCell(5), 'DAFTAR ISI'); styleDashBtn(r.getCell(6)); }
       activeAccounts.forEach((acc, idx) => {
         const r = acctSheet.addRow([acc.id, acc.name, acc.type]); r.height = 18; const alt = idx % 2 === 1;
         styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt);
+        const rn = r.number;
+        r.getCell(4).value = { formula: `IF(OR(C${rn}="Assets", C${rn}="Expenses"), SUMIFS('Jurnal Umum'!E:E, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1) - SUMIFS('Jurnal Umum'!F:F, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1), SUMIFS('Jurnal Umum'!F:F, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1) - SUMIFS('Jurnal Umum'!E:E, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1))` };
+        r.getCell(4).numFmt = nFmt; styleData(r.getCell(4), alt, true);
+        styleMenuBtn(r.getCell(5), 'DAFTAR ISI'); styleDashBtn(r.getCell(6));
       });
-      acctSheet.pageSetup.printArea = `A1:C${ACCT_DATA_START + activeAccounts.length + 1}`;
+      acctSheet.pageSetup.printArea = `A1:D${ACCT_DATA_START + activeAccounts.length + 1}`;
 
       // ═══════════════════════════════════════════════════════════
       // 5. LABA RUGI
@@ -1919,8 +1938,8 @@ export default function ReportsPage() {
         title="Laporan Keuangan"
         description="Hasilkan dan lihat laporan keuangan bisnis Anda."
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 border rounded-md p-1 bg-muted/20">
+        <div className="flex flex-nowrap md:flex-wrap items-center gap-2 w-max md:w-auto">
+          <div className="flex shrink-0 items-center gap-2 border rounded-md p-1 bg-muted/20">
             <Select value={quickMonth} onValueChange={setQuickMonth}>
               <SelectTrigger className="w-[120px] h-9 border-none bg-transparent shadow-none focus:ring-0">
                 <SelectValue placeholder="Bulan" />
@@ -1952,17 +1971,17 @@ export default function ReportsPage() {
             </Select>
             <Button size="sm" onClick={handleQuickSelect} className="h-8">Terapkan</Button>
           </div>
-          <span className="text-muted-foreground text-sm px-2">atau</span>
-          <DatePickerWithRange />
-          <Button variant="outline" className="border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
+          <span className="text-muted-foreground text-sm px-2 shrink-0">atau</span>
+          <div className="shrink-0"><DatePickerWithRange /></div>
+          <Button variant="outline" className="shrink-0 border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
             <Send className="mr-2 h-4 w-4" />
             Kirim Laporan
           </Button>
-          <Button variant="outline" onClick={handleExportXLSX}>
+          <Button variant="outline" className="shrink-0" onClick={handleExportXLSX}>
             <Download className="mr-2 h-4 w-4" />
             Ekspor Semua (XLSX)
           </Button>
-          <Button variant="outline" onClick={handlePrintPDF}>
+          <Button variant="outline" className="shrink-0" onClick={handlePrintPDF}>
             <Printer className="mr-2 h-4 w-4" />
             Cetak Semua (PDF)
           </Button>
