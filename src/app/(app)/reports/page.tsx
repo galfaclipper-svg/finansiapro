@@ -743,6 +743,7 @@ export default function ReportsPage() {
         },
       ];
 
+      const kpiCols = ['B', 'D', 'F', 'H', 'J', 'L'];
       // Draw KPI cards (5 rows each: label, value, sub, trend, spacer)
       const kpiStartRow = dashSheet.rowCount + 1;
       // Row: icon + label
