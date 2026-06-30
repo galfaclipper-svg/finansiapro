@@ -1080,7 +1080,14 @@ export default function ReportsPage() {
         df(dashSheet.getCell(`D${dr.number}`), bsr.bg);
         df(dashSheet.getCell(`E${dr.number}`), DC.bg);
         const bsVal = dashSheet.getCell(`F${dr.number}`);
-        bsVal.value = bsr.val;
+        const cleanLabel = bsr.label.replace('  ', '').replace('━━ ', '');
+        if (cleanLabel === 'TOTAL ASET') {
+          bsVal.value = fv('H9', bsr.val);
+        } else if (cleanLabel === 'Laba Bersih') {
+          bsVal.value = fv('F9', bsr.val);
+        } else {
+          bsVal.value = fv(`IFERROR(VLOOKUP("${cleanLabel}", 'Daftar Akun'!$B:$D, 3, FALSE), 0)`, bsr.val);
+        }
         bsVal.numFmt = '#,##0;(#,##0)';
         bsVal.font = { name: 'Calibri', bold: true, size: 9, color: { argb: bsr.color } };
         bsVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsr.bg } };
@@ -1102,7 +1109,7 @@ export default function ReportsPage() {
           invStk.alignment = { vertical: 'middle', horizontal: 'center' };
           df(dashSheet.getCell(`K${dr.number}`), bsi % 2 === 0 ? DC.navy : DC.navyMd);
           const invVal = dashSheet.getCell(`L${dr.number}`);
-          invVal.value = inv.val;
+          invVal.value = fv(`IFERROR(VLOOKUP("${inv.name}", 'Katalog Produk'!$A:$C, 2, FALSE) * VLOOKUP("${inv.name}", 'Katalog Produk'!$A:$C, 3, FALSE), 0)`, inv.val);
           invVal.numFmt = '#,##0';
           invVal.font = { name: 'Calibri', bold: true, size: 9, color: { argb: DC.orange } };
           invVal.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bsi % 2 === 0 ? DC.navy : DC.navyMd } };
@@ -1123,7 +1130,7 @@ export default function ReportsPage() {
       dr = dRow(22); fillRow(dr.number, DC.bg);
       dashSheet.mergeCells(`B${dr.number}:L${dr.number}`);
       const healthTitle = dashSheet.getCell(`B${dr.number}`);
-      healthTitle.value = `  🩺 STATUS KESEHATAN KEUANGAN:   ${dash_health.icon}  ${dash_health.label}`;
+      healthTitle.value = fv(`IF(B9=0, "  🩺 STATUS KESEHATAN KEUANGAN: BELUM ADA DATA", IF(F9<0, "  🩺 STATUS KESEHATAN KEUANGAN: 🔴 RUGI OPERASIONAL", IF(F9/B9>=0.2, "  🩺 STATUS KESEHATAN KEUANGAN: 🟢 PRIMA & PROFITABLE", "  🩺 STATUS KESEHATAN KEUANGAN: 🟡 SEHAT & BERJALAN BAIK")))`, `  🩺 STATUS KESEHATAN KEUANGAN:   ${dash_health.icon}  ${dash_health.label}`);
       healthTitle.font = { name: 'Calibri', bold: true, size: 12, color: { argb: dash_health.color } };
       healthTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
       healthTitle.alignment = { vertical: 'middle', horizontal: 'left' };
@@ -1133,16 +1140,16 @@ export default function ReportsPage() {
       // Key ratios row
       dr = dRow(22); fillRow(dr.number, DC.bg);
       const ratios = [
-        { label: 'Margin Laba', val: `${gpMargin.toFixed(1)}%`, color: gpMargin >= 20 ? DC.green : gpMargin >= 10 ? DC.teal : DC.orange, col: 'B' },
-        { label: 'ROI', val: `${dash_roi.toFixed(1)}%`, color: dash_roi >= 20 ? DC.gold : dash_roi >= 10 ? DC.green : DC.orange, col: 'D' },
-        { label: 'Total Transaksi', val: `${dash_txCount}`, color: DC.accent, col: 'F' },
-        { label: 'Total Akun Aktif', val: `${activeAccounts.length}`, color: DC.whiteD, col: 'H' },
-        { label: 'Jml. Produk', val: `${inventory.length}`, color: DC.orange, col: 'J' },
-        { label: 'Laba Bersih', val: fmtRp(dash_net), color: dash_net >= 0 ? DC.green : DC.red, col: 'L' },
+        { label: 'Margin Laba', valF: `IF(B9>0, TEXT(F9/B9, "0.0%"), "0.0%")`, color: gpMargin >= 20 ? DC.green : DC.orange, col: 'B' },
+        { label: 'ROI', valF: `IF(H9>0, TEXT(F9/H9, "0.0%"), "0.0%")`, color: dash_roi >= 20 ? DC.gold : DC.orange, col: 'D' },
+        { label: 'Total Transaksi', valF: `TEXT(COUNTIFS('Jurnal Umum'!A:A, ">="&$N$1, 'Jurnal Umum'!A:A, "<="&$O$1), "0")`, color: DC.accent, col: 'F' },
+        { label: 'Total Akun Aktif', valF: `TEXT(COUNTA('Daftar Akun'!B:B)-1, "0")`, color: DC.whiteD, col: 'H' },
+        { label: 'Jml. Produk', valF: `TEXT(COUNTA('Katalog Produk'!A:A)-1, "0")`, color: DC.orange, col: 'J' },
+        { label: 'Laba Bersih', valF: `TEXT(F9, """Rp"" #,##0")`, color: dash_net >= 0 ? DC.green : DC.red, col: 'L' },
       ];
       ratios.forEach(ratio => {
         const rCell = dashSheet.getCell(`${ratio.col}${dr.number}`);
-        rCell.value = `${ratio.label}: ${ratio.val}`;
+        rCell.value = fv(`"${ratio.label}: " & ${ratio.valF}`, `${ratio.label}: -`);
         rCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: ratio.color } };
         rCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } };
         rCell.alignment = { vertical: 'middle', horizontal: 'center' };
