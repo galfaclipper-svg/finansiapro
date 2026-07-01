@@ -408,30 +408,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const resetData = async () => {
     if (!user) return;
+    
+    // Optimistically clear local state immediately
+    setTransactions([]);
+    setInventory([]);
+    setClients([]);
+    setInvoices([]);
+
     try {
       // 1. Reset Company Profile
       await fsSetDoc(fsDoc(db, `users/${user.uid}/companyProfile`, 'data'), INITIAL_COMPANY_PROFILE);
+    } catch (e) { console.error('Error resetting profile', e); }
       
+    try {
       // 2. Clear all transactions
       const txSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`)));
       const txDeletes = txSnapshot.docs.map(doc => fsDeleteDoc(doc.ref));
       await Promise.all(txDeletes);
+    } catch (e) { console.error('Error clearing transactions', e); }
       
+    try {
       // 3. Clear all inventory
       const invSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`)));
       const invDeletes = invSnapshot.docs.map(doc => fsDeleteDoc(doc.ref));
       await Promise.all(invDeletes);
+    } catch (e) { console.error('Error clearing inventory', e); }
 
+    try {
       // 4. Clear clients and invoices
       const clSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`)));
       await Promise.all(clSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
+    } catch (e) { console.error('Error clearing clients', e); }
 
+    try {
       const ivSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`)));
       await Promise.all(ivSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
-
-    } catch (err) {
-       console.error('Error resetting data', err);
-    }
+    } catch (e) { console.error('Error clearing invoices', e); }
   };
 
   const restoreBackupData = async (data: any) => {
