@@ -243,13 +243,16 @@ export default function SettingsPage() {
             invoices: invoices || [],
             accounts: accounts || [],
         };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const jsonStr = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const dataUrl = URL.createObjectURL(blob);
         const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("href", dataUrl);
         downloadAnchorNode.setAttribute("download", `Backup_FinansiaProf_${new Date().toISOString().split('T')[0]}.json`);
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
+        URL.revokeObjectURL(dataUrl);
         const totalRecords = (transactions?.length || 0) + (inventory?.length || 0) + (clients?.length || 0) + (invoices?.length || 0);
         toast({ title: "Backup Berhasil", description: `File backup JSON berhasil diunduh. Total ${totalRecords} record tersimpan.` });
     };
@@ -279,7 +282,11 @@ export default function SettingsPage() {
                 try {
                     data = JSON.parse(raw);
                 } catch {
-                    throw new Error('File bukan JSON yang valid. Pastikan file tidak rusak.');
+                    try {
+                        data = JSON.parse(decodeURIComponent(raw));
+                    } catch {
+                        throw new Error('File bukan JSON yang valid. Pastikan file tidak rusak.');
+                    }
                 }
 
                 // Accept backup if it has at least one recognizable key
