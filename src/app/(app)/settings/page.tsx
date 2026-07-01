@@ -51,7 +51,7 @@ export default function SettingsPage() {
     });
 
     function onSubmit(data: ProfileFormValues) {
-        setCompanyProfile(prev => ({...prev, ...data}));
+        setCompanyProfile(prev => ({...prev, ...data, logoUrl: logoPreview || prev.logoUrl}));
         toast({
             title: "Profil Diperbarui",
             description: "Detail perusahaan Anda telah disimpan.",
@@ -80,12 +80,40 @@ export default function SettingsPage() {
         const reader = new FileReader();
         reader.onload = (e) => {
             const dataUrl = e.target?.result as string;
-            setLogoPreview(dataUrl);
-            setCompanyProfile(prev => ({ ...prev, logoUrl: dataUrl }));
-            toast({
-                title: "Logo Diperbarui",
-                description: "Logo perusahaan Anda telah diunggah.",
-            });
+            
+            // Compress image using Canvas
+            const img = new window.Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 400;
+
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    setLogoPreview(compressedDataUrl);
+                    // Do not auto-save immediately, let them click "Simpan Perubahan"
+                    // Or keep the auto-save if they prefer, but it's better to let them save manually
+                }
+            };
+            img.src = dataUrl;
         };
         reader.readAsDataURL(file);
         
