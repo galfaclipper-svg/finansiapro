@@ -123,12 +123,14 @@ export default function SettingsPage() {
                 }));
 
                 const entriesById = mappedData.reduce((acc, row) => {
-                    const id = row.ID;
+                    let id = row.ID;
+                    if (id && typeof id === 'object') id = id.result || id.v || id.value || '';
+                    id = id ? String(id).trim() : '';
                     if (!id) return acc;
                     if (!acc[id]) {
                         acc[id] = [];
                     }
-                    acc[id].push(row);
+                    acc[id].push({ ...row, ID: id });
                     return acc;
                 }, {} as { [key: string]: any[] });
 
@@ -195,15 +197,16 @@ export default function SettingsPage() {
                 // Since this is a simple fix without refactoring app-provider, we'll just keep setTransactions for now but add a warning, or I can import the Firebase utilities here.
                 
                 // Let's import the Firebase utilities and save them to Firestore.
-                const { db, fsSetDoc, fsDoc } = await import('@/lib/firebase');
+                const { db } = await import('@/lib/firebase');
+                const { setDoc, doc } = await import('firebase/firestore');
                 const { getAuth } = await import('firebase/auth');
                 const auth = getAuth();
                 const currentUser = auth.currentUser;
                 
                 if (currentUser) {
-                    const txPromises = importedTransactions.map((tx) => 
-                        fsSetDoc(fsDoc(db, `users/${currentUser.uid}/transactions`, tx.id), tx)
-                    );
+                    const txPromises = importedTransactions.map((tx) => {
+                        return setDoc(doc(db, `users/${currentUser.uid}/transactions`, String(tx.id)), tx);
+                    });
                     await Promise.all(txPromises);
                 }
 
