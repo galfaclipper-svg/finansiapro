@@ -8,8 +8,14 @@ import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/auth-provider';
+
+const ADMIN_EMAIL = 'wisesaniskala@gmail.com';
 
 export function SecretAdminGate({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+    const isAdmin = user?.email === ADMIN_EMAIL;
+
     const [clickCount, setClickCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const [password, setPassword] = useState('');
@@ -18,6 +24,9 @@ export function SecretAdminGate({ children }: { children: React.ReactNode }) {
     const { toast } = useToast();
 
     useEffect(() => {
+        // Hanya aktif untuk admin
+        if (!isAdmin) return;
+
         if (clickCount >= 7) {
             setIsOpen(true);
             setClickCount(0);
@@ -30,13 +39,13 @@ export function SecretAdminGate({ children }: { children: React.ReactNode }) {
         }, 1200);
 
         return () => clearTimeout(timer);
-    }, [clickCount]);
+    }, [clickCount, isAdmin]);
 
     const handleVerify = async () => {
         if (!password) return;
         setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, 'wisesaniskala@gmail.com', password);
+            await signInWithEmailAndPassword(auth, ADMIN_EMAIL, password);
             setIsOpen(false);
             setPassword('');
             router.push('/admin');
@@ -47,12 +56,15 @@ export function SecretAdminGate({ children }: { children: React.ReactNode }) {
         setLoading(false);
     };
 
+    // Untuk user biasa: render children saja tanpa klik rahasia
+    if (!isAdmin) {
+        return <>{children}</>;
+    }
+
     return (
         <>
             <div 
-               onClick={(e) => {
-                   setClickCount(prev => prev + 1);
-               }} 
+               onClick={() => setClickCount(prev => prev + 1)} 
                className="cursor-pointer inline-flex items-center"
             >
                 {children}
