@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BarChart3, ScanLine, FileSpreadsheet, Calculator, ShieldCheck, Zap, AlertOctagon, CheckCircle2, Star, Download, Printer } from 'lucide-react';
+import { ArrowRight, BarChart3, ScanLine, FileSpreadsheet, Calculator, ShieldCheck, Zap, AlertOctagon, CheckCircle2, Star, Download, Printer, PlayCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 
@@ -67,6 +67,34 @@ export default function LandingPage() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Video Showcase Section */}
+        <section id="demo" className="w-full pb-20 pt-4 bg-slate-950 relative z-20">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight mb-3 text-white">Lihat Kehebatan Tools Ini</h2>
+              <p className="text-slate-400 max-w-2xl mx-auto text-base">Saksikan secara langsung bagaimana FinansiaProf dapat mengotomatiskan pembukuan bisnis Anda dalam hitungan menit.</p>
+            </div>
+            
+            <div className="max-w-4xl mx-auto rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.15)] relative aspect-video group">
+              {/* Nanti ganti link youtube di atribut src ini dengan link video Anda */}
+              <iframe 
+                className="w-full h-full absolute inset-0 z-10"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&showinfo=0" 
+                title="FinansiaProf Demo Video" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+              
+              {/* Overlay loading state untuk iframe (opsional) */}
+              <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-0">
+                 <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                 <span className="text-slate-400 font-medium">Memuat Video Demo...</span>
+              </div>
             </div>
           </div>
         </section>
