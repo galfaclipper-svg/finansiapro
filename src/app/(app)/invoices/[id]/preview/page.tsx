@@ -137,8 +137,7 @@ export default function InvoicePreviewPage() {
             )}
             <div className="text-sm text-gray-500">
               <p>{companyProfile.address || "Alamat Perusahaan"}</p>
-              <p>{companyProfile.phone || "No. Telepon"}</p>
-              <p>{companyProfile.email || "Email"}</p>
+              <p>{companyProfile.contact || "No. Telepon / Email"}</p>
             </div>
           </div>
           <div className="text-right">

@@ -87,7 +87,7 @@ export interface PlannerState {
   targetUnits: number;
 }
 
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
 export type InvoiceItem = {
   id: string;
@@ -103,6 +103,7 @@ export type Client = {
   email?: string;
   phone?: string;
   address?: string;
+  notes?: string; // from client
 };
 
 export type Invoice = {

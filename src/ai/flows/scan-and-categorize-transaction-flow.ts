@@ -11,6 +11,9 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const ScanAndCategorizeTransactionInputSchema = z.object({
+  idToken: z
+    .string()
+    .describe('The Firebase Auth ID Token for verifying the user.'),
   imageDataUri: z
     .string()
     .describe(
@@ -72,6 +75,21 @@ const scanAndCategorizeTransactionFlow = ai.defineFlow(
     outputSchema: ScanAndCategorizeTransactionOutputSchema,
   },
   async input => {
+    // 1. Verify User Token
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey) throw new Error("Konfigurasi server tidak valid.");
+    
+    const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: input.idToken })
+    });
+    
+    if (!verifyRes.ok) {
+        throw new Error("Unauthorized: Token keamanan tidak valid atau telah kedaluwarsa.");
+    }
+
+    // 2. Scan image
     const {output} = await prompt(input);
     return output!;
   }

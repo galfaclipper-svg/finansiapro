@@ -82,20 +82,24 @@ export function InvoiceForm() {
     try {
       const timestamp = Date.now();
       const invoiceNumber = `INV-${timestamp}`;
+      const client = clients.find(c => c.id === values.clientId);
       
       await addInvoice({
-        number: invoiceNumber,
+        invoiceNumber: invoiceNumber,
         clientId: values.clientId,
-        date: values.date,
+        clientName: client?.name || "Pelanggan Tidak Diketahui",
+        discount: 0,
+        issueDate: values.date,
         dueDate: values.dueDate,
         items: values.items.map(item => ({
           ...item,
-          total: item.quantity * item.unitPrice,
+          id: crypto.randomUUID(),
+          amount: item.quantity * item.unitPrice,
         })),
-        subTotal,
+        subtotal: subTotal,
         taxRate,
         taxAmount,
-        totalAmount,
+        total: totalAmount,
         status: "draft",
         notes: values.notes || "",
       });

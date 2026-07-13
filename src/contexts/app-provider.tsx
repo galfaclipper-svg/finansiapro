@@ -35,7 +35,7 @@ interface AppContextType {
   invoices: Invoice[];
   setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
   addInvoice: (invoice: Omit<Invoice, 'id'>) => Promise<void>;
-  updateInvoice: (invoiceId: string, invoice: Omit<Invoice, 'id'>) => Promise<void>;
+  updateInvoice: (invoice: Invoice) => Promise<void>;
   deleteInvoice: (invoiceId: string) => Promise<void>;
   accounts: Account[];
   addAccount: (account: Account) => Promise<void>;
@@ -368,8 +368,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const clientName = client ? client.name : "Pelanggan Tidak Diketahui";
         await addTransaction({
           date: new Date().toISOString().split('T')[0],
-          description: `Pembayaran Invoice #${updatedInvoice.number} - ${clientName}`,
-          amount: updatedInvoice.totalAmount,
+          description: `Pembayaran Invoice #${updatedInvoice.invoiceNumber} - ${clientName}`,
+          amount: updatedInvoice.total,
           type: 'cash-in',
           accountId: 'Kas Bank BCA', // Default, should be selectable if we update UI later
           category: 'Pendapatan Jasa', // Assuming default revenue account

@@ -125,7 +125,14 @@ export function AiSummary() {
     const balanceSheet = `Neraca (Posisi Akhir Periode):\n- Total Aset: ${formatCurrency(reportData.balanceSheet.totalAssets)}\n- Total Kewajiban: ${formatCurrency(reportData.balanceSheet.totalLiabilities)}\n- Total Ekuitas: ${formatCurrency(reportData.balanceSheet.totalEquity)}`;
 
     try {
+      const auth = (await import('@/lib/firebase')).auth;
+      const user = auth.currentUser;
+      if (!user) throw new Error("Pengguna tidak terautentikasi.");
+      
+      const idToken = await user.getIdToken();
+
       const result = await financialReportInsights({
+        idToken,
         incomeStatement,
         balanceSheet,
       });

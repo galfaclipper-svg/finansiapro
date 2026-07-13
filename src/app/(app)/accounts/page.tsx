@@ -174,7 +174,7 @@ export default function AccountsPage() {
                   <div className="flex items-center gap-2">
                     {account.name}
                     {account.isSystem && (
-                      <ShieldAlert className="h-3 w-3 text-amber-500" title="Akun Sistem" />
+                      <ShieldAlert className="h-3 w-3 text-amber-500" />
                     )}
                   </div>
                 </TableCell>
@@ -185,18 +185,18 @@ export default function AccountsPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleOpenDialog(account)}
-                    title="Edit"
                   >
                     <Edit2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="sr-only">Edit</span>
                   </Button>
                   {!account.isSystem && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(account.id)}
-                      title="Hapus"
                     >
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <span className="sr-only">Hapus</span>
                     </Button>
                   )}
                 </TableCell>

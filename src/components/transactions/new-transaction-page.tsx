@@ -241,7 +241,14 @@ export default function NewTransactionPage() {
       // Run async server action
       (async () => {
         try {
+          const auth = (await import('@/lib/firebase')).auth;
+          const user = auth.currentUser;
+          if (!user) throw new Error("Pengguna tidak terautentikasi.");
+          
+          const idToken = await user.getIdToken();
+
           const result = await scanAndCategorizeTransaction({
+            idToken,
             imageDataUri: compressedDataUri,
             coaCategories: activeAccounts.map(acc => acc.name),
           });

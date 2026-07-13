@@ -20,7 +20,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function InventoryPage() {
-    const { companyProfile, inventory, transactions, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useAppState();
+    const { companyProfile, inventory, transactions, addInventoryItem, updateInventoryItem, deleteInventoryItem, addTransaction } = useAppState();
     const { toast } = useToast();
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);

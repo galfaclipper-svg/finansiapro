@@ -93,7 +93,7 @@ export function DatePickerWithRange({
             onSelect={setDate}
             numberOfMonths={typeof window !== 'undefined' && window.innerWidth < 768 ? 1 : 2}
             locale={id}
-            captionLayout="dropdown-buttons"
+            captionLayout="dropdown"
             fromYear={2020}
             toYear={new Date().getFullYear() + 5}
           />

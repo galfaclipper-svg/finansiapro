@@ -39,19 +39,19 @@ export default function InvoicesPage() {
       const lowerQuery = searchQuery.toLowerCase();
       result = result.filter(inv => {
         const cName = getClientName(inv.clientId).toLowerCase();
-        return inv.number.toLowerCase().includes(lowerQuery) || cName.includes(lowerQuery);
+        return inv.invoiceNumber.toLowerCase().includes(lowerQuery) || cName.includes(lowerQuery);
       });
     }
 
     result.sort((a, b) => {
       if (sortBy === "date-desc") {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime();
       } else if (sortBy === "date-asc") {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        return new Date(a.issueDate).getTime() - new Date(b.issueDate).getTime();
       } else if (sortBy === "amount-desc") {
-        return b.totalAmount - a.totalAmount;
+        return b.total - a.total;
       } else if (sortBy === "amount-asc") {
-        return a.totalAmount - b.totalAmount;
+        return a.total - b.total;
       }
       return 0;
     });
@@ -109,7 +109,7 @@ export default function InvoicesPage() {
     if (invoiceToDelete) {
       const invoice = invoices.find((inv) => inv.id === invoiceToDelete);
       await deleteInvoice(invoiceToDelete);
-      toast({ title: "Tagihan Dihapus", description: `Tagihan ${invoice?.number} telah dihapus.` });
+      toast({ title: "Tagihan Dihapus", description: `Tagihan ${invoice?.invoiceNumber} telah dihapus.` });
       setIsAlertOpen(false);
       setInvoiceToDelete(null);
     }

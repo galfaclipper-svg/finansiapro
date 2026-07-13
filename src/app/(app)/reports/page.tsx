@@ -433,7 +433,7 @@ export default function ReportsPage() {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
       };
       const styleDashBtn = (cell: any) => {
-        cell.value     = { text: '📊 DASH', hyperlink: `#'📊 DASHBOARD'!A1` };
+        cell.value     = { text: '📊 DASH', hyperlink: `#'DASHBOARD'!A1` };
         cell.font      = { name: 'Calibri', bold: true, size: 9, color: { argb: C.white } };
         cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6C5CE7' } };
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -469,7 +469,7 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       // DASHBOARD — Power BI Executive Summary (Tab pertama)
       // ═══════════════════════════════════════════════════════════
-      const DASH_NAME = '📊 DASHBOARD';
+      const DASH_NAME = 'DASHBOARD';
       const dashSheet = workbook.addWorksheet(DASH_NAME);
       dashSheet.views = [{ showGridLines: false, zoomScale: 85 }];
       dashSheet.pageSetup.paperSize    = 9;
@@ -614,28 +614,40 @@ export default function ReportsPage() {
       h2badge.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: dash_health.color } };
       h2badge.alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // Row 3 — Dashboard Controls
+      // Row 3 — Dashboard Controls (Start Date)
       dr = dRow(20); fillRow(dr.number, DC.bg);
       
-      const lbl1 = dashSheet.getCell(`B${dr.number}`); lbl1.value = 'Filter Tahun:'; lbl1.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl1.alignment = { horizontal: 'right', vertical: 'middle' };
-      const yrCell = dashSheet.getCell(`C${dr.number}`);
-      yrCell.value = new Date().getFullYear(); yrCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; yrCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; yrCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      dashSheet.dataValidations.add(`C${dr.number}:C${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"2023,2024,2025,2026,2027,2028,2029,2030"'] });
+      const lbl1 = dashSheet.getCell(`B${dr.number}`); lbl1.value = 'Tahun Awal:'; lbl1.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl1.alignment = { horizontal: 'right', vertical: 'middle' };
+      const yr1Cell = dashSheet.getCell(`D${dr.number}`);
+      yr1Cell.value = new Date().getFullYear(); yr1Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; yr1Cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; yr1Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      dashSheet.dataValidations.add(`D${dr.number}:D${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"2023,2024,2025,2026,2027,2028,2029,2030"'] });
 
-      const lbl2 = dashSheet.getCell(`D${dr.number}`); lbl2.value = 'Dari Bulan:'; lbl2.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl2.alignment = { horizontal: 'right', vertical: 'middle' };
-      const mo1Cell = dashSheet.getCell(`E${dr.number}`);
+      const lbl2 = dashSheet.getCell(`F${dr.number}`); lbl2.value = 'Bulan Awal:'; lbl2.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl2.alignment = { horizontal: 'right', vertical: 'middle' };
+      const mo1Cell = dashSheet.getCell(`H${dr.number}`);
       mo1Cell.value = 1; mo1Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; mo1Cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; mo1Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      dashSheet.dataValidations.add(`E${dr.number}:E${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"1,2,3,4,5,6,7,8,9,10,11,12"'] });
+      dashSheet.dataValidations.add(`H${dr.number}:H${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"1,2,3,4,5,6,7,8,9,10,11,12"'] });
+      
+      const sdRow = dr.number;
 
-      const lbl3 = dashSheet.getCell(`F${dr.number}`); lbl3.value = 's.d Bulan:'; lbl3.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl3.alignment = { horizontal: 'right', vertical: 'middle' };
-      const mo2Cell = dashSheet.getCell(`G${dr.number}`);
+      // Row 4 — Dashboard Controls (End Date)
+      dr = dRow(20); fillRow(dr.number, DC.bg);
+      
+      const lbl3 = dashSheet.getCell(`B${dr.number}`); lbl3.value = 'Tahun Akhir:'; lbl3.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl3.alignment = { horizontal: 'right', vertical: 'middle' };
+      const yr2Cell = dashSheet.getCell(`D${dr.number}`);
+      yr2Cell.value = new Date().getFullYear(); yr2Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; yr2Cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; yr2Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      dashSheet.dataValidations.add(`D${dr.number}:D${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"2023,2024,2025,2026,2027,2028,2029,2030"'] });
+
+      const lbl4 = dashSheet.getCell(`F${dr.number}`); lbl4.value = 'Bulan Akhir:'; lbl4.font = { name: 'Calibri', size: 10, italic: true, color: { argb: DC.whiteD } }; lbl4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.bg } }; lbl4.alignment = { horizontal: 'right', vertical: 'middle' };
+      const mo2Cell = dashSheet.getCell(`H${dr.number}`);
       mo2Cell.value = 12; mo2Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyLt } }; mo2Cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: DC.white } }; mo2Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      dashSheet.dataValidations.add(`G${dr.number}:G${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"1,2,3,4,5,6,7,8,9,10,11,12"'] });
+      dashSheet.dataValidations.add(`H${dr.number}:H${dr.number}`, { type: 'list', allowBlank: false, formulae: ['"1,2,3,4,5,6,7,8,9,10,11,12"'] });
+      
+      const edRow = dr.number;
 
-      const sdCell = dashSheet.getCell(`N1`); sdCell.value = { formula: `DATE(C${dr.number}, E${dr.number}, 1)` };
-      const edCell = dashSheet.getCell(`O1`); edCell.value = { formula: `EOMONTH(DATE(C${dr.number}, G${dr.number}, 1), 0)` };
+      const sdCell = dashSheet.getCell(`N1`); sdCell.value = { formula: `DATE(D${sdRow}, H${sdRow}, 1)` };
+      const edCell = dashSheet.getCell(`O1`); edCell.value = { formula: `EOMONTH(DATE(D${edRow}, H${edRow}, 1), 0)` };
 
-      // Row 4 — accent line
+      // Row 5 — accent line
       dr = dRow(5); fillRow(dr.number, DC.accent);
 
       // ════════════════════════════════════════════════════════
@@ -1405,7 +1417,7 @@ export default function ReportsPage() {
         const r = acctSheet.addRow([acc.id, acc.name, acc.type]); r.height = 18; const alt = idx % 2 === 1;
         styleData(r.getCell(1), alt); styleData(r.getCell(2), alt); styleData(r.getCell(3), alt);
         const rn = r.number;
-        r.getCell(4).value = { formula: `IF(OR(C${rn}="Assets", C${rn}="Expenses"), SUMIFS('Jurnal Umum'!E:E, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1) - SUMIFS('Jurnal Umum'!F:F, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1), SUMIFS('Jurnal Umum'!F:F, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1) - SUMIFS('Jurnal Umum'!E:E, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'📊 DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'📊 DASHBOARD'!$O$1))` };
+        r.getCell(4).value = { formula: `IF(OR(C${rn}="Assets", C${rn}="Expenses"), SUMIFS('Jurnal Umum'!E:E, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'DASHBOARD'!$O$1) - SUMIFS('Jurnal Umum'!F:F, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'DASHBOARD'!$O$1), SUMIFS('Jurnal Umum'!F:F, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'DASHBOARD'!$O$1) - SUMIFS('Jurnal Umum'!E:E, 'Jurnal Umum'!C:C, B${rn}, 'Jurnal Umum'!A:A, ">="&'DASHBOARD'!$N$1, 'Jurnal Umum'!A:A, "<="&'DASHBOARD'!$O$1))` };
         r.getCell(4).numFmt = nFmt; styleData(r.getCell(4), alt, true);
         styleMenuBtn(r.getCell(5), 'DAFTAR ISI'); styleDashBtn(r.getCell(6));
       });

@@ -7,7 +7,7 @@ import type { Invoice, Client } from "./types";
 export const exportInvoiceToExcel = async (
   invoice: Invoice,
   client: Client,
-  companyProfile: { name: string; email: string; phone: string; address: string }
+  companyProfile: { name: string; contact?: string; address: string }
 ) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = companyProfile.name;
@@ -86,12 +86,12 @@ export const exportInvoiceToExcel = async (
   titleCell.alignment = { vertical: "middle", horizontal: "right" };
 
   printSheet.mergeCells("D3:E3");
-  printSheet.getCell("D3").value = `No. Tagihan: ${invoice.number}`;
+  printSheet.getCell("D3").value = `No. Tagihan: ${invoice.invoiceNumber}`;
   printSheet.getCell("D3").alignment = { horizontal: "right" };
   printSheet.getCell("D3").font = boldFont;
 
   printSheet.mergeCells("D4:E4");
-  const tglFmt = format(new Date(invoice.date), "dd MMMM yyyy", { locale: dateFnsId });
+  const tglFmt = format(new Date(invoice.issueDate), "dd MMMM yyyy", { locale: dateFnsId });
   printSheet.getCell("D4").value = `Tanggal: ${tglFmt}`;
   printSheet.getCell("D4").alignment = { horizontal: "right" };
 
@@ -126,10 +126,10 @@ export const exportInvoiceToExcel = async (
   printSheet.getCell("B8").value = companyProfile.address;
   
   printSheet.mergeCells("B9:C9");
-  printSheet.getCell("B9").value = companyProfile.phone;
+  printSheet.getCell("B9").value = companyProfile.contact;
   
   printSheet.mergeCells("B10:C10");
-  printSheet.getCell("B10").value = companyProfile.email;
+  printSheet.getCell("B10").value = "";
 
   // Row 12-15: Kepada Pelanggan
   printSheet.getCell("B12").value = "Ditagihkan Kepada:";
@@ -174,7 +174,7 @@ export const exportInvoiceToExcel = async (
     printSheet.getCell(`D${currentRow}`).border = borderAll;
     printSheet.getCell(`D${currentRow}`).alignment = { horizontal: "right" };
     
-    printSheet.getCell(`E${currentRow}`).value = item.total;
+    printSheet.getCell(`E${currentRow}`).value = item.amount;
     printSheet.getCell(`E${currentRow}`).numFmt = '"Rp"#,##0.00';
     printSheet.getCell(`E${currentRow}`).border = borderAll;
     printSheet.getCell(`E${currentRow}`).alignment = { horizontal: "right" };
@@ -188,7 +188,7 @@ export const exportInvoiceToExcel = async (
   // Subtotal
   printSheet.getCell(`D${currentRow}`).value = "Subtotal";
   printSheet.getCell(`D${currentRow}`).font = normalFont;
-  printSheet.getCell(`E${currentRow}`).value = invoice.subTotal;
+  printSheet.getCell(`E${currentRow}`).value = invoice.subtotal;
   printSheet.getCell(`E${currentRow}`).numFmt = '"Rp"#,##0.00';
   printSheet.getCell(`E${currentRow}`).alignment = { horizontal: "right" };
   
@@ -206,7 +206,7 @@ export const exportInvoiceToExcel = async (
   currentRow++;
   printSheet.getCell(`D${currentRow}`).value = "TOTAL TAGIHAN";
   printSheet.getCell(`D${currentRow}`).font = boldFont;
-  printSheet.getCell(`E${currentRow}`).value = invoice.totalAmount;
+  printSheet.getCell(`E${currentRow}`).value = invoice.total;
   printSheet.getCell(`E${currentRow}`).font = boldFont;
   printSheet.getCell(`E${currentRow}`).numFmt = '"Rp"#,##0.00';
   printSheet.getCell(`E${currentRow}`).alignment = { horizontal: "right" };
@@ -240,14 +240,14 @@ export const exportInvoiceToExcel = async (
   ];
 
   invoiceDataSheet.addRow({
-    number: invoice.number,
-    date: format(new Date(invoice.date), "yyyy-MM-dd"),
+    number: invoice.invoiceNumber,
+    date: format(new Date(invoice.issueDate), "yyyy-MM-dd"),
     dueDate: format(new Date(invoice.dueDate), "yyyy-MM-dd"),
     clientId: invoice.clientId,
-    subTotal: invoice.subTotal,
+    subTotal: invoice.subtotal,
     taxRate: invoice.taxRate,
     taxAmount: invoice.taxAmount,
-    totalAmount: invoice.totalAmount,
+    totalAmount: invoice.total,
     status: invoice.status,
     notes: invoice.notes,
   });
@@ -288,5 +288,5 @@ export const exportInvoiceToExcel = async (
   // Generate Excel Buffer and Save
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  saveAs(blob, `Invoice_${invoice.number}.xlsx`);
+  saveAs(blob, `Invoice_${invoice.invoiceNumber}.xlsx`);
 };
