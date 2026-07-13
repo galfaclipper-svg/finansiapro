@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-provider';
 import { licenseService } from '@/lib/license-service';
-import { ShieldAlert, KeyRound, ArrowRight, Loader2, CheckCircle2, MessageCircle, Mail } from 'lucide-react';
+import { ShieldAlert, KeyRound, ArrowRight, Loader2, CheckCircle2, MessageCircle, Mail, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,6 +11,7 @@ export default function EnterLicensePage() {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showCode, setShowCode] = useState(false);
   const { user, logout } = useAuth();
   const { toast } = useToast();
 
@@ -79,13 +80,22 @@ export default function EnterLicensePage() {
                 </div>
                 <input
                   id="license-code"
-                  type="text"
+                  type={showCode ? 'text' : 'password'}
                   placeholder="Contoh: ABCD-1234"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   required
-                  className="pl-10 block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-gray-900 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary uppercase tracking-widest transition-colors font-mono"
+                  className="pl-10 pr-12 block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-gray-900 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary uppercase tracking-widest transition-colors font-mono"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowCode(v => !v)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-700 transition-colors"
+                  tabIndex={-1}
+                  aria-label={showCode ? 'Sembunyikan kode' : 'Tampilkan kode'}
+                >
+                  {showCode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
