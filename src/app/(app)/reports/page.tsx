@@ -2161,10 +2161,12 @@ export default function ReportsPage() {
               <Label htmlFor="selectAll" className="font-bold">Pilih Semua</Label>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Checkbox id="repDashboard" checked={selectedReports.dashboard} onCheckedChange={(c) => setSelectedReports(p => ({...p, dashboard: !!c}))} />
-              <Label htmlFor="repDashboard">Executive Dashboard</Label>
-            </div>
+            {downloadFormat === 'XLSX' && (
+              <div className="flex items-center space-x-2">
+                <Checkbox id="repDashboard" checked={selectedReports.dashboard} onCheckedChange={(c) => setSelectedReports(p => ({...p, dashboard: !!c}))} />
+                <Label htmlFor="repDashboard">Executive Dashboard (Khusus Excel)</Label>
+              </div>
+            )}
             <div className="flex items-center space-x-2">
               <Checkbox id="repLabaRugi" checked={selectedReports.labaRugi} onCheckedChange={(c) => setSelectedReports(p => ({...p, labaRugi: !!c}))} />
               <Label htmlFor="repLabaRugi">Laporan Laba Rugi</Label>
