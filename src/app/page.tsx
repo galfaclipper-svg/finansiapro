@@ -80,10 +80,9 @@ export default function LandingPage() {
             </div>
             
             <div className="max-w-4xl mx-auto rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.15)] relative aspect-video group">
-              {/* Nanti ganti link youtube di atribut src ini dengan link video Anda */}
               <iframe 
                 className="w-full h-full absolute inset-0 z-10"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&showinfo=0" 
+                src="https://www.youtube.com/embed/JK8a2XPCzCM?rel=0&showinfo=0" 
                 title="FinansiaProf Demo Video" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
