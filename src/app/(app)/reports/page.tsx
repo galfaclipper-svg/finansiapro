@@ -48,7 +48,7 @@ export default function ReportsPage() {
     const today = new Date();
 
     transactions.forEach(t => {
-      if (['Peralatan', 'Aset Tak Berwujud'].includes(t.category) && t.amount > 0 && t.usefulLifeInMonths) {
+      if (['Peralatan', 'Aset Tak Berwujud'].includes(t.category) && t.amount > 0 && t.usefulLifeInMonths && t.autoDepreciation !== false) {
         const cost = t.amount;
         const salvage = t.salvageValue || 0;
         const lifeMonths = t.usefulLifeInMonths;
@@ -145,6 +145,20 @@ export default function ReportsPage() {
           { ...t, entryType: 'Debit', accountName: toAccount, amount: t.amount },
           { ...t, entryType: 'Credit', accountName: cashAccountName, amount: t.amount }
         ];
+      }
+
+      // Handle Manual Journal Entries (Adjustments)
+      if (t.type === 'journal-entry' && t.journalLines) {
+        return t.journalLines.flatMap((line: any) => {
+          const lines = [];
+          if (line.debit && line.debit > 0) {
+            lines.push({ ...t, entryType: 'Debit', accountName: line.accountId, amount: line.debit });
+          }
+          if (line.credit && line.credit > 0) {
+            lines.push({ ...t, entryType: 'Credit', accountName: line.accountId, amount: line.credit });
+          }
+          return lines;
+        });
       }
 
       // Standard cash transactions

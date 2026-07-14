@@ -71,6 +71,19 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+const ENTERPRISE_NAV_ITEMS: NavItem[] = [
+  {
+    title: 'Jurnal Penyesuaian',
+    href: '/adjustments',
+    icon: <ReceiptText size={20} />, // You might want a different icon like BookOpen
+  },
+  {
+    title: 'Tutup Buku',
+    href: '/closing',
+    icon: <Calculator size={20} />, // Or Lock
+  },
+];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { companyProfile } = useAppState();
 
@@ -111,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarNav items={NAV_ITEMS} />
+          <SidebarNav items={companyProfile?.isEnterpriseMode ? [...NAV_ITEMS.slice(0, 3), ...ENTERPRISE_NAV_ITEMS, ...NAV_ITEMS.slice(3)] : NAV_ITEMS} />
         </SidebarContent>
         <SidebarFooter>
             <SidebarSeparator/>

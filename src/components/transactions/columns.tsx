@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { id as dateFnsId } from 'date-fns/locale';
 import { useAppState } from "@/hooks/use-app-state"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export const columns: ColumnDef<Transaction>[] = [
     {
@@ -113,13 +114,33 @@ export const columns: ColumnDef<Transaction>[] = [
 ]
 
 const ActionCell = ({ transaction }: { transaction: Transaction }) => {
-  const { deleteTransaction } = useAppState();
+  const { deleteTransaction, companyProfile } = useAppState();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const isClosed = (() => {
+    if (!companyProfile?.isEnterpriseMode) return false;
+    const date = new Date(transaction.date);
+    const period = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    return companyProfile.closedPeriods?.includes(period) ?? false;
+  })();
 
   const handleDelete = async () => {
+    if (isClosed) {
+      toast({ variant: 'destructive', title: 'Terkunci', description: 'Transaksi pada periode tutup buku tidak dapat dihapus.' });
+      return;
+    }
     if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
       await deleteTransaction(transaction.id);
     }
+  };
+
+  const handleEdit = () => {
+    if (isClosed) {
+      toast({ variant: 'destructive', title: 'Terkunci', description: 'Transaksi pada periode tutup buku tidak dapat diubah.' });
+      return;
+    }
+    router.push(`/transactions/edit/${transaction.id}`);
   };
 
   return (
@@ -138,7 +159,7 @@ const ActionCell = ({ transaction }: { transaction: Transaction }) => {
           Salin ID transaksi
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push(`/transactions/edit/${transaction.id}`)}>Ubah transaksi</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleEdit}>Ubah transaksi</DropdownMenuItem>
         <DropdownMenuItem className="text-destructive" onClick={handleDelete}>Hapus transaksi</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

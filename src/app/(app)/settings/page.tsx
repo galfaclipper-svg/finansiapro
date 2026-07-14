@@ -21,10 +21,13 @@ import type { Transaction } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { INITIAL_COMPANY_PROFILE } from '@/lib/constants';
 import { ReportRecipientsManager } from '@/components/settings/report-recipients';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 const profileSchema = z.object({
   name: z.string().min(3, "Nama perusahaan minimal 3 karakter."),
   address: z.string().min(10, "Alamat terlalu pendek."),
+  isEnterpriseMode: z.boolean().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -47,6 +50,7 @@ export default function SettingsPage() {
         defaultValues: {
             name: companyProfile.name,
             address: companyProfile.address,
+            isEnterpriseMode: companyProfile.isEnterpriseMode || false,
         },
     });
 
@@ -367,12 +371,14 @@ export default function SettingsPage() {
       {/* Mobile Shortcut Menu (Only visible on small screens) */}
       <div className="md:hidden grid grid-cols-2 gap-3 mb-6">
         {[
-          { title: 'Inventaris', href: '/inventory', icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { title: 'Pelanggan', href: '/clients', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { title: 'Tagihan', href: '/invoices', icon: FileText, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-          { title: 'Bagan Akun', href: '/accounts', icon: ListTree, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-          { title: 'Perencanaan', href: '/business-planner', icon: Briefcase, color: 'text-rose-500', bg: 'bg-rose-500/10' },
-        ].map(item => (
+          { title: 'Inventaris', href: '/inventory', icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10', show: true },
+          { title: 'Pelanggan', href: '/clients', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-500/10', show: true },
+          { title: 'Tagihan', href: '/invoices', icon: FileText, color: 'text-purple-500', bg: 'bg-purple-500/10', show: true },
+          { title: 'Bagan Akun', href: '/accounts', icon: ListTree, color: 'text-orange-500', bg: 'bg-orange-500/10', show: true },
+          { title: 'Perencanaan', href: '/business-planner', icon: Briefcase, color: 'text-rose-500', bg: 'bg-rose-500/10', show: true },
+          { title: 'Penyesuaian', href: '/adjustments', icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-500/10', show: companyProfile.isEnterpriseMode },
+          { title: 'Tutup Buku', href: '/closing', icon: Database, color: 'text-red-500', bg: 'bg-red-500/10', show: companyProfile.isEnterpriseMode },
+        ].filter(item => item.show).map(item => (
           <Link key={item.href} href={item.href}>
             <div className="flex items-center justify-between p-3 bg-card border rounded-lg shadow-sm active:scale-95 transition-transform">
               <div className="flex items-center gap-3">
@@ -440,6 +446,32 @@ export default function SettingsPage() {
                         </label>
                     </Button>
                    </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-border">
+                   <FormField
+                      control={form.control}
+                      name="isEnterpriseMode"
+                      render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                              <div className="space-y-0.5">
+                                  <FormLabel className="text-base flex items-center gap-2">
+                                      Mode Enterprise
+                                      {field.value && <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">Aktif</Badge>}
+                                  </FormLabel>
+                                  <CardDescription>
+                                      Aktifkan fitur lanjutan seperti Jurnal Penyesuaian, Tutup Buku (Closing Entries), dan akuntansi berbasis akrual ganda.
+                                  </CardDescription>
+                              </div>
+                              <FormControl>
+                                  <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                  />
+                              </FormControl>
+                          </FormItem>
+                      )}
+                   />
                 </div>
             </CardContent>
             <CardFooter>

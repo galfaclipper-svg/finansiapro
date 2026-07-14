@@ -93,4 +93,6 @@ export const INITIAL_COMPANY_PROFILE: CompanyProfile = {
   name: 'Nama Perusahaan Anda',
   address: 'Alamat Perusahaan Anda',
   reportRecipients: [],
+  isEnterpriseMode: false,
+  closedPeriods: [],
 };

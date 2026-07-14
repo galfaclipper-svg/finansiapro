@@ -78,22 +78,40 @@ export default function LandingPage() {
               <h2 className="text-2xl md:text-4xl font-bold tracking-tight mb-3 text-white">Lihat Kehebatan Tools Ini</h2>
               <p className="text-slate-400 max-w-2xl mx-auto text-base">Saksikan secara langsung bagaimana FinansiaProf dapat mengotomatiskan pembukuan bisnis Anda dalam hitungan menit.</p>
             </div>
-            
-            <div className="max-w-4xl mx-auto rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.15)] relative aspect-video group">
-              <iframe 
-                className="w-full h-full absolute inset-0 z-10"
-                src="https://www.youtube.com/embed/JK8a2XPCzCM?rel=0&showinfo=0" 
-                title="FinansiaProf Demo Video" 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowFullScreen
-              ></iframe>
+            <div className="flex flex-col lg:flex-row gap-8 items-center justify-center max-w-6xl mx-auto">
               
-              {/* Overlay loading state untuk iframe (opsional) */}
-              <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-0">
-                 <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                 <span className="text-slate-400 font-medium">Memuat Video Demo...</span>
+              {/* Main Video (Shorts) */}
+              <div className="w-full max-w-[320px] rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.25)] relative aspect-[9/16] group">
+                <iframe 
+                  className="w-full h-full absolute inset-0 z-10"
+                  src="https://www.youtube.com/embed/R3AYyY7zse8?rel=0&showinfo=0" 
+                  title="FinansiaProf Shorts Demo" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-0">
+                   <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                   <span className="text-slate-400 font-medium">Memuat Video...</span>
+                </div>
               </div>
+
+              {/* Secondary Video (Full Demo) */}
+              <div className="w-full lg:flex-1 max-w-4xl rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.15)] relative aspect-video group">
+                <iframe 
+                  className="w-full h-full absolute inset-0 z-10"
+                  src="https://www.youtube.com/embed/JK8a2XPCzCM?rel=0&showinfo=0" 
+                  title="FinansiaProf Full Demo Video" 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-0">
+                   <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                   <span className="text-slate-400 font-medium">Memuat Video Demo...</span>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>

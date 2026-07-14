@@ -12,6 +12,8 @@ export type CompanyProfile = {
   logoUrl?: string;
   contact?: string;
   reportRecipients?: ReportRecipient[];
+  isEnterpriseMode?: boolean;
+  closedPeriods?: string[]; // e.g. "2026-09"
 };
 
 export type Account = {
@@ -32,15 +34,24 @@ export type Transaction = {
   date: string;
   description: string;
   amount: number;
-  type: 'cash-in' | 'cash-out' | 'transfer';
-  accountId: string;
-  toAccountId?: string;
-  category: string;
+  type: 'cash-in' | 'cash-out' | 'transfer' | 'journal-entry' | 'closing-entry';
+  accountId: string; // for cash/bank, or primary account
+  toAccountId?: string; // for transfer
+  category: string; // usually expense/revenue account
   itemId?: string;
   quantity?: number;
   items?: TransactionItem[];
   usefulLifeInMonths?: number;
   salvageValue?: number;
+  autoDepreciation?: boolean; // if false, system won't auto-calculate depreciation
+  
+  // Enterprise mode strict double-entry array
+  journalLines?: {
+    accountId: string;
+    debit: number;
+    credit: number;
+    description?: string;
+  }[];
 };
 
 export type InventoryItem = {

@@ -81,7 +81,7 @@ const EXCLUDED_MANUAL_CATEGORIES = [
 ];
 
 export default function EditTransactionPage({ transactionId }: { transactionId: string }) {
-  const { transactions, updateTransaction, inventory, accounts } = useAppState();
+  const { transactions, updateTransaction, inventory, accounts, companyProfile } = useAppState();
   const activeAccounts = accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
   const { toast } = useToast();
   const router = useRouter();
@@ -177,6 +177,18 @@ export default function EditTransactionPage({ transactionId }: { transactionId: 
 
   const onSubmit: SubmitHandler<TransactionFormValues> = async (data) => {
     if (!transaction) return;
+    
+    const formattedDate = format(data.date, 'yyyy-MM-dd');
+    const period = `${data.date.getFullYear()}-${(data.date.getMonth() + 1).toString().padStart(2, '0')}`;
+    if (companyProfile?.isEnterpriseMode && companyProfile?.closedPeriods?.includes(period)) {
+       toast({
+         variant: "destructive",
+         title: "Periode Terkunci",
+         description: "Buku untuk periode ini telah ditutup. Transaksi tidak dapat diubah.",
+       });
+       return;
+    }
+
     try {
         await updateTransaction(transactionId, { ...data, date: format(data.date, 'yyyy-MM-dd'), accountId: transaction.accountId });
         toast({
@@ -266,9 +278,14 @@ export default function EditTransactionPage({ transactionId }: { transactionId: 
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
+                            disabled={(date) => {
+                              if (date > new Date() || date < new Date("1900-01-01")) return true;
+                              if (companyProfile?.isEnterpriseMode) {
+                                const period = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                                if (companyProfile.closedPeriods?.includes(period)) return true;
+                              }
+                              return false;
+                            }}
                             initialFocus
                             locale={id}
                           />

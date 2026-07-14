@@ -39,6 +39,12 @@ export default function TransactionsPage() {
           return;
       }
       try {
+          const cashTransactions = transactions.filter(t => t.type !== 'journal-entry');
+          const journalEntries = transactions.filter(t => t.type === 'journal-entry');
+
+          const workbook = XLSX.utils.book_new();
+
+          // --- SHEET 1: BUKU KAS ---
           const data: any[][] = [];
           data.push(["LAPORAN REKAPITULASI TRANSAKSI KAS"]);
           data.push(["Tanggal Cetak:", new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })]);
@@ -46,7 +52,7 @@ export default function TransactionsPage() {
           data.push(["No", "Tanggal", "Deskripsi", "Tipe", "Kategori", "Jumlah (Rp)"]);
 
           let rowIndex = 5; 
-          transactions.forEach((t, index) => {
+          cashTransactions.forEach((t, index) => {
               data.push([
                   index + 1,
                   new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -63,16 +69,9 @@ export default function TransactionsPage() {
           data.push(["", "", "", "", "SALDO KAS", { t: 'n', f: `F${rowIndex}-F${rowIndex+1}` }]);
 
           const worksheet = XLSX.utils.aoa_to_sheet(data);
-
           worksheet['!cols'] = [
-              { wch: 5 },  
-              { wch: 20 }, 
-              { wch: 40 }, 
-              { wch: 15 }, 
-              { wch: 25 }, 
-              { wch: 20 }, 
+              { wch: 5 }, { wch: 20 }, { wch: 40 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, 
           ];
-
           worksheet['!merges'] = [
               { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, 
               { s: { r: 1, c: 1 }, e: { r: 1, c: 5 } }, 
@@ -80,9 +79,46 @@ export default function TransactionsPage() {
               { s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: 3 } }, 
               { s: { r: rowIndex+1, c: 0 }, e: { r: rowIndex+1, c: 3 } } 
           ];
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transaksi Kas");
 
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Data Transaksi");
+          // --- SHEET 2: JURNAL PENYESUAIAN ---
+          if (companyProfile?.isEnterpriseMode && journalEntries.length > 0) {
+             const journalData: any[][] = [];
+             journalData.push(["JURNAL PENYESUAIAN (DOUBLE-ENTRY)"]);
+             journalData.push(["Tanggal Cetak:", new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })]);
+             journalData.push([]);
+             journalData.push(["No", "Tanggal", "Deskripsi", "Akun", "Debit (Rp)", "Kredit (Rp)"]);
+
+             let jRowIndex = 5;
+             journalEntries.forEach((t, index) => {
+                 if (t.journalLines) {
+                     t.journalLines.forEach((line, lIndex) => {
+                         journalData.push([
+                             lIndex === 0 ? index + 1 : "",
+                             lIndex === 0 ? new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : "",
+                             lIndex === 0 ? t.description : "",
+                             line.accountId,
+                             line.debit || 0,
+                             line.credit || 0
+                         ]);
+                         jRowIndex++;
+                     });
+                 }
+             });
+
+             journalData.push(["", "", "", "TOTAL", { t: 'n', f: `SUM(E5:E${jRowIndex - 1})` }, { t: 'n', f: `SUM(F5:F${jRowIndex - 1})` }]);
+             const jWorksheet = XLSX.utils.aoa_to_sheet(journalData);
+             jWorksheet['!cols'] = [
+                 { wch: 5 }, { wch: 20 }, { wch: 40 }, { wch: 25 }, { wch: 20 }, { wch: 20 }, 
+             ];
+             jWorksheet['!merges'] = [
+                 { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, 
+                 { s: { r: 1, c: 1 }, e: { r: 1, c: 5 } }, 
+                 { s: { r: jRowIndex - 1, c: 0 }, e: { r: jRowIndex - 1, c: 2 } }
+             ];
+             XLSX.utils.book_append_sheet(workbook, jWorksheet, "Jurnal Penyesuaian");
+          }
+
           XLSX.writeFile(workbook, `Laporan_Transaksi_${new Date().toISOString().split('T')[0]}.xlsx`);
           toast({ title: "Berhasil Diekspor", description: "Laporan transaksi XLSX siap cetak telah diunduh." });
       } catch (error) {
@@ -123,9 +159,12 @@ export default function TransactionsPage() {
           doc.setFontSize(10);
           doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, textOffsetX, 30);
           
-          doc.text(`Total Baris Transaksi: ${transactions.length} Entri`, 20, 40);
+          const cashTransactions = transactions.filter(t => t.type !== 'journal-entry');
+          const journalEntries = transactions.filter(t => t.type === 'journal-entry');
 
-          const tableData = transactions.map((t, index) => [
+          doc.text(`Total Baris Transaksi Kas: ${cashTransactions.length} Entri`, 20, 40);
+
+          const tableData = cashTransactions.map((t, index) => [
               index + 1,
               new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
               t.description,
@@ -163,6 +202,65 @@ export default function TransactionsPage() {
               },
               margin: { left: 20, right: 10, top: 20, bottom: 20 }
           });
+
+          // PDF: Jurnal Penyesuaian Append
+          if (companyProfile?.isEnterpriseMode && journalEntries.length > 0) {
+              const finalY = (doc as any).lastAutoTable.finalY || 100;
+              doc.addPage();
+              
+              doc.setFontSize(14);
+              doc.setFont('helvetica', 'bold');
+              doc.text("JURNAL PENYESUAIAN (DOUBLE-ENTRY)", 20, 20);
+
+              const jTableData: any[][] = [];
+              let totalDebit = 0;
+              let totalCredit = 0;
+
+              journalEntries.forEach((t, index) => {
+                  if (t.journalLines) {
+                      t.journalLines.forEach((line, lIndex) => {
+                          jTableData.push([
+                              lIndex === 0 ? index + 1 : "",
+                              lIndex === 0 ? new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "",
+                              lIndex === 0 ? t.description : "",
+                              line.accountId,
+                              line.debit ? formatCurrency(line.debit) : "-",
+                              line.credit ? formatCurrency(line.credit) : "-"
+                          ]);
+                          totalDebit += line.debit || 0;
+                          totalCredit += line.credit || 0;
+                      });
+                  }
+              });
+
+              jTableData.push(["", "", "", "TOTAL KESELURUHAN", formatCurrency(totalDebit), formatCurrency(totalCredit)]);
+
+              autoTable(doc, {
+                  startY: 30,
+                  head: [['No', 'Tanggal', 'Deskripsi', 'Akun', 'Debit', 'Kredit']],
+                  body: jTableData,
+                  theme: 'grid',
+                  headStyles: { fillColor: [44, 62, 80], halign: 'center', valign: 'middle' },
+                  styles: { fontSize: 9, cellPadding: { top: 3, right: 2, bottom: 3, left: 2 }, valign: 'middle' },
+                  columnStyles: {
+                      0: { halign: 'center', cellWidth: 10 },   
+                      1: { halign: 'center', cellWidth: 26 },   
+                      2: { cellWidth: 45 },                     
+                      3: { cellWidth: 45 },   
+                      4: { halign: 'right', cellWidth: 27 },    
+                      5: { halign: 'right', cellWidth: 27 }     
+                  },
+                  willDrawCell: (data) => {
+                      if (data.row.index === jTableData.length - 1) {
+                          data.doc.setFont('helvetica', 'bold');
+                          if (data.column.index === 3) {
+                              data.cell.styles.halign = 'right';
+                          }
+                      }
+                  },
+                  margin: { left: 20, right: 10, top: 20, bottom: 20 }
+              });
+          }
 
           doc.save(`Laporan_Transaksi_${new Date().toISOString().split('T')[0]}.pdf`);
           toast({ title: "Berhasil Diekspor", description: "Laporan transaksi PDF siap cetak telah diunduh." });
