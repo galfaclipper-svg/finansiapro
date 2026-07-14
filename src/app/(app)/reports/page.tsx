@@ -4,6 +4,9 @@
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Download, Printer } from 'lucide-react';
 import { IncomeStatement } from '@/components/reports/income-statement';
 import { GeneralJournal } from '@/components/reports/general-journal';
@@ -32,6 +35,40 @@ export default function ReportsPage() {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [quickMonth, setQuickMonth] = useState<string>((new Date().getMonth() + 1).toString());
   const [quickYear, setQuickYear] = useState<string>(new Date().getFullYear().toString());
+
+  // Download Selection States
+  const [isDownloadOptionsOpen, setIsDownloadOptionsOpen] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<'XLSX' | 'PDF'>('PDF');
+  const [selectedReports, setSelectedReports] = useState({
+    dashboard: true,
+    labaRugi: true,
+    neraca: true,
+    arusKas: true,
+    jurnalUmum: true,
+    bukuBesar: true,
+    audit: true,
+  });
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectedReports({
+      dashboard: checked,
+      labaRugi: checked,
+      neraca: checked,
+      arusKas: checked,
+      jurnalUmum: checked,
+      bukuBesar: checked,
+      audit: checked,
+    });
+  };
+
+  const handleDownloadSubmit = () => {
+    setIsDownloadOptionsOpen(false);
+    if (downloadFormat === 'XLSX') {
+      handleExportXLSX();
+    } else {
+      handlePrintPDF();
+    }
+  };
 
   const handleQuickSelect = () => {
     const year = parseInt(quickYear);
@@ -1647,6 +1684,40 @@ export default function ReportsPage() {
       auditSheet.pageSetup.printArea = `A1:B${auditSheet.rowCount + 2}`;
 
       // ═══════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
+      // HIDE UNSELECTED SHEETS
+      // ═══════════════════════════════════════════════════════════
+      if (!selectedReports.dashboard) {
+        const sh = workbook.getWorksheet(DASH_NAME);
+        if (sh) sh.state = 'hidden';
+      }
+      if (!selectedReports.labaRugi) {
+        const sh = workbook.getWorksheet(incomeSheetName);
+        if (sh) sh.state = 'hidden';
+      }
+      if (!selectedReports.neraca) {
+        const sh = workbook.getWorksheet(balSheetName);
+        if (sh) sh.state = 'hidden';
+      }
+      if (!selectedReports.arusKas) {
+        const sh = workbook.getWorksheet(cashFlowName);
+        if (sh) sh.state = 'hidden';
+      }
+      if (!selectedReports.jurnalUmum) {
+        const sh = workbook.getWorksheet(journalSheetName);
+        if (sh) sh.state = 'hidden';
+      }
+      if (!selectedReports.bukuBesar) {
+        extendedCOA.forEach(acc => {
+          const sh = workbook.getWorksheet(sanitizeSheetName(`BB - ${acc.name}`));
+          if (sh) sh.state = 'hidden';
+        });
+      }
+      if (!selectedReports.audit) {
+        const sh = workbook.getWorksheet('Audit & Investor');
+        if (sh) sh.state = 'hidden';
+      }
+
       // DOWNLOAD via browser Blob
       // ═══════════════════════════════════════════════════════════
       const buffer = await workbook.xlsx.writeBuffer();
@@ -1707,7 +1778,15 @@ export default function ReportsPage() {
       doc.text(footerText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     };
 
+    let isFirstPage = true;
+    const addSectionPage = () => {
+      if (isFirstPage) { isFirstPage = false; }
+      else { doc.addPage(); }
+    };
+
     // --- Laporan Laba Rugi ---
+    if (selectedReports.labaRugi) {
+    addSectionPage();
     autoTable(doc, {
         startY: 40,
         margin: { left: 20, right: 10, top: 40, bottom: 20 },
@@ -1730,9 +1809,11 @@ export default function ReportsPage() {
         },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Laba Rugi'),
     });
+    }
     
     // --- Neraca ---
-    doc.addPage();
+    if (selectedReports.neraca) {
+    addSectionPage();
     const sortedAssetEntries = Object.entries(reportData.balanceSheet.assets).sort(([aName], [bName]) => {
       const aId = activeAccounts.find(acc => acc.name === aName)?.id || '9999';
       const bId = activeAccounts.find(acc => acc.name === bName)?.id || '9999';
@@ -1769,9 +1850,11 @@ export default function ReportsPage() {
         headStyles: { fillColor: primaryColor, valign: 'middle' },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Neraca'),
     });
+    }
 
     // --- Jurnal Umum ---
-    doc.addPage();
+    if (selectedReports.jurnalUmum) {
+    addSectionPage();
     const groupedEntries = reportData.generalJournal.journalEntries.reduce((acc, entry) => {
         const key = entry.id.replace('-cogs', '');
         (acc[key] = acc[key] || []).push(entry);
@@ -1823,9 +1906,11 @@ export default function ReportsPage() {
         },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Jurnal Umum'),
     });
+    }
 
      // --- Laporan Arus Kas ---
-    doc.addPage();
+     if (selectedReports.arusKas) {
+     addSectionPage();
     autoTable(doc, {
         startY: 40,
         margin: { left: 20, right: 10, top: 40, bottom: 20 },
@@ -1849,11 +1934,13 @@ export default function ReportsPage() {
         },
         didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Arus Kas'),
     });
+    }
 
      // --- Buku Besar ---
+     if (selectedReports.bukuBesar) {
     reportData.generalLedger.sortedLedgerAccounts.forEach(account => {
         if (account.entries.length === 0) return;
-        doc.addPage();
+        addSectionPage();
          autoTable(doc, {
             startY: 40,
             margin: { left: 20, right: 10, top: 40, bottom: 20 },
@@ -1884,9 +1971,11 @@ export default function ReportsPage() {
             didDrawPage: (data) => addHeaderAndFooter(data, `Buku Besar: ${account.accountInfo.name}`),
         });
     });
+    }
 
     // --- Laporan Audit & Investor ---
-    doc.addPage();
+    if (selectedReports.audit) {
+    addSectionPage();
     const variableCostsPDF = reportData.incomeStatement.expenses['Harga Pokok Penjualan'] || 0;
     let fixedCostsPDF = 0;
     Object.entries(reportData.incomeStatement.expenses).forEach(([name, amt]) => {
@@ -1955,8 +2044,9 @@ export default function ReportsPage() {
                doc.addImage(imgData, 'PNG', 14, finalY, pdfWidth, imgHeight);
             }
         } catch (e) {
-            console.error("Failed to capture chart: ", e);
+            console.error("Gagal menambahkan grafik ke PDF", e);
         }
+    }
     }
 
     // Replace page number placeholder
@@ -2012,11 +2102,11 @@ export default function ReportsPage() {
             <Send className="mr-2 h-4 w-4" />
             Kirim Laporan
           </Button>
-          <Button variant="outline" className="shrink-0" onClick={handleExportXLSX}>
+          <Button variant="outline" className="shrink-0" onClick={() => { setDownloadFormat('XLSX'); setIsDownloadOptionsOpen(true); }}>
             <Download className="mr-2 h-4 w-4" />
             Ekspor Semua (XLSX)
           </Button>
-          <Button variant="outline" className="shrink-0" onClick={handlePrintPDF}>
+          <Button variant="outline" className="shrink-0" onClick={() => { setDownloadFormat('PDF'); setIsDownloadOptionsOpen(true); }}>
             <Printer className="mr-2 h-4 w-4" />
             Cetak Semua (PDF)
           </Button>
@@ -2051,6 +2141,64 @@ export default function ReportsPage() {
             <AdvancedBEPROIAnalysis reportData={reportData} />
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isDownloadOptionsOpen} onOpenChange={setIsDownloadOptionsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Opsi Unduhan ({downloadFormat})</DialogTitle>
+            <DialogDescription>
+              Pilih laporan yang ingin disertakan dalam file {downloadFormat} Anda.
+              {downloadFormat === 'XLSX' && " (Laporan yang tidak dipilih akan disembunyikan agar rumus kalkulasi tetap berfungsi)."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center space-x-2 border-b pb-4">
+              <Checkbox 
+                id="selectAll" 
+                checked={Object.values(selectedReports).every(Boolean)}
+                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+              />
+              <Label htmlFor="selectAll" className="font-bold">Pilih Semua</Label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repDashboard" checked={selectedReports.dashboard} onCheckedChange={(c) => setSelectedReports(p => ({...p, dashboard: !!c}))} />
+              <Label htmlFor="repDashboard">Executive Dashboard</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repLabaRugi" checked={selectedReports.labaRugi} onCheckedChange={(c) => setSelectedReports(p => ({...p, labaRugi: !!c}))} />
+              <Label htmlFor="repLabaRugi">Laporan Laba Rugi</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repNeraca" checked={selectedReports.neraca} onCheckedChange={(c) => setSelectedReports(p => ({...p, neraca: !!c}))} />
+              <Label htmlFor="repNeraca">Neraca</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repJurnalUmum" checked={selectedReports.jurnalUmum} onCheckedChange={(c) => setSelectedReports(p => ({...p, jurnalUmum: !!c}))} />
+              <Label htmlFor="repJurnalUmum">Jurnal Umum</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repArusKas" checked={selectedReports.arusKas} onCheckedChange={(c) => setSelectedReports(p => ({...p, arusKas: !!c}))} />
+              <Label htmlFor="repArusKas">Laporan Arus Kas</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repBukuBesar" checked={selectedReports.bukuBesar} onCheckedChange={(c) => setSelectedReports(p => ({...p, bukuBesar: !!c}))} />
+              <Label htmlFor="repBukuBesar">Buku Besar</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repAudit" checked={selectedReports.audit} onCheckedChange={(c) => setSelectedReports(p => ({...p, audit: !!c}))} />
+              <Label htmlFor="repAudit">Audit & Analisis BEP</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDownloadOptionsOpen(false)}>Batal</Button>
+            <Button onClick={handleDownloadSubmit}>
+              {downloadFormat === 'XLSX' ? <Download className="mr-2 h-4 w-4" /> : <Printer className="mr-2 h-4 w-4" />}
+              Proses Unduhan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ShareReportDialog 
         open={isShareOpen}
