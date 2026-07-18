@@ -61,13 +61,20 @@ export function SalesByPlatformChart() {
     });
 
     return Object.entries(platformData)
-      .map(([platform, data]) => ({
-        platform,
-        revenue: data.revenue,
-        products: Object.entries(data.products)
+      .map(([platform, data]) => {
+        const productsArr = Object.entries(data.products)
             .map(([name, qty]) => ({ name, qty }))
-            .sort((a, b) => b.qty - a.qty), // sort products by qty desc
-      }))
+            .sort((a, b) => b.qty - a.qty); // sort products by qty desc
+        
+        const totalUnits = productsArr.reduce((sum, p) => sum + p.qty, 0);
+
+        return {
+          platform,
+          revenue: data.revenue,
+          products: productsArr,
+          totalUnits,
+        };
+      })
       .sort((a, b) => b.revenue - a.revenue); // sort platforms by revenue desc
   }, [transactions, inventory, dateRange]);
 
@@ -151,8 +158,9 @@ export function SalesByPlatformChart() {
                                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                                                 <h4 className="font-semibold text-sm text-foreground">{platform.platform}</h4>
                                             </div>
-                                            <div className="text-xs font-medium text-primary mt-1 ml-5">
-                                                Total: {formatCurrency(platform.revenue)}
+                                            <div className="text-xs font-medium text-primary mt-1 ml-5 flex items-center gap-2">
+                                                <span>Total: {formatCurrency(platform.revenue)}</span>
+                                                <span className="text-muted-foreground border-l border-border pl-2">{platform.totalUnits} Unit</span>
                                             </div>
                                         </div>
                                         <div className="text-xs font-medium text-muted-foreground bg-background border border-border px-2 py-0.5 rounded-full shadow-sm mt-0.5">
