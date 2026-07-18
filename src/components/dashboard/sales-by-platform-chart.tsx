@@ -90,10 +90,10 @@ export function SalesByPlatformChart() {
       </CardHeader>
       <CardContent className="flex-1">
         {platformStats.length === 0 ? (
-           <div className="flex flex-col items-center justify-center p-8 h-64 text-center border-2 border-dashed rounded-xl border-slate-200">
-               <PackageSearch className="w-12 h-12 text-slate-300 mb-4" />
-               <h3 className="text-lg font-medium text-slate-700">Belum ada penjualan</h3>
-               <p className="text-sm text-slate-500 max-w-sm mt-1">Belum ada transaksi pendapatan penjualan dalam rentang waktu ini.</p>
+           <div className="flex flex-col items-center justify-center p-8 h-64 text-center border-2 border-dashed rounded-xl border-border">
+               <PackageSearch className="w-12 h-12 text-muted-foreground mb-4" />
+               <h3 className="text-lg font-medium text-foreground">Belum ada penjualan</h3>
+               <p className="text-sm text-muted-foreground max-w-sm mt-1">Belum ada transaksi pendapatan penjualan dalam rentang waktu ini.</p>
            </div>
         ) : (
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
@@ -118,7 +118,7 @@ export function SalesByPlatformChart() {
                                 tick={{ fontSize: 12 }}
                             />
                             <ChartTooltip 
-                                cursor={{ fill: 'slate-100', opacity: 0.4 }}
+                                cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
                                 content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />} 
                             />
                             <Bar 
@@ -136,33 +136,38 @@ export function SalesByPlatformChart() {
                 </div>
 
                 {/* Right side: Product Data */}
-                <div className="lg:col-span-2 flex flex-col h-full bg-slate-50/50 rounded-xl p-4 border border-slate-100">
-                    <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-4">
-                        <ShoppingBag className="w-4 h-4 text-slate-500" />
+                <div className="lg:col-span-2 flex flex-col h-full bg-muted/20 rounded-xl p-4 border border-border">
+                    <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+                        <ShoppingBag className="w-4 h-4 text-muted-foreground" />
                         Rincian Unit Terjual
                     </h3>
                     <ScrollArea className="flex-1 pr-4 -mr-4 h-[260px]">
                         <div className="space-y-6">
                             {platformStats.map((platform, idx) => (
                                 <div key={platform.platform} className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                                            <h4 className="font-semibold text-sm">{platform.platform}</h4>
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                                                <h4 className="font-semibold text-sm text-foreground">{platform.platform}</h4>
+                                            </div>
+                                            <div className="text-xs font-medium text-primary mt-1 ml-5">
+                                                Total: {formatCurrency(platform.revenue)}
+                                            </div>
                                         </div>
-                                        <div className="text-xs font-medium text-slate-500 bg-white border border-slate-200 px-2 py-0.5 rounded-full shadow-sm">
+                                        <div className="text-xs font-medium text-muted-foreground bg-background border border-border px-2 py-0.5 rounded-full shadow-sm mt-0.5">
                                             {Math.round((platform.revenue / totalRevenueAll) * 100)}%
                                         </div>
                                     </div>
                                     
                                     <div className="pl-5 space-y-2.5">
                                         {platform.products.map(product => (
-                                            <div key={product.name} className="flex justify-between items-center text-sm border-b border-dashed border-slate-200 pb-1.5 last:border-0 last:pb-0">
-                                                <span className="text-slate-600 line-clamp-1 flex-1 pr-3" title={product.name}>
+                                            <div key={product.name} className="flex justify-between items-center text-sm border-b border-dashed border-border/50 pb-1.5 last:border-0 last:pb-0">
+                                                <span className="text-muted-foreground line-clamp-1 flex-1 pr-3" title={product.name}>
                                                     {product.name}
                                                 </span>
-                                                <Badge variant="secondary" className="font-semibold text-xs tabular-nums bg-white shadow-sm shrink-0">
-                                                    {product.qty} <span className="font-normal text-slate-400 ml-1">unit</span>
+                                                <Badge variant="secondary" className="font-semibold text-xs tabular-nums bg-muted shadow-sm shrink-0 text-foreground border-border">
+                                                    {product.qty} <span className="font-normal text-muted-foreground ml-1">unit</span>
                                                 </Badge>
                                             </div>
                                         ))}
