@@ -5,16 +5,16 @@ import { Logo } from '@/components/logo';
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-50 overflow-x-hidden font-sans w-full relative">
+    <div className="flex flex-col min-h-screen bg-[#0A0A0A] text-slate-50 overflow-x-hidden font-sans w-full relative">
       {/* Background Decor - ensuring they don't break viewport width */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-blue-600/20 rounded-full blur-[100px] md:blur-[120px] mix-blend-screen"></div>
+        <div className="absolute top-0 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-[#CCFF00]/20 rounded-full blur-[100px] md:blur-[120px] mix-blend-screen"></div>
         <div className="absolute bottom-1/4 right-1/4 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-indigo-600/10 rounded-full blur-[120px] md:blur-[150px] mix-blend-screen"></div>
       </div>
 
-      <header className="px-4 lg:px-12 h-20 flex items-center bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5 w-full">
+      <header className="px-4 lg:px-12 h-20 flex items-center bg-[#0A0A0A]/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5 w-full">
         <div className="flex items-center justify-center gap-3">
-          <Logo className="h-8 w-8 text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
+          <Logo className="h-8 w-8 text-[#CCFF00] drop-shadow-[0_0_15px_rgba(204,255,0,0.5)]" />
           <span className="font-extrabold text-xl tracking-tight text-white">FinansiaProf</span>
         </div>
         <nav className="ml-auto flex items-center gap-4 md:gap-6">
@@ -27,10 +27,10 @@ export default function LandingPage() {
           <Link href="#ulasan" className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden md:block">
             Ulasan
           </Link>
-          <Link href="/login" className="text-sm font-bold text-white hover:text-blue-400 transition-colors">
+          <Link href="/login" className="text-sm font-bold text-white hover:text-[#CCFF00] transition-colors">
             Masuk
           </Link>
-          <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] rounded-full px-4 md:px-6">
+          <Button asChild size="sm" className="bg-[#CCFF00] hover:bg-[#CCFF00] text-black shadow-[0_0_20px_rgba(204,255,0,0.4)] rounded-full px-4 md:px-6">
             <Link href="/login">
               Mulai Sekarang
             </Link>
@@ -47,13 +47,13 @@ export default function LandingPage() {
           </div>
           
           <div className="container px-4 md:px-6 text-center max-w-5xl mx-auto">
-            <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-300 mb-8 backdrop-blur-sm shadow-[0_0_20px_rgba(59,130,246,0.15)] animate-fade-in-up">
-              <Zap className="mr-2 h-4 w-4 text-blue-400" />
+            <div className="inline-flex items-center rounded-full border border-[#CCFF00]/30 bg-[#CCFF00]/10 px-4 py-1.5 text-sm font-medium text-[#CCFF00]/80 mb-8 backdrop-blur-sm shadow-[0_0_20px_rgba(204,255,0,0.15)] animate-fade-in-up">
+              <Zap className="mr-2 h-4 w-4 text-[#CCFF00]" />
               Solusi Pembukuan #1 untuk Bisnis Modern
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-slate-500 mb-6 animate-fade-in-up" style={{animationDelay: "0.1s"}}>
               Stop Buang Waktu Anda. <br className="hidden md:block"/> 
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500 drop-shadow-sm">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#CCFF00] to-white drop-shadow-sm">
                  Otomatisasi Laporan Keuangan Anda.
               </span>
             </h1>
@@ -61,7 +61,7 @@ export default function LandingPage() {
               Dari pencatatan harian hingga laporan Excel terintegrasi rumus dan Invoice siap cetak. Dapatkan kendali penuh atas profit dan arah bisnis Anda tanpa harus menjadi ahli akuntansi.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up" style={{animationDelay: "0.3s"}}>
-              <Button asChild size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.5)] rounded-full h-14 px-8 text-lg font-semibold transition-all hover:scale-105">
+              <Button asChild size="lg" className="w-full sm:w-auto bg-[#CCFF00] hover:bg-[#CCFF00] text-black shadow-[0_0_30px_rgba(204,255,0,0.5)] rounded-full h-14 px-8 text-lg font-semibold transition-all hover:scale-105">
                 <Link href="/login">
                   Dapatkan Kode Akses Anda
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -72,7 +72,7 @@ export default function LandingPage() {
         </section>
 
         {/* Video Showcase Section */}
-        <section id="demo" className="w-full pb-20 pt-4 bg-slate-950 relative z-20">
+        <section id="demo" className="w-full pb-20 pt-4 bg-[#0A0A0A] relative z-20">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-2xl md:text-4xl font-bold tracking-tight mb-3 text-white">Lihat Kehebatan Tools Ini</h2>
@@ -81,7 +81,7 @@ export default function LandingPage() {
             <div className="flex flex-col lg:flex-row gap-8 items-center justify-center max-w-6xl mx-auto">
               
               {/* Main Video (Shorts) */}
-              <div className="w-full max-w-[320px] rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.25)] relative aspect-[9/16] group">
+              <div className="w-full max-w-[320px] rounded-3xl overflow-hidden border-2 border-white/10 bg-[#111111] shadow-[0_0_50px_rgba(204,255,0,0.25)] relative aspect-[9/16] group">
                 <iframe 
                   className="w-full h-full absolute inset-0 z-10"
                   src="https://www.youtube.com/embed/R3AYyY7zse8?rel=0&showinfo=0" 
@@ -90,14 +90,14 @@ export default function LandingPage() {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                   allowFullScreen
                 ></iframe>
-                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-0">
-                   <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <div className="absolute inset-0 bg-[#111111] flex flex-col items-center justify-center z-0">
+                   <Loader2 className="w-10 h-10 text-[#CCFF00] animate-spin mb-4" />
                    <span className="text-slate-400 font-medium">Memuat Video...</span>
                 </div>
               </div>
 
               {/* Secondary Video (Full Demo) */}
-              <div className="w-full lg:flex-1 max-w-4xl rounded-3xl overflow-hidden border-2 border-slate-800 bg-slate-900 shadow-[0_0_50px_rgba(37,99,235,0.15)] relative aspect-video group">
+              <div className="w-full lg:flex-1 max-w-4xl rounded-3xl overflow-hidden border-2 border-white/10 bg-[#111111] shadow-[0_0_50px_rgba(204,255,0,0.15)] relative aspect-video group">
                 <iframe 
                   className="w-full h-full absolute inset-0 z-10"
                   src="https://www.youtube.com/embed/JK8a2XPCzCM?rel=0&showinfo=0" 
@@ -106,8 +106,8 @@ export default function LandingPage() {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                   allowFullScreen
                 ></iframe>
-                <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-0">
-                   <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                <div className="absolute inset-0 bg-[#111111] flex flex-col items-center justify-center z-0">
+                   <Loader2 className="w-10 h-10 text-[#CCFF00] animate-spin mb-4" />
                    <span className="text-slate-400 font-medium">Memuat Video Demo...</span>
                 </div>
               </div>
@@ -117,7 +117,7 @@ export default function LandingPage() {
         </section>
 
         {/* Agitation / Pain Points Section */}
-        <section id="masalah" className="w-full py-24 bg-slate-950">
+        <section id="masalah" className="w-full py-24 bg-[#0A0A0A]">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center mb-16">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 text-red-500 mb-6">
@@ -128,15 +128,15 @@ export default function LandingPage() {
             </div>
             
             <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl">
+              <div className="bg-[#111111]/50 border border-white/10 p-8 rounded-3xl">
                 <h3 className="text-xl font-bold text-slate-200 mb-3">Lelah Lembur Buat Laporan</h3>
                 <p className="text-slate-400">Siang hari sibuk melayani pembeli, malam hari mata lelah menyocokkan nota satu per satu sampai larut. Waktu bersama keluarga habis.</p>
               </div>
-              <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl">
+              <div className="bg-[#111111]/50 border border-white/10 p-8 rounded-3xl">
                 <h3 className="text-xl font-bold text-slate-200 mb-3">Kas Bocor, Uang Entah Kemana</h3>
                 <p className="text-slate-400">Barang laris manis, omzet terlihat besar. Tapi saat dicek, kas kosong. Anda tidak tahu apakah Anda sedang untung atau malah rugi.</p>
               </div>
-              <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl">
+              <div className="bg-[#111111]/50 border border-white/10 p-8 rounded-3xl">
                 <h3 className="text-xl font-bold text-slate-200 mb-3">Pusing Rumus Excel & Desain Nota</h3>
                 <p className="text-slate-400">Mencoba merapikan data di Excel tapi rumus sering error (N/A). Bikin invoice ke klien pun berantakan, kelihatan tidak profesional.</p>
               </div>
@@ -145,7 +145,7 @@ export default function LandingPage() {
         </section>
 
         {/* Solution / Features Section */}
-        <section id="fitur" className="w-full py-24 bg-slate-950/50 relative">
+        <section id="fitur" className="w-full py-24 bg-[#0A0A0A]/50 relative">
           {/* Decorative element */}
           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
           
@@ -169,7 +169,7 @@ export default function LandingPage() {
 
               {/* Feature 2 */}
               <div className="relative group rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-8 hover:bg-white/[0.05] transition-all hover:-translate-y-1">
-                <div className="h-14 w-14 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mb-6 text-blue-400">
+                <div className="h-14 w-14 rounded-2xl bg-[#CCFF00]/20 border border-[#CCFF00]/30 flex items-center justify-center mb-6 text-[#CCFF00]">
                   <Printer className="h-7 w-7" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-white">Invoice PDF Siap Cetak</h3>
@@ -202,7 +202,7 @@ export default function LandingPage() {
                       Ditambah dengan <i>AI Scanner</i> opsional kami untuk mengekstrak data dari struk belanja dengan cepat.
                     </p>
                   </div>
-                  <div className="flex-1 w-full bg-slate-900 rounded-2xl p-4 border border-slate-800 shadow-2xl relative">
+                  <div className="flex-1 w-full bg-[#111111] rounded-2xl p-4 border border-white/10 shadow-2xl relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent rounded-2xl pointer-events-none"></div>
                     <div className="space-y-3">
                       <div className="flex items-center gap-3 p-3 bg-slate-800/80 rounded-xl">
@@ -227,7 +227,7 @@ export default function LandingPage() {
         </section>
 
         {/* Social Proof / Testimonials */}
-        <section id="ulasan" className="w-full py-24 bg-slate-950">
+        <section id="ulasan" className="w-full py-24 bg-[#0A0A0A]">
           <div className="container px-4 md:px-6 mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">Dipercaya oleh Pengusaha Cerdas</h2>
@@ -245,7 +245,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-slate-300 italic mb-6">"Dulu saya butuh 3 hari di akhir bulan hanya untuk merekap nota dan mencocokkan stok dengan uang di laci. Sejak pakai FinansiaProf, klik 'Export', Excel-nya langsung jadi beserta semua rumusnya. Gila, sangat menghemat waktu!"</p>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl">D</div>
+                  <div className="w-12 h-12 bg-[#CCFF00] rounded-full flex items-center justify-center text-white font-bold text-xl">D</div>
                   <div>
                     <h4 className="font-bold text-white">Dian A.</h4>
                     <p className="text-sm text-slate-500">Pemilik Toko Retail Pakaian</p>
@@ -275,14 +275,14 @@ export default function LandingPage() {
         </section>
 
         {/* Final CTA */}
-        <section className="w-full py-20 border-t border-blue-500/20 bg-blue-900/10 relative overflow-hidden">
-           <div className="absolute inset-0 bg-blue-600/5 blur-3xl rounded-full transform scale-150"></div>
+        <section className="w-full py-20 border-t border-[#CCFF00]/20 bg-[#CCFF00]/20/10 relative overflow-hidden">
+           <div className="absolute inset-0 bg-[#CCFF00]/5 blur-3xl rounded-full transform scale-150"></div>
            <div className="container px-4 md:px-6 relative z-10 text-center max-w-3xl mx-auto">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-white">Berhenti Menunda Kesuksesan Bisnis Anda.</h2>
               <p className="text-slate-300 text-lg md:text-xl mb-10">
                 Waktu Anda terlalu berharga untuk dihabiskan mengurus rumus dan rekapitulasi. Klaim akses Anda hari ini dan biarkan sistem kami yang bekerja untuk Anda.
               </p>
-              <Button asChild size="lg" className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_rgba(37,99,235,0.6)] rounded-full h-16 px-10 text-xl font-bold transition-transform hover:scale-105">
+              <Button asChild size="lg" className="w-full md:w-auto bg-[#CCFF00] hover:bg-[#CCFF00] text-black shadow-[0_0_30px_rgba(204,255,0,0.6)] rounded-full h-16 px-10 text-xl font-bold transition-transform hover:scale-105">
                 <Link href="/login">
                   Dapatkan Akses Eksklusif Sekarang
                 </Link>
@@ -292,18 +292,32 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="w-full border-t border-white/10 bg-slate-950 py-12">
-        <div className="container px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-6 mx-auto">
-          <div className="flex items-center gap-2">
-            <Logo className="h-6 w-6 text-slate-500" />
-            <span className="font-bold text-slate-500">FinansiaProf &copy; {new Date().getFullYear()}</span>
+      <footer className="w-full border-t border-white/10 bg-[#0A0A0A] py-12">
+        <div className="container px-4 md:px-6 flex flex-col md:flex-row justify-between items-start gap-8 mx-auto">
+          <div className="flex flex-col gap-4 max-w-sm">
+            <div className="flex items-center gap-2">
+              <Logo className="h-6 w-6 text-[#CCFF00]" />
+              <span className="font-bold text-[#CCFF00]">FinansiaProf &copy; {new Date().getFullYear()}</span>
+            </div>
+            <p className="text-sm text-slate-500">
+              Proprietary Software milik Wisesa Niskala. All rights reserved.
+            </p>
           </div>
-          <p className="text-sm text-slate-600 text-center md:text-left">
-            Proprietary Software milik Wisesa Niskala. All rights reserved.
-          </p>
-          <div className="flex gap-4">
-             <Link href="#" className="text-sm text-slate-500 hover:text-white transition-colors">Kebijakan Privasi</Link>
-             <Link href="#" className="text-sm text-slate-500 hover:text-white transition-colors">Syarat & Ketentuan</Link>
+          
+          <div className="flex flex-col gap-3">
+            <h4 className="text-white font-semibold mb-1">Hubungi Kami</h4>
+            <a href="https://wa.me/62881010129990" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-[#CCFF00] transition-colors flex items-center gap-2">
+              WhatsApp: +62 881010129990
+            </a>
+            <a href="https://instagram.com/finansiaprof" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-[#CCFF00] transition-colors flex items-center gap-2">
+              Instagram: @finansiaprof
+            </a>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <h4 className="text-white font-semibold mb-1">Legal</h4>
+             <Link href="/privacy-policy" className="text-sm text-slate-400 hover:text-[#CCFF00] transition-colors">Kebijakan Privasi</Link>
+             <Link href="/terms-conditions" className="text-sm text-slate-400 hover:text-[#CCFF00] transition-colors">Syarat & Ketentuan</Link>
           </div>
         </div>
       </footer>
