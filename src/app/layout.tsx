@@ -7,7 +7,6 @@ import { LicenseProvider } from '@/contexts/license-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
-import { WhatsAppFloat } from '@/components/whatsapp-float';
 import Script from 'next/script';
 import { cn } from '@/lib/utils';
 
@@ -60,7 +59,6 @@ export default function RootLayout({
                 {children}
                 <Toaster />
                 <PWAInstallPrompt />
-                <WhatsAppFloat />
                 {/* Anti-Piracy Watermark */}
                 <div className="fixed bottom-2 right-2 text-[10px] md:text-xs font-black text-slate-800 opacity-[0.04] pointer-events-none select-none z-[9999] tracking-widest uppercase origin-bottom-right">
                   Wisesa Niskala - Proprietary
@@ -114,6 +112,21 @@ export default function RootLayout({
                     function gtag(){window.dataLayer.push(arguments);}
                     gtag('js', new Date());
                     gtag('config', 'G-T6GV80QN0F');
+                  `}
+                </Script>
+
+                {/* Tawk.to Live Chat */}
+                <Script id="tawk-to" strategy="afterInteractive">
+                  {`
+                    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+                    (function(){
+                    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+                    s1.async=true;
+                    s1.src='https://embed.tawk.to/6a5fcea5e01f0e1d4ae0cdf2/1ju33ueg3';
+                    s1.charset='UTF-8';
+                    s1.setAttribute('crossorigin','*');
+                    s0.parentNode.insertBefore(s1,s0);
+                    })();
                   `}
                 </Script>
               </AppProvider>
