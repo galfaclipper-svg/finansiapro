@@ -203,6 +203,11 @@ export function KasbonManager() {
     if (selectedEmployee) {
       text += `Sisa Kasbon Saat Ini: *${formatCurrency(employeeBalances[selectedEmployee.id] || 0)}*\n\n`;
     } else {
+      text += `*Ringkasan Sisa Kasbon:*\n`;
+      const validEmployees = employees.filter(e => e.notes !== 'Auto-migrated' || ALLOWED_INITIALS.includes((e.name || '').toUpperCase()));
+      validEmployees.forEach(e => {
+        text += `- ${getInitials(e.name || '')}: *${formatCurrency(employeeBalances[e.id] || 0)}*\n`;
+      });
       text += `\n`;
     }
     text += `*Rincian Transaksi:*\n`;
@@ -407,10 +412,19 @@ export function KasbonManager() {
                     {selectedEmployeeId === 'all' ? 'Semua Karyawan' : `A/n. ${selectedEmployee?.name}`} • {periodLabel}
                   </CardDescription>
                 </div>
-                {selectedEmployee && (
+                {selectedEmployee ? (
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground mb-1">Sisa Kasbon Berjalan</p>
                     <p className="text-3xl font-bold text-destructive">{formatCurrency(employeeBalances[selectedEmployee.id] || 0)}</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-4 justify-end mt-4 sm:mt-0">
+                    {employees.filter(e => e.notes !== 'Auto-migrated' || ALLOWED_INITIALS.includes((e.name || '').toUpperCase())).map(e => (
+                      <div key={e.id} className="text-right bg-background p-2 rounded-lg border border-border min-w-[100px]">
+                        <p className="text-xs text-muted-foreground mb-1">{getInitials(e.name || '')}</p>
+                        <p className="text-lg font-bold text-destructive">{formatCurrency(employeeBalances[e.id] || 0)}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
