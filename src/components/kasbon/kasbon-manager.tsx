@@ -197,11 +197,14 @@ export function KasbonManager() {
     : 'Semua Waktu';
 
   const generateReportText = () => {
-    if (!selectedEmployee) return '';
     let text = `*Laporan Piutang Karyawan*\n\n`;
-    text += `Nama: *${selectedEmployee.name}*\n`;
+    text += `Nama: *${selectedEmployee ? selectedEmployee.name : 'Semua Karyawan'}*\n`;
     text += `Periode: *${periodLabel}*\n`;
-    text += `Sisa Kasbon Saat Ini: *${formatCurrency(employeeBalances[selectedEmployee.id] || 0)}*\n\n`;
+    if (selectedEmployee) {
+      text += `Sisa Kasbon Saat Ini: *${formatCurrency(employeeBalances[selectedEmployee.id] || 0)}*\n\n`;
+    } else {
+      text += `\n`;
+    }
     text += `*Rincian Transaksi:*\n`;
     
     if (filteredTransactions.length === 0) {
@@ -209,7 +212,9 @@ export function KasbonManager() {
     } else {
       filteredTransactions.forEach(t => {
         const typeLabel = t.type === 'cash-out' ? '🔴 Pinjam' : '🟢 Bayar';
-        text += `- ${formatDate(t.date)}: ${typeLabel} ${formatCurrency(t.amount)} (${t.description})\n`;
+        const empName = employees.find(e => e.id === t.employeeId)?.name || 'Tidak diketahui';
+        const empSuffix = selectedEmployee ? `(${t.description})` : `[${empName}] (${t.description})`;
+        text += `- ${formatDate(t.date)}: ${typeLabel} ${formatCurrency(t.amount)} ${empSuffix}\n`;
       });
     }
     
@@ -220,20 +225,12 @@ export function KasbonManager() {
   };
 
   const handleShareWhatsApp = () => {
-    if (selectedEmployeeId === 'all') {
-      toast({ title: "Error", description: "Pilih 1 karyawan terlebih dahulu untuk dibagikan", variant: "destructive" });
-      return;
-    }
     const text = generateReportText();
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
   const handleDownloadPNG = async () => {
-    if (selectedEmployeeId === 'all') {
-      toast({ title: "Error", description: "Pilih 1 karyawan terlebih dahulu", variant: "destructive" });
-      return;
-    }
     if (!reportRef.current) return;
     
     try {
@@ -241,7 +238,8 @@ export function KasbonManager() {
       const image = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.href = image;
-      link.download = `Laporan_Kasbon_${selectedEmployee?.name}_${startDate}_to_${endDate}.png`;
+      const empName = selectedEmployee ? selectedEmployee.name : 'Semua_Karyawan';
+      link.download = `Laporan_Kasbon_${empName}_${startDate}_to_${endDate}.png`;
       link.click();
       toast({ title: "Berhasil", description: "Laporan PNG berhasil diunduh." });
     } catch (err) {
@@ -477,11 +475,11 @@ export function KasbonManager() {
           </Card>
 
           <div className="mt-4 flex gap-3 justify-end">
-            <Button variant="outline" onClick={handleDownloadPNG} disabled={selectedEmployeeId === 'all'}>
+            <Button variant="outline" onClick={handleDownloadPNG}>
               <Download className="w-4 h-4 mr-2" />
               Unduh PNG
             </Button>
-            <Button onClick={handleShareWhatsApp} disabled={selectedEmployeeId === 'all'} className="bg-[#25D366] hover:bg-[#128C7E] text-white">
+            <Button onClick={handleShareWhatsApp} className="bg-[#25D366] hover:bg-[#128C7E] text-white">
               <Send className="w-4 h-4 mr-2" />
               Share via WhatsApp
             </Button>
