@@ -17,7 +17,7 @@ import { toast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 
 export function KasbonManager() {
-  const { employees, addEmployee, transactions, addTransaction } = useAppState();
+  const { employees, addEmployee, deleteEmployee, transactions, addTransaction } = useAppState();
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
@@ -48,8 +48,7 @@ export function KasbonManager() {
   const getInitials = (name: string) => {
     if (!name) return '';
     const words = name.trim().split(/\s+/);
-    if (words.length === 1 && words[0].length <= 3) return words[0].toUpperCase();
-    return words.map(w => w[0]).join('').toUpperCase().substring(0, 3);
+    return words[0].toUpperCase().substring(0, 2);
   };
 
   // Auto-migrate legacy Kasbon transactions that have "A/n. XXX" but no employeeId
@@ -59,16 +58,22 @@ export function KasbonManager() {
     const legacyNames = new Set<string>();
     transactions.forEach(t => {
       if (t.category === 'Piutang Karyawan' && !t.employeeId && typeof t.description === 'string') {
-        let nameMatch = t.description.match(/A\/n\.\s*([\w\s]+)/i);
+        let nameMatch = t.description.match(/A\/n\.\s*([A-Za-z]+)/i);
         if (nameMatch && nameMatch[1]) {
           legacyNames.add(nameMatch[1].trim());
         } else {
-           // Fallback to extraction from Kasbon ...
-           nameMatch = t.description.match(/Kasbon\s+([\w\s]+)/i);
+           nameMatch = t.description.match(/Kasbon\s+([A-Za-z]+)/i);
            if (nameMatch && nameMatch[1]) {
               legacyNames.add(nameMatch[1].trim());
            }
         }
+      }
+    });
+
+    // Cleanup garbage employees from previous bad migration
+    employees.forEach(e => {
+      if (e.notes === 'Auto-migrated' && (e.name.toLowerCase().includes('tgl') || /\d/.test(e.name))) {
+         deleteEmployee(e.id).catch(console.error);
       }
     });
 
@@ -92,7 +97,7 @@ export function KasbonManager() {
   const enrichedTransactions = useMemo(() => {
     return transactions.map(t => {
       if (t.category === 'Piutang Karyawan' && !t.employeeId && typeof t.description === 'string') {
-         let nameMatch = t.description.match(/A\/n\.\s*([\w\s]+)/i) || t.description.match(/Kasbon\s+([\w\s]+)/i);
+         let nameMatch = t.description.match(/A\/n\.\s*([A-Za-z]+)/i) || t.description.match(/Kasbon\s+([A-Za-z]+)/i);
          if (nameMatch && nameMatch[1]) {
             const empName = nameMatch[1].trim();
             const emp = employees.find(e => (e.name || '').toLowerCase() === empName.toLowerCase());
