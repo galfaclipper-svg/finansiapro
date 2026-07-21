@@ -2,12 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Music, Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 export function LofiPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     // We use a high quality, free-to-use Lo-Fi track from Pixabay
@@ -49,8 +51,14 @@ export function LofiPlayer() {
     setIsMuted(newMutedState);
   };
 
+  // Prevent overlap with dashboard sidebar on desktop
+  const isDashboard = pathname?.startsWith('/dashboard');
+
   return (
-    <div className="fixed bottom-6 left-6 z-[9998] flex items-center gap-2">
+    <div className={cn(
+      "fixed bottom-6 z-[9998] flex items-center gap-2 transition-all duration-300",
+      isDashboard ? "left-6 md:left-[17rem]" : "left-6"
+    )}>
       <button
         onClick={togglePlay}
         className={cn(
