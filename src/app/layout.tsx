@@ -7,6 +7,8 @@ import { LicenseProvider } from '@/contexts/license-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt';
+import { WhatsAppFloat } from '@/components/whatsapp-float';
+import Script from 'next/script';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -58,6 +60,7 @@ export default function RootLayout({
                 {children}
                 <Toaster />
                 <PWAInstallPrompt />
+                <WhatsAppFloat />
                 {/* Anti-Piracy Watermark */}
                 <div className="fixed bottom-2 right-2 text-[10px] md:text-xs font-black text-slate-800 opacity-[0.04] pointer-events-none select-none z-[9999] tracking-widest uppercase origin-bottom-right">
                   Wisesa Niskala - Proprietary
@@ -102,6 +105,17 @@ export default function RootLayout({
                   }}
                 />
                 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+                
+                {/* Google Analytics */}
+                <Script src="https://www.googletagmanager.com/gtag/js?id=G-T6GV80QN0F" strategy="afterInteractive" />
+                <Script id="google-analytics" strategy="afterInteractive">
+                  {`
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){window.dataLayer.push(arguments);}
+                    gtag('js', new Date());
+                    gtag('config', 'G-T6GV80QN0F');
+                  `}
+                </Script>
               </AppProvider>
             </LicenseProvider>
           </AuthProvider>
