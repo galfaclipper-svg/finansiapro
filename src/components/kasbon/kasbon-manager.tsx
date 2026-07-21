@@ -20,7 +20,8 @@ export function KasbonManager() {
   const { employees, addEmployee, transactions, addTransaction } = useAppState();
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -42,6 +43,13 @@ export function KasbonManager() {
     } catch {
       return String(dateString);
     }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    const words = name.trim().split(/\s+/);
+    if (words.length === 1 && words[0].length <= 3) return words[0].toUpperCase();
+    return words.map(w => w[0]).join('').toUpperCase().substring(0, 3);
   };
 
   // Auto-migrate legacy Kasbon transactions that have "A/n. XXX" but no employeeId
@@ -73,9 +81,12 @@ export function KasbonManager() {
     });
 
     setIsMounted(true);
-    if (!selectedMonth) setSelectedMonth(format(new Date(), 'yyyy-MM'));
+    if (!startDate && !endDate) {
+      setStartDate(format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'));
+      setEndDate(format(new Date(), 'yyyy-MM-dd'));
+    }
     if (!txDate) setTxDate(format(new Date(), 'yyyy-MM-dd'));
-  }, [transactions, employees, addEmployee, selectedMonth, txDate]);
+  }, [transactions, employees, addEmployee, startDate, endDate, txDate]);
 
   // Map legacy transactions to their newly created/existing employeeId
   const enrichedTransactions = useMemo(() => {
@@ -121,12 +132,15 @@ export function KasbonManager() {
       filtered = filtered.filter(t => t.employeeId === selectedEmployeeId);
     }
     
-    if (selectedMonth) {
-      filtered = filtered.filter(t => typeof t.date === 'string' && t.date.startsWith(selectedMonth));
+    if (startDate) {
+      filtered = filtered.filter(t => typeof t.date === 'string' && t.date >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter(t => typeof t.date === 'string' && t.date <= endDate);
     }
     
     return filtered.sort((a, b) => new Date(String(a.date || '')).getTime() - new Date(String(b.date || '')).getTime());
-  }, [enrichedTransactions, selectedEmployeeId, selectedMonth]);
+  }, [enrichedTransactions, selectedEmployeeId, startDate, endDate]);
 
   const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const monthTotalMasuk = filteredTransactions.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -169,13 +183,17 @@ export function KasbonManager() {
   };
 
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
-  const monthLabel = selectedMonth ? format(new Date(`${selectedMonth}-01`), 'MMMM yyyy', { locale: id }) : 'Semua Waktu';
+  const periodLabel = (startDate && endDate) 
+    ? `${formatDate(startDate)} - ${formatDate(endDate)}`
+    : startDate ? `Dari ${formatDate(startDate)}`
+    : endDate ? `Sampai ${formatDate(endDate)}`
+    : 'Semua Waktu';
 
   const generateReportText = () => {
     if (!selectedEmployee) return '';
     let text = `*Laporan Piutang Karyawan*\n\n`;
     text += `Nama: *${selectedEmployee.name}*\n`;
-    text += `Periode: *${monthLabel}*\n`;
+    text += `Periode: *${periodLabel}*\n`;
     text += `Sisa Kasbon Saat Ini: *${formatCurrency(employeeBalances[selectedEmployee.id] || 0)}*\n\n`;
     text += `*Rincian Transaksi:*\n`;
     
@@ -188,8 +206,8 @@ export function KasbonManager() {
       });
     }
     
-    text += `\nTotal Pinjam Bulan Ini: ${formatCurrency(monthTotalKeluar)}\n`;
-    text += `Total Bayar Bulan Ini: ${formatCurrency(monthTotalMasuk)}\n\n`;
+    text += `\nTotal Pinjam Periode Ini: ${formatCurrency(monthTotalKeluar)}\n`;
+    text += `Total Bayar Periode Ini: ${formatCurrency(monthTotalMasuk)}\n\n`;
     text += `_Dibuat otomatis oleh Sistem Finansia Pro_`;
     return text;
   };
@@ -216,7 +234,7 @@ export function KasbonManager() {
       const image = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.href = image;
-      link.download = `Laporan_Kasbon_${selectedEmployee?.name}_${selectedMonth}.png`;
+      link.download = `Laporan_Kasbon_${selectedEmployee?.name}_${startDate}_to_${endDate}.png`;
       link.click();
       toast({ title: "Berhasil", description: "Laporan PNG berhasil diunduh." });
     } catch (err) {
@@ -247,9 +265,13 @@ export function KasbonManager() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Bulan</Label>
-            <Input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
+          <div className="space-y-1.5 flex-1 min-w-[130px]">
+            <Label>Dari Tanggal</Label>
+            <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </div>
+          <div className="space-y-1.5 flex-1 min-w-[130px]">
+            <Label>Sampai Tanggal</Label>
+            <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
           </div>
         </div>
 
@@ -356,7 +378,7 @@ export function KasbonManager() {
                   <p className="text-sm text-muted-foreground">Belum ada data karyawan.</p>
                 ) : employees.map(e => (
                   <div key={e.id} className="flex justify-between items-center border-b border-border pb-2 last:border-0">
-                    <span className="text-sm font-medium">{e.name}</span>
+                    <span className="text-sm font-medium">{getInitials(e.name || '')}</span>
                     <span className={`text-sm font-bold ${employeeBalances[e.id] > 0 ? 'text-destructive' : 'text-primary'}`}>
                       {formatCurrency(employeeBalances[e.id] || 0)}
                     </span>
@@ -377,7 +399,7 @@ export function KasbonManager() {
                     Laporan Piutang Karyawan
                   </CardTitle>
                   <CardDescription className="mt-2 text-base">
-                    {selectedEmployeeId === 'all' ? 'Semua Karyawan' : `A/n. ${selectedEmployee?.name}`} • {monthLabel}
+                    {selectedEmployeeId === 'all' ? 'Semua Karyawan' : `A/n. ${selectedEmployee?.name}`} • {periodLabel}
                   </CardDescription>
                 </div>
                 {selectedEmployee && (
@@ -430,7 +452,7 @@ export function KasbonManager() {
                     </TableRow>
                   ))}
                   <TableRow className="bg-muted/30 font-bold">
-                    <TableCell colSpan={3} className="text-right">Total Bulan Ini:</TableCell>
+                    <TableCell colSpan={3} className="text-right">Total Periode Ini:</TableCell>
                     <TableCell className="text-right text-destructive">{formatCurrency(monthTotalKeluar)}</TableCell>
                     <TableCell className="text-right text-primary">{formatCurrency(monthTotalMasuk)}</TableCell>
                   </TableRow>
