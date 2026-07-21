@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useAppState } from '@/hooks/use-app-state';
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { UserPlus, Wallet, Send, Printer, ReceiptText, ArrowDownRight, ArrowUpRight, CheckCircle2, Download } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -34,6 +34,15 @@ export function KasbonManager() {
   const [isMounted, setIsMounted] = useState(false);
 
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    try {
+      return format(parseISO(dateString), 'dd MMM yyyy', { locale: id });
+    } catch {
+      return dateString;
+    }
+  };
 
   // Auto-migrate legacy Kasbon transactions that have "A/n. XXX" but no employeeId
   useEffect(() => {
@@ -113,10 +122,10 @@ export function KasbonManager() {
     }
     
     if (selectedMonth) {
-      filtered = filtered.filter(t => t.date.startsWith(selectedMonth));
+      filtered = filtered.filter(t => t.date && t.date.startsWith(selectedMonth));
     }
     
-    return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return filtered.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
   }, [enrichedTransactions, selectedEmployeeId, selectedMonth]);
 
   const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + t.amount, 0);
