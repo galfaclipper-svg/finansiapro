@@ -18,6 +18,7 @@ import html2canvas from 'html2canvas';
 
 export function KasbonManager() {
   const { employees, addEmployee, deleteEmployee, transactions, addTransaction } = useAppState();
+  const ALLOWED_INITIALS = ['HR', 'HM', 'GB', 'LMR'];
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
@@ -58,28 +59,26 @@ export function KasbonManager() {
     const legacyNames = new Set<string>();
     transactions.forEach(t => {
       if (t.category === 'Piutang Karyawan' && !t.employeeId && typeof t.description === 'string') {
-        let nameMatch = t.description.match(/A\/n\.\s*([A-Za-z]+)/i);
-        if (nameMatch && nameMatch[1]) {
-          legacyNames.add(nameMatch[1].trim());
-        } else {
-           nameMatch = t.description.match(/Kasbon\s+([A-Za-z]+)/i);
-           if (nameMatch && nameMatch[1]) {
-              legacyNames.add(nameMatch[1].trim());
-           }
+        const descUpper = t.description.toUpperCase();
+        for (const init of ALLOWED_INITIALS) {
+          if (new RegExp(`\\b${init}\\b`).test(descUpper)) {
+            legacyNames.add(init);
+            break;
+          }
         }
       }
     });
 
     // Cleanup garbage employees from previous bad migration
     employees.forEach(e => {
-      if (e.notes === 'Auto-migrated' && (e.name.toLowerCase().includes('tgl') || /\d/.test(e.name))) {
+      if (e.notes === 'Auto-migrated' && !ALLOWED_INITIALS.includes((e.name || '').toUpperCase())) {
          deleteEmployee(e.id).catch(console.error);
       }
     });
 
     legacyNames.forEach(name => {
-      const exists = employees.find(e => (e.name || '').toLowerCase() === name.toLowerCase());
-      if (!exists && name.length > 0) {
+      const exists = employees.find(e => (e.name || '').toUpperCase() === name);
+      if (!exists) {
         console.log("Auto-creating missing employee record for legacy data:", name);
         addEmployee({ name: name, position: 'Karyawan', notes: 'Auto-migrated' });
       }
@@ -97,45 +96,23 @@ export function KasbonManager() {
   const enrichedTransactions = useMemo(() => {
     return transactions.map(t => {
       if (t.category === 'Piutang Karyawan' && !t.employeeId && typeof t.description === 'string') {
-         let nameMatch = t.description.match(/A\/n\.\s*([A-Za-z]+)/i) || t.description.match(/Kasbon\s+([A-Za-z]+)/i);
-         if (nameMatch && nameMatch[1]) {
-            const empName = nameMatch[1].trim();
-            const emp = employees.find(e => (e.name || '').toLowerCase() === empName.toLowerCase());
-            if (emp) {
-              return { ...t, employeeId: emp.id };
-            }
+         const descUpper = t.description.toUpperCase();
+         for (const init of ALLOWED_INITIALS) {
+           if (new RegExp(`\\b${init}\\b`).test(descUpper)) {
+              const emp = employees.find(e => (e.name || '').toUpperCase() === init);
+              if (emp) {
+                return { ...t, employeeId: emp.id };
+              }
+           }
          }
       }
       return t;
     });
   }, [transactions, employees]);
 
-  // Compute Balances
-  const employeeBalances = useMemo(() => {
-    const balances: Record<string, number> = {};
-    employees.forEach(e => { balances[e.id] = 0; });
-    
-    enrichedTransactions.forEach(t => {
-      if (t.category === 'Piutang Karyawan' && t.employeeId) {
-        if (t.type === 'cash-out') {
-          // Kasbon diberikan (Piutang bertambah)
-          balances[t.employeeId] = (balances[t.employeeId] || 0) + t.amount;
-        } else if (t.type === 'cash-in') {
-          // Kasbon dibayar (Piutang berkurang)
-          balances[t.employeeId] = (balances[t.employeeId] || 0) - t.amount;
-        }
-      }
-    });
-    return balances;
-  }, [enrichedTransactions, employees]);
-
-  // Filter Transactions for Report
-  const filteredTransactions = useMemo(() => {
+  // Filter Transactions by Date ONLY (for the summary side panel)
+  const dateFilteredTransactions = useMemo(() => {
     let filtered = enrichedTransactions.filter(t => t.category === 'Piutang Karyawan');
-    
-    if (selectedEmployeeId !== 'all') {
-      filtered = filtered.filter(t => t.employeeId === selectedEmployeeId);
-    }
     
     if (startDate) {
       filtered = filtered.filter(t => typeof t.date === 'string' && t.date >= startDate);
@@ -143,9 +120,34 @@ export function KasbonManager() {
     if (endDate) {
       filtered = filtered.filter(t => typeof t.date === 'string' && t.date <= endDate);
     }
+    return filtered;
+  }, [enrichedTransactions, startDate, endDate]);
+
+  // Compute Balances based on the Date Range
+  const employeeBalances = useMemo(() => {
+    const balances: Record<string, number> = {};
+    employees.forEach(e => { balances[e.id] = 0; });
     
+    dateFilteredTransactions.forEach(t => {
+      if (t.employeeId) {
+        if (t.type === 'cash-out') {
+          balances[t.employeeId] = (balances[t.employeeId] || 0) + (Number(t.amount) || 0);
+        } else if (t.type === 'cash-in') {
+          balances[t.employeeId] = (balances[t.employeeId] || 0) - (Number(t.amount) || 0);
+        }
+      }
+    });
+    return balances;
+  }, [dateFilteredTransactions, employees]);
+
+  // Main Report filtered by Date AND selected Employee
+  const filteredTransactions = useMemo(() => {
+    let filtered = dateFilteredTransactions;
+    if (selectedEmployeeId !== 'all') {
+      filtered = filtered.filter(t => t.employeeId === selectedEmployeeId);
+    }
     return filtered.sort((a, b) => new Date(String(a.date || '')).getTime() - new Date(String(b.date || '')).getTime());
-  }, [enrichedTransactions, selectedEmployeeId, startDate, endDate]);
+  }, [dateFilteredTransactions, selectedEmployeeId]);
 
   const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const monthTotalMasuk = filteredTransactions.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -264,7 +266,7 @@ export function KasbonManager() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Karyawan</SelectItem>
-                {employees.map(e => (
+                {employees.filter(e => e.notes !== 'Auto-migrated' || ALLOWED_INITIALS.includes((e.name || '').toUpperCase())).map(e => (
                   <SelectItem key={e.id} value={e.id}>{e.name} - {formatCurrency(employeeBalances[e.id] || 0)}</SelectItem>
                 ))}
               </SelectContent>
@@ -317,7 +319,7 @@ export function KasbonManager() {
                       <SelectValue placeholder="Pilih Karyawan..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {employees.map(e => (
+                      {employees.filter(e => e.notes !== 'Auto-migrated' || ALLOWED_INITIALS.includes((e.name || '').toUpperCase())).map(e => (
                         <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -379,9 +381,9 @@ export function KasbonManager() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {employees.length === 0 ? (
+                {employees.filter(e => e.notes !== 'Auto-migrated' || ALLOWED_INITIALS.includes((e.name || '').toUpperCase())).length === 0 ? (
                   <p className="text-sm text-muted-foreground">Belum ada data karyawan.</p>
-                ) : employees.map(e => (
+                ) : employees.filter(e => e.notes !== 'Auto-migrated' || ALLOWED_INITIALS.includes((e.name || '').toUpperCase())).map(e => (
                   <div key={e.id} className="flex justify-between items-center border-b border-border pb-2 last:border-0">
                     <span className="text-sm font-medium">{getInitials(e.name || '')}</span>
                     <span className={`text-sm font-bold ${employeeBalances[e.id] > 0 ? 'text-destructive' : 'text-primary'}`}>
