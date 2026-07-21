@@ -35,12 +35,12 @@ export function KasbonManager() {
 
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
+  const formatDate = (dateString: any) => {
+    if (!dateString || typeof dateString !== 'string') return '-';
     try {
       return format(parseISO(dateString), 'dd MMM yyyy', { locale: id });
     } catch {
-      return dateString;
+      return String(dateString);
     }
   };
 
@@ -50,7 +50,7 @@ export function KasbonManager() {
     // For now, we will extract names and make sure they are in the employees list.
     const legacyNames = new Set<string>();
     transactions.forEach(t => {
-      if (t.category === 'Piutang Karyawan' && !t.employeeId && t.description) {
+      if (t.category === 'Piutang Karyawan' && !t.employeeId && typeof t.description === 'string') {
         let nameMatch = t.description.match(/A\/n\.\s*([\w\s]+)/i);
         if (nameMatch && nameMatch[1]) {
           legacyNames.add(nameMatch[1].trim());
@@ -65,7 +65,7 @@ export function KasbonManager() {
     });
 
     legacyNames.forEach(name => {
-      const exists = employees.find(e => e.name.toLowerCase() === name.toLowerCase());
+      const exists = employees.find(e => (e.name || '').toLowerCase() === name.toLowerCase());
       if (!exists && name.length > 0) {
         console.log("Auto-creating missing employee record for legacy data:", name);
         addEmployee({ name: name, position: 'Karyawan', notes: 'Auto-migrated' });
@@ -80,11 +80,11 @@ export function KasbonManager() {
   // Map legacy transactions to their newly created/existing employeeId
   const enrichedTransactions = useMemo(() => {
     return transactions.map(t => {
-      if (t.category === 'Piutang Karyawan' && !t.employeeId && t.description) {
+      if (t.category === 'Piutang Karyawan' && !t.employeeId && typeof t.description === 'string') {
          let nameMatch = t.description.match(/A\/n\.\s*([\w\s]+)/i) || t.description.match(/Kasbon\s+([\w\s]+)/i);
          if (nameMatch && nameMatch[1]) {
             const empName = nameMatch[1].trim();
-            const emp = employees.find(e => e.name.toLowerCase() === empName.toLowerCase());
+            const emp = employees.find(e => (e.name || '').toLowerCase() === empName.toLowerCase());
             if (emp) {
               return { ...t, employeeId: emp.id };
             }
@@ -122,14 +122,14 @@ export function KasbonManager() {
     }
     
     if (selectedMonth) {
-      filtered = filtered.filter(t => t.date && t.date.startsWith(selectedMonth));
+      filtered = filtered.filter(t => typeof t.date === 'string' && t.date.startsWith(selectedMonth));
     }
     
-    return filtered.sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+    return filtered.sort((a, b) => new Date(String(a.date || '')).getTime() - new Date(String(b.date || '')).getTime());
   }, [enrichedTransactions, selectedEmployeeId, selectedMonth]);
 
-  const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + t.amount, 0);
-  const monthTotalMasuk = filteredTransactions.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + t.amount, 0);
+  const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const monthTotalMasuk = filteredTransactions.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   const handleAddEmployee = async () => {
     if (!newEmployeeName.trim()) return;
