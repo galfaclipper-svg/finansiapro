@@ -40,7 +40,7 @@ export function KasbonManager() {
     // For now, we will extract names and make sure they are in the employees list.
     const legacyNames = new Set<string>();
     transactions.forEach(t => {
-      if (t.category === 'Piutang Karyawan' && !t.employeeId) {
+      if (t.category === 'Piutang Karyawan' && !t.employeeId && t.description) {
         let nameMatch = t.description.match(/A\/n\.\s*([\w\s]+)/i);
         if (nameMatch && nameMatch[1]) {
           legacyNames.add(nameMatch[1].trim());
@@ -66,7 +66,7 @@ export function KasbonManager() {
   // Map legacy transactions to their newly created/existing employeeId
   const enrichedTransactions = useMemo(() => {
     return transactions.map(t => {
-      if (t.category === 'Piutang Karyawan' && !t.employeeId) {
+      if (t.category === 'Piutang Karyawan' && !t.employeeId && t.description) {
          let nameMatch = t.description.match(/A\/n\.\s*([\w\s]+)/i) || t.description.match(/Kasbon\s+([\w\s]+)/i);
          if (nameMatch && nameMatch[1]) {
             const empName = nameMatch[1].trim();
@@ -159,7 +159,7 @@ export function KasbonManager() {
 
   const generateReportText = () => {
     if (!selectedEmployee) return '';
-    let text = `*Laporan Kasbon Karyawan*\n\n`;
+    let text = `*Laporan Piutang Karyawan*\n\n`;
     text += `Nama: *${selectedEmployee.name}*\n`;
     text += `Periode: *${monthLabel}*\n`;
     text += `Sisa Kasbon Saat Ini: *${formatCurrency(employeeBalances[selectedEmployee.id] || 0)}*\n\n`;
@@ -358,7 +358,7 @@ export function KasbonManager() {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-2xl text-foreground">
                     <ReceiptText className="w-6 h-6 text-primary" />
-                    Laporan Kasbon Karyawan
+                    Laporan Piutang Karyawan
                   </CardTitle>
                   <CardDescription className="mt-2 text-base">
                     {selectedEmployeeId === 'all' ? 'Semua Karyawan' : `A/n. ${selectedEmployee?.name}`} • {monthLabel}

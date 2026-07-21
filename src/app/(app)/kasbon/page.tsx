@@ -5,7 +5,7 @@ export default function KasbonPage() {
   return (
     <div className="space-y-8 pb-12">
       <PageHeader
-        title="Kasbon Karyawan"
+        title="Piutang Karyawan"
         description="Kelola piutang karyawan (kasbon), pantau sisa pinjaman, dan cetak laporan per bulan."
       />
       <KasbonManager />
