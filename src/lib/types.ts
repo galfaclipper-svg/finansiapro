@@ -6,6 +6,14 @@ export type ReportRecipient = {
   salutation?: 'Bapak' | 'Ibu' | '';
 };
 
+export type Employee = {
+  id: string;
+  name: string;
+  position?: string;
+  phone?: string;
+  notes?: string;
+};
+
 export type CompanyProfile = {
   name: string;
   address: string;
@@ -13,6 +21,7 @@ export type CompanyProfile = {
   contact?: string;
   reportRecipients?: ReportRecipient[];
   isEnterpriseMode?: boolean;
+  isKasbonMode?: boolean;
   closedPeriods?: string[]; // e.g. "2026-09"
 };
 
@@ -44,6 +53,7 @@ export type Transaction = {
   usefulLifeInMonths?: number;
   salvageValue?: number;
   autoDepreciation?: boolean; // if false, system won't auto-calculate depreciation
+  employeeId?: string; // Reference to Employee for Kasbon/Payroll
   
   // Enterprise mode strict double-entry array
   journalLines?: {

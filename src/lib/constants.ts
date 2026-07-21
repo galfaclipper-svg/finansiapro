@@ -94,5 +94,6 @@ export const INITIAL_COMPANY_PROFILE: CompanyProfile = {
   address: 'Alamat Perusahaan Anda',
   reportRecipients: [],
   isEnterpriseMode: false,
+  isKasbonMode: false,
   closedPeriods: [],
 };

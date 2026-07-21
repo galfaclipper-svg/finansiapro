@@ -28,6 +28,7 @@ const profileSchema = z.object({
   name: z.string().min(3, "Nama perusahaan minimal 3 karakter."),
   address: z.string().min(10, "Alamat terlalu pendek."),
   isEnterpriseMode: z.boolean().optional(),
+  isKasbonMode: z.boolean().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -51,6 +52,7 @@ export default function SettingsPage() {
             name: companyProfile.name,
             address: companyProfile.address,
             isEnterpriseMode: companyProfile.isEnterpriseMode || false,
+            isKasbonMode: companyProfile.isKasbonMode || false,
         },
     });
 
@@ -378,6 +380,7 @@ export default function SettingsPage() {
           { title: 'Perencanaan', href: '/business-planner', icon: Briefcase, color: 'text-rose-500', bg: 'bg-rose-500/10', show: true },
           { title: 'Penyesuaian', href: '/adjustments', icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-500/10', show: companyProfile.isEnterpriseMode },
           { title: 'Tutup Buku', href: '/closing', icon: Database, color: 'text-red-500', bg: 'bg-red-500/10', show: companyProfile.isEnterpriseMode },
+          { title: 'Kasbon', href: '/kasbon', icon: Briefcase, color: 'text-green-500', bg: 'bg-green-500/10', show: companyProfile.isKasbonMode },
         ].filter(item => item.show).map(item => (
           <Link key={item.href} href={item.href}>
             <div className="flex items-center justify-between p-3 bg-card border rounded-lg shadow-sm active:scale-95 transition-transform">
@@ -461,6 +464,32 @@ export default function SettingsPage() {
                                   </FormLabel>
                                   <CardDescription>
                                       Aktifkan fitur lanjutan seperti Jurnal Penyesuaian, Tutup Buku (Closing Entries), dan akuntansi berbasis akrual ganda.
+                                  </CardDescription>
+                              </div>
+                              <FormControl>
+                                  <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                  />
+                              </FormControl>
+                          </FormItem>
+                      )}
+                   />
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-border">
+                   <FormField
+                      control={form.control}
+                      name="isKasbonMode"
+                      render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                              <div className="space-y-0.5">
+                                  <FormLabel className="text-base flex items-center gap-2">
+                                      Fitur Kasbon Karyawan
+                                      {field.value && <Badge variant="default" className="bg-green-600 hover:bg-green-700">Aktif</Badge>}
+                                  </FormLabel>
+                                  <CardDescription>
+                                      Aktifkan menu khusus untuk melacak piutang atau kasbon karyawan setiap bulannya.
                                   </CardDescription>
                               </div>
                               <FormControl>

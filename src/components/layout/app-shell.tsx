@@ -17,7 +17,7 @@ import { useAppState } from '@/hooks/use-app-state';
 import { SidebarNav } from './sidebar-nav';
 import { Header } from './header';
 import Link from 'next/link';
-import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator, Users, FileText, ListTree } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, Package, LineChart, Settings, Calculator, Users, FileText, ListTree, Wallet } from 'lucide-react';
 import { SecretAdminGate } from '@/components/secret-admin-gate';
 import { BottomNav } from './bottom-nav';
 
@@ -125,6 +125,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarNav items={companyProfile?.isEnterpriseMode ? [...NAV_ITEMS.slice(0, 3), ...ENTERPRISE_NAV_ITEMS, ...NAV_ITEMS.slice(3)] : NAV_ITEMS} />
+          {companyProfile?.isKasbonMode && (
+             <SidebarNav items={[{ title: 'Kasbon Karyawan', href: '/kasbon', icon: <Wallet size={20} /> }]} />
+          )}
         </SidebarContent>
         <SidebarFooter>
             <SidebarSeparator/>

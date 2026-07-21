@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy, getDocs as fsGetDocs } from 'firebase/firestore';
-import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account } from '@/lib/types';
+import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account, Employee } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 import { useAuth } from '@/contexts/auth-provider';
@@ -32,6 +32,11 @@ interface AppContextType {
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
   updateClient: (client: Client) => Promise<void>;
   deleteClient: (clientId: string) => Promise<void>;
+  employees: Employee[];
+  setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+  addEmployee: (employee: Omit<Employee, 'id'>) => Promise<void>;
+  updateEmployee: (employee: Employee) => Promise<void>;
+  deleteEmployee: (employeeId: string) => Promise<void>;
   invoices: Invoice[];
   setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
   addInvoice: (invoice: Omit<Invoice, 'id'>) => Promise<void>;
@@ -52,6 +57,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -87,6 +93,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTransactions([]);
       setInventory([]);
       setClients([]);
+      setEmployees([]);
       setInvoices([]);
       setAccounts([]);
       return;
@@ -123,6 +130,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setClients(cls);
     });
 
+    // Employees subscription
+    const empRef = fsCollection(db, `users/${user.uid}/employees`);
+    const unsubEmp = fsOnSnapshot(empRef, (snapshot) => {
+      const emps = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Employee));
+      setEmployees(emps);
+    });
+
     // Invoices subscription
     const invcRef = fsCollection(db, `users/${user.uid}/invoices`);
     const unsubInvc = fsOnSnapshot(fsQuery(invcRef, fsOrderBy('date', 'desc')), (snapshot) => {
@@ -152,6 +166,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unsubTx();
       unsubInv();
       unsubClient();
+      unsubEmp();
       unsubInvc();
       unsubAccounts();
     };
@@ -341,6 +356,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addEmployee = async (employee: Omit<Employee, 'id'>) => {
+    if (!user) return;
+    const newId = `EMP${String(employees.length + 1).padStart(4, '0')}-${Date.now()}`;
+    const cleanItem = Object.fromEntries(
+      Object.entries({ ...employee, id: newId }).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/employees`, newId), cleanItem);
+    } catch (err) {
+      console.error('Error adding employee', err);
+    }
+  };
+
+  const updateEmployee = async (updatedEmployee: Employee) => {
+    if (!user) return;
+    const cleanItem = Object.fromEntries(
+      Object.entries(updatedEmployee).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/employees`, updatedEmployee.id), cleanItem);
+    } catch (err) {
+      console.error('Error updating employee', err);
+    }
+  };
+
+  const deleteEmployee = async (employeeId: string) => {
+    if (!user) return;
+    try {
+      await fsDeleteDoc(fsDoc(db, `users/${user.uid}/employees`, employeeId));
+    } catch (err) {
+      console.error('Error deleting employee', err);
+    }
+  };
+
   const addInvoice = async (invoice: Omit<Invoice, 'id'>) => {
     if (!user) return;
     const newId = `INV-${Date.now()}`;
@@ -413,6 +462,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTransactions([]);
     setInventory([]);
     setClients([]);
+    setEmployees([]);
     setInvoices([]);
 
     try {
@@ -435,10 +485,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) { console.error('Error clearing inventory', e); }
 
     try {
-      // 4. Clear clients and invoices
+      // 4. Clear clients, employees, and invoices
       const clSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`)));
       await Promise.all(clSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
     } catch (e) { console.error('Error clearing clients', e); }
+
+    try {
+      const empSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/employees`)));
+      await Promise.all(empSnapshot.docs.map(doc => fsDeleteDoc(doc.ref)));
+    } catch (e) { console.error('Error clearing employees', e); }
 
     try {
       const ivSnapshot = await fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`)));
@@ -451,10 +506,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
 
       // ── STEP 1: Clear all existing data first ──────────────────────────
-      const [txSnap, invSnap, clSnap, ivSnap, accSnap] = await Promise.all([
+      const [txSnap, invSnap, clSnap, empSnap, ivSnap, accSnap] = await Promise.all([
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/employees`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/accounts`))),
       ]);
@@ -462,6 +518,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...txSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...invSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...clSnap.docs.map(d => fsDeleteDoc(d.ref)),
+        ...empSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...ivSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...accSnap.docs.map(d => fsDeleteDoc(d.ref)),
       ]);
@@ -516,6 +573,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await Promise.all(clPromises);
       }
 
+      // ── STEP 5.5: Restore Employees ──────────────────────────────────────
+      if (Array.isArray(data.employees) && data.employees.length > 0) {
+        const empPromises = data.employees
+          .filter((emp: any) => emp && emp.id)
+          .map((emp: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/employees`, emp.id), sanitize(emp)));
+        await Promise.all(empPromises);
+      }
+
       // ── STEP 6: Restore Invoices ───────────────────────────────────────
       if (Array.isArray(data.invoices) && data.invoices.length > 0) {
         const ivPromises = data.invoices
@@ -563,6 +628,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addClient,
     updateClient,
     deleteClient,
+    employees,
+    setEmployees,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
     invoices,
     setInvoices,
     addInvoice,
