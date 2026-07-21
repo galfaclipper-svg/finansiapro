@@ -8,8 +8,8 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen bg-[#0A0A0A] text-slate-50 overflow-x-hidden font-sans w-full relative">
       {/* Background Decor - ensuring they don't break viewport width */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-[#CCFF00]/20 rounded-full blur-[100px] md:blur-[120px] mix-blend-screen"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-indigo-600/10 rounded-full blur-[120px] md:blur-[150px] mix-blend-screen"></div>
+        <div className="absolute top-0 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-[#CCFF00]/20 rounded-full blur-[100px] md:blur-[120px] mix-blend-screen animate-blob-1"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[350px] md:w-[600px] h-[350px] md:h-[600px] bg-indigo-600/10 rounded-full blur-[120px] md:blur-[150px] mix-blend-screen animate-blob-2"></div>
       </div>
 
       <header className="px-4 lg:px-12 h-20 flex items-center bg-[#0A0A0A]/80 backdrop-blur-md sticky top-0 z-50 border-b border-white/5 w-full">

@@ -272,6 +272,26 @@
   .dark .glass-panel-cyan {
     @apply bg-[#CCFF00]/10 border-[#CCFF00]/30 shadow-[0_0_20px_rgba(204,255,0,0.15)];
   }
+  
+  @keyframes float-blob-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(50px, -50px) scale(1.1); }
+    66% { transform: translate(-30px, 30px) scale(0.9); }
+  }
+  
+  @keyframes float-blob-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-50px, 50px) scale(1.15); }
+    66% { transform: translate(30px, -30px) scale(0.85); }
+  }
+  
+  .animate-blob-1 {
+    animation: float-blob-1 15s infinite ease-in-out;
+  }
+  
+  .animate-blob-2 {
+    animation: float-blob-2 18s infinite ease-in-out;
+  }
 }
 
 /* Hide Google Translate UI */
