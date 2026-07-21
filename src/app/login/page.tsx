@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
@@ -41,8 +42,15 @@ export default function LoginPage() {
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg">
-        <div className="text-center">
+      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg relative">
+        <Link 
+          href="/" 
+          className="absolute top-6 left-6 inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          <ChevronLeft className="mr-1 h-4 w-4" />
+          Beranda
+        </Link>
+        <div className="text-center pt-4">
           <img src="/icon.png" alt="FinansiaProf Logo" className="w-20 h-20 mx-auto mb-2 object-contain" />
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">
             FinansiaProf
