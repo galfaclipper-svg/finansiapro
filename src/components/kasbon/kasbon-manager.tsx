@@ -20,7 +20,7 @@ export function KasbonManager() {
   const { employees, addEmployee, transactions, addTransaction } = useAppState();
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
   
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -28,9 +28,10 @@ export function KasbonManager() {
   const [isTransactionOpen, setIsTransactionOpen] = useState(false);
   const [txType, setTxType] = useState<'kasbon' | 'bayar'>('kasbon');
   const [txAmount, setTxAmount] = useState('');
-  const [txDate, setTxDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [txDate, setTxDate] = useState('');
   const [txDesc, setTxDesc] = useState('');
   const [txAccount, setTxAccount] = useState('Kas Bank BCA'); // Default cash account
+  const [isMounted, setIsMounted] = useState(false);
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +62,11 @@ export function KasbonManager() {
         addEmployee({ name: name, position: 'Karyawan', notes: 'Auto-migrated' });
       }
     });
-  }, [transactions, employees, addEmployee]);
+
+    setIsMounted(true);
+    if (!selectedMonth) setSelectedMonth(format(new Date(), 'yyyy-MM'));
+    if (!txDate) setTxDate(format(new Date(), 'yyyy-MM-dd'));
+  }, [transactions, employees, addEmployee, selectedMonth, txDate]);
 
   // Map legacy transactions to their newly created/existing employeeId
   const enrichedTransactions = useMemo(() => {
@@ -210,6 +215,8 @@ export function KasbonManager() {
       toast({ title: "Gagal", description: "Gagal membuat gambar PNG", variant: "destructive" });
     }
   };
+
+  if (!isMounted) return null;
 
   return (
     <div className="space-y-6">
