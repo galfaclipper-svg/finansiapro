@@ -318,7 +318,7 @@ export function KasbonManager() {
     
     text += `\nTotal Pinjam Periode Ini: ${formatCurrency(monthTotalKeluar)}\n`;
     text += `Total Bayar Periode Ini: ${formatCurrency(monthTotalMasuk)}\n\n`;
-    text += `_Dibuat otomatis oleh Sistem Finansia Pro_`;
+    text += `_Dibuat otomatis oleh Sistem FinansiaProf_`;
     return text;
   };
 
@@ -635,7 +635,7 @@ export function KasbonManager() {
             
             {/* Visual signature / footer for PNG export */}
             <div className="p-6 border-t border-border bg-card flex justify-between items-center text-sm text-muted-foreground">
-              <div>Dicetak dari: Finansia Pro</div>
+              <div>Dicetak dari: FinansiaProf</div>
               <div className="flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4 text-primary" /> Laporan Tervalidasi
               </div>

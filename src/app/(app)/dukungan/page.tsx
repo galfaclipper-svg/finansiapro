@@ -7,7 +7,7 @@ export default function DukunganPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Pusat Dukungan & Panduan</h1>
-      <p className="text-muted-foreground">Selamat datang di pusat bantuan Finansia Pro. Di sini Anda dapat membaca panduan penggunaan sistem dan menghubungi pengembang.</p>
+      <p className="text-muted-foreground">Selamat datang di pusat bantuan FinansiaProf. Di sini Anda dapat membaca panduan penggunaan sistem dan menghubungi pengembang.</p>
       
       <Card>
         <CardHeader>
