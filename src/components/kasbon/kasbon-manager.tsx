@@ -550,7 +550,7 @@ export function KasbonManager() {
                     <TableHead className="text-right cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('amount')}>
                       <div className="flex items-center justify-end gap-1">Masuk (Bayar) <ArrowUpDown className="w-3 h-3" /></div>
                     </TableHead>
-                    <TableHead className="text-right w-[100px]">Aksi</TableHead>
+                    <TableHead className="text-right w-[100px]" data-html2canvas-ignore="true">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -597,7 +597,7 @@ export function KasbonManager() {
                                   </div>
                                 ) : '-'}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="text-right" data-html2canvas-ignore="true">
                                 <div className="flex justify-end gap-2">
                                   <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEditTx(t)}>
                                     <Pencil className="h-4 w-4" />
@@ -615,7 +615,7 @@ export function KasbonManager() {
                             <TableCell colSpan={3} className="text-right">Total {empName}:</TableCell>
                             <TableCell className="text-right text-destructive">{formatCurrency(empTotalKeluar)}</TableCell>
                             <TableCell className="text-right text-primary">{formatCurrency(empTotalMasuk)}</TableCell>
-                            <TableCell></TableCell>
+                            <TableCell data-html2canvas-ignore="true"></TableCell>
                           </TableRow>
                         </React.Fragment>
                       );
@@ -626,7 +626,7 @@ export function KasbonManager() {
                       <TableCell colSpan={3} className="text-right">TOTAL KESELURUHAN:</TableCell>
                       <TableCell className="text-right text-destructive">{formatCurrency(monthTotalKeluar)}</TableCell>
                       <TableCell className="text-right text-primary">{formatCurrency(monthTotalMasuk)}</TableCell>
-                      <TableCell></TableCell>
+                      <TableCell data-html2canvas-ignore="true"></TableCell>
                     </TableRow>
                   )}
                 </TableBody>
