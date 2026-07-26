@@ -62,15 +62,38 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-        <div className="flex items-center py-4 gap-4">
+        <div className="flex flex-col sm:flex-row items-center py-4 gap-4">
             <Input
-            placeholder="Cari deskripsi..."
-            value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-                table.getColumn("description")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
+              placeholder="Cari deskripsi..."
+              value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+              onChange={(event) =>
+                  table.getColumn("description")?.setFilterValue(event.target.value)
+              }
+              className="max-w-sm"
             />
+            
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Filter Tanggal:</span>
+              <Input
+                type="date"
+                value={(table.getColumn("date")?.getFilterValue() as string) ?? ""}
+                onChange={(event) =>
+                  table.getColumn("date")?.setFilterValue(event.target.value || undefined)
+                }
+                className="w-full sm:w-[150px]"
+              />
+              {table.getColumn("date")?.getFilterValue() && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => table.getColumn("date")?.setFilterValue(undefined)}
+                  className="text-xs h-8 px-2"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-auto">
