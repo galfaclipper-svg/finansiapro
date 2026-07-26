@@ -586,17 +586,17 @@ export default function ReportsPage() {
       // Column widths (14 cols: A-N)
       dashSheet.columns = [
         { width: 1.2 },   // A margin
-        { width: 14.5 },  // B
+        { width: 18 },  // B
         { width: 0.8 },   // C gutter
-        { width: 14.5 },  // D
+        { width: 18 },  // D
         { width: 0.8 },   // E
-        { width: 14.5 },  // F
+        { width: 18 },  // F
         { width: 0.8 },   // G
-        { width: 14.5 },  // H
+        { width: 18 },  // H
         { width: 0.8 },   // I
-        { width: 14.5 },  // J
+        { width: 18 },  // J
         { width: 0.8 },   // K
-        { width: 14.5 },  // L
+        { width: 18 },  // L
         { width: 1.2 },   // M margin
       ];
 
@@ -770,7 +770,7 @@ export default function ReportsPage() {
         },
         {
           icon: '💎', label: 'LABA BERSIH',
-          value: fv(`B9-D9`, 0),
+          value: fv(`B10-D10`, 0),
           numFmt: '"Rp "#,##0',
           sub: `Pendapatan - Beban`,
           bg: 'FF0A2518', accent: DC.green,
@@ -797,7 +797,7 @@ export default function ReportsPage() {
         },
         {
           icon: '📈', label: 'ROI',
-          value: fv(`IF(H9>0, (F9/H9), 0)`, 0),
+          value: fv(`IF(H10>0, (F10/H10), 0)`, 0),
           numFmt: '0.0%',
           sub: `Laba / Total Aset`,
           bg: 'FF1A0D00', accent: DC.orange,
@@ -1145,9 +1145,9 @@ export default function ReportsPage() {
         const bsVal = dashSheet.getCell(`F${dr.number}`);
         const cleanLabel = bsr.label.replace('  ', '').replace('━━ ', '');
         if (cleanLabel === 'TOTAL ASET') {
-          bsVal.value = fv('H9', bsr.val);
+          bsVal.value = fv('H10', bsr.val);
         } else if (cleanLabel === 'Laba Bersih') {
-          bsVal.value = fv('F9', bsr.val);
+          bsVal.value = fv('F10', bsr.val);
         } else {
           bsVal.value = fv(`IFERROR(VLOOKUP("${cleanLabel}", 'Daftar Akun'!$B:$D, 3, FALSE), 0)`, bsr.val);
         }
@@ -1193,7 +1193,7 @@ export default function ReportsPage() {
       dr = dRow(22); fillRow(dr.number, DC.bg);
       dashSheet.mergeCells(`B${dr.number}:L${dr.number}`);
       const healthTitle = dashSheet.getCell(`B${dr.number}`);
-      healthTitle.value = fv(`IF(B9=0, "  🩺 STATUS KESEHATAN KEUANGAN: BELUM ADA DATA", IF(F9<0, "  🩺 STATUS KESEHATAN KEUANGAN: 🔴 RUGI OPERASIONAL", IF(F9/B9>=0.2, "  🩺 STATUS KESEHATAN KEUANGAN: 🟢 PRIMA & PROFITABLE", "  🩺 STATUS KESEHATAN KEUANGAN: 🟡 SEHAT & BERJALAN BAIK")))`, `  🩺 STATUS KESEHATAN KEUANGAN:   ${dash_health.icon}  ${dash_health.label}`);
+      healthTitle.value = fv(`IF(B10=0, "  🩺 STATUS KESEHATAN KEUANGAN: BELUM ADA DATA", IF(F10<0, "  🩺 STATUS KESEHATAN KEUANGAN: 🔴 RUGI OPERASIONAL", IF(F10/B10>=0.2, "  🩺 STATUS KESEHATAN KEUANGAN: 🟢 PRIMA & PROFITABLE", "  🩺 STATUS KESEHATAN KEUANGAN: 🟡 SEHAT & BERJALAN BAIK")))`, `  🩺 STATUS KESEHATAN KEUANGAN:   ${dash_health.icon}  ${dash_health.label}`);
       healthTitle.font = { name: 'Calibri', bold: true, size: 12, color: { argb: dash_health.color } };
       healthTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: DC.navyMd } };
       healthTitle.alignment = { vertical: 'middle', horizontal: 'left' };
@@ -1202,15 +1202,15 @@ export default function ReportsPage() {
 
       // Key ratios row
       dr = dRow(22); fillRow(dr.number, DC.bg);
-      const ratios = [
-        { label: 'Margin Laba', valF: `IF(B9>0, TEXT(F9/B9, "0.0%"), "0.0%")`, color: gpMargin >= 20 ? DC.green : DC.orange, col: 'B' },
-        { label: 'ROI', valF: `IF(H9>0, TEXT(F9/H9, "0.0%"), "0.0%")`, color: dash_roi >= 20 ? DC.gold : DC.orange, col: 'D' },
-        { label: 'Total Transaksi', valF: `TEXT(COUNTIFS('Jurnal Umum'!A:A, ">="&$N$1, 'Jurnal Umum'!A:A, "<="&$O$1), "0")`, color: DC.accent, col: 'F' },
-        { label: 'Total Akun Aktif', valF: `TEXT(COUNTA('Daftar Akun'!B:B)-1, "0")`, color: DC.whiteD, col: 'H' },
-        { label: 'Jml. Produk', valF: `TEXT(COUNTA('Katalog Produk'!A:A)-1, "0")`, color: DC.orange, col: 'J' },
-        { label: 'Laba Bersih', valF: `TEXT(F9, """Rp"" #,##0")`, color: dash_net >= 0 ? DC.green : DC.red, col: 'L' },
+      const keyRatios = [
+        { label: 'Margin Laba', valF: `IF(B10>0, TEXT(F10/B10, "0.0%"), "0.0%")`, color: gpMargin >= 20 ? DC.green : DC.orange, col: 'B' },
+        { label: 'ROI', valF: `IF(H10>0, TEXT(F10/H10, "0.0%"), "0.0%")`, color: dash_roi >= 20 ? DC.gold : DC.orange, col: 'D' },
+        { label: 'Rasio Arus Kas', valF: `IF(H10>0, TEXT(${dash_opCF}/H10, "0.0%"), "0.0%")`, color: dash_opCF > 0 ? DC.teal : DC.orange, col: 'F' },
+        { label: 'Rasio Modal', valF: `IF(H10>0, TEXT(${reportData.balanceSheet.equity.reduce((a, b) => a + b.val, 0)}/H10, "0.0%"), "0.0%")`, color: DC.accent, col: 'H' },
+        { label: 'Kas / Aset', valF: `IF(H10>0, TEXT(${dash_cash}/H10, "0.0%"), "0.0%")`, color: DC.gold, col: 'J' },
+        { label: 'Laba Bersih', valF: `TEXT(F10, """Rp"" #,##0")`, color: dash_net >= 0 ? DC.green : DC.red, col: 'L' },
       ];
-      ratios.forEach(ratio => {
+      keyRatios.forEach(ratio => {
         const rCell = dashSheet.getCell(`${ratio.col}${dr.number}`);
         rCell.value = fv(`"${ratio.label}: " & ${ratio.valF}`, `${ratio.label}: -`);
         rCell.font = { name: 'Calibri', bold: true, size: 9, color: { argb: ratio.color } };
@@ -1251,7 +1251,7 @@ export default function ReportsPage() {
       const tocSheet = workbook.addWorksheet('DAFTAR ISI');
       setupPage(tocSheet);
       tocSheet.pageSetup.printArea = 'A1:B60';
-      tocSheet.columns = [{ width: 5 }, { width: 65 }];
+      tocSheet.columns = [{ width: 7 }, { width: 70 }];
 
       const tR = (label: string, sz = 10, bold = false, navy = false, italic = false) => {
         const r = tocSheet.addRow(['', label]); r.height = sz > 10 ? sz + 8 : 15;
@@ -1295,11 +1295,11 @@ export default function ReportsPage() {
       const inputSheet = workbook.addWorksheet('Input Tambahan');
       setupPage(inputSheet, true);
       inputSheet.columns = [
-        { width: 5 }, { width: 13 }, { width: 30 }, { width: 14 }, { width: 20 }, { width: 28 },
-        { width: 16 }, { width: 25 }, { width: 7 }, { width: 25 }, { width: 7 }, { width: 25 },
-        { width: 7 }, { width: 17 }, { width: 16 },
-        { width: 12 }, // Col P: MENU button
-        { width: 10 }, // Col Q: DASHBOARD button
+        { width: 7 }, { width: 16 }, { width: 40 }, { width: 18 }, { width: 25 }, { width: 35 },
+        { width: 20 }, { width: 30 }, { width: 10 }, { width: 30 }, { width: 10 }, { width: 30 },
+        { width: 10 }, { width: 22 }, { width: 20 },
+        { width: 14 }, // Col P: MENU button
+        { width: 12 }, // Col Q: DASHBOARD button
       ];
       // Info rows 1-6
       { const r = inputSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
@@ -1436,7 +1436,7 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const katSheet = workbook.addWorksheet('Katalog Produk');
       setupPage(katSheet);
-      katSheet.columns = [{ width: 40 }, { width: 20 }, { width: 15 }, { width: 12 }, { width: 10 }];
+      katSheet.columns = [{ width: 45 }, { width: 25 }, { width: 18 }, { width: 15 }, { width: 12 }];
       { const r = katSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = katSheet.addRow(['Katalog Produk & HPP per Unit']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = katSheet.addRow([`Data inventori per ${today}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
@@ -1457,7 +1457,7 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const acctSheet = workbook.addWorksheet('Daftar Akun');
       setupPage(acctSheet);
-      acctSheet.columns = [{ width: 12 }, { width: 40 }, { width: 15 }, { width: 20 }, { width: 10 }, { width: 10 }];
+      acctSheet.columns = [{ width: 14 }, { width: 45 }, { width: 18 }, { width: 22 }, { width: 12 }, { width: 12 }];
       { const r = acctSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = acctSheet.addRow(['Daftar Akun Referensi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = acctSheet.addRow(['Nama akun WAJIB digunakan persis sama di Jurnal Umum & Input Tambahan.']); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 9, color: { argb: C.textGray } }; }
@@ -1480,7 +1480,7 @@ export default function ReportsPage() {
       const incomeSheetName = 'Laba Rugi';
       const incSheet = workbook.addWorksheet(incomeSheetName);
       setupPage(incSheet);
-      incSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }, { width: 10 }];
+      incSheet.columns = [{ width: 50 }, { width: 25 }, { width: 12 }, { width: 10 }];
       { const r = incSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = incSheet.addRow(['Laporan Laba Rugi']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = incSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
@@ -1520,7 +1520,7 @@ export default function ReportsPage() {
       const balSheetName = 'Neraca';
       const balSheet = workbook.addWorksheet(balSheetName);
       setupPage(balSheet);
-      balSheet.columns = [{ width: 42 }, { width: 22 }, { width: 12 }, { width: 10 }];
+      balSheet.columns = [{ width: 50 }, { width: 25 }, { width: 12 }, { width: 10 }];
       { const r = balSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = balSheet.addRow(['Neraca (Posisi Keuangan)']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = balSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
@@ -1563,7 +1563,7 @@ export default function ReportsPage() {
       // ═══════════════════════════════════════════════════════════
       const cashFlowName = 'Arus Kas';
       const cfSheet = workbook.addWorksheet(cashFlowName);
-      setupPage(cfSheet); cfSheet.columns = [{ width: 46 }, { width: 22 }, { width: 12 }, { width: 10 }];
+      setupPage(cfSheet); cfSheet.columns = [{ width: 55 }, { width: 25 }, { width: 12 }, { width: 10 }];
       { const r = cfSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
       { const r = cfSheet.addRow(['Laporan Arus Kas (Indirect Method)']); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
       { const r = cfSheet.addRow([periodString]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }
@@ -1604,7 +1604,7 @@ export default function ReportsPage() {
         const sheetName = sanitizeSheetName(accountInfo.name);
         const ldSheet = workbook.addWorksheet(sheetName);
         setupPage(ldSheet);
-        ldSheet.columns = [{ width: 12 }, { width: 10 }, { width: 25 }, { width: 42 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 10 }];
+        ldSheet.columns = [{ width: 14 }, { width: 14 }, { width: 30 }, { width: 45 }, { width: 18 }, { width: 18 }, { width: 20 }, { width: 12 }];
         { const r = ldSheet.addRow([companyName]); r.height = 24; r.getCell(1).font = { name: 'Calibri', bold: true, size: 16, color: { argb: C.navy } }; }
         { const r = ldSheet.addRow([`Buku Besar: ${accountInfo.name}`]); r.height = 18; r.getCell(1).font = { name: 'Calibri', bold: true, size: 12, color: { argb: C.blue } }; }
         { const r = ldSheet.addRow([`Per Tanggal Cetak: ${today}`]); r.height = 14; r.getCell(1).font = { name: 'Calibri', italic: true, size: 10, color: { argb: C.textGray } }; }

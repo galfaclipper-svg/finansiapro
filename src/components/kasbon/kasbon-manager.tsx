@@ -12,12 +12,12 @@ import { useAppState } from '@/hooks/use-app-state';
 import { formatCurrency } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { UserPlus, Wallet, Send, Printer, ReceiptText, ArrowDownRight, ArrowUpRight, CheckCircle2, Download } from 'lucide-react';
+import { UserPlus, Wallet, Send, Printer, ReceiptText, ArrowDownRight, ArrowUpRight, CheckCircle2, Download, Search, ArrowUpDown, Pencil, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import html2canvas from 'html2canvas';
 
 export function KasbonManager() {
-  const { employees, addEmployee, deleteEmployee, transactions, addTransaction } = useAppState();
+  const { employees, addEmployee, deleteEmployee, transactions, addTransaction, updateTransaction, deleteTransaction } = useAppState();
   const ALLOWED_INITIALS = ['HR', 'HM', 'GB', 'LMR'];
   
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
@@ -34,6 +34,10 @@ export function KasbonManager() {
   const [txDesc, setTxDesc] = useState('');
   const [txAccount, setTxAccount] = useState('Kas Bank BCA'); // Default cash account
   const [isMounted, setIsMounted] = useState(false);
+  
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{key: 'date'|'amount', direction: 'asc'|'desc'} | null>(null);
 
   const reportRef = useRef<HTMLDivElement>(null);
 
@@ -140,14 +144,48 @@ export function KasbonManager() {
     return balances;
   }, [dateFilteredTransactions, employees]);
 
-  // Main Report filtered by Date AND selected Employee
+  // Main Report filtered by Date AND selected Employee AND Search AND Sort
   const filteredTransactions = useMemo(() => {
     let filtered = dateFilteredTransactions;
     if (selectedEmployeeId !== 'all') {
       filtered = filtered.filter(t => t.employeeId === selectedEmployeeId);
     }
-    return filtered.sort((a, b) => new Date(String(a.date || '')).getTime() - new Date(String(b.date || '')).getTime());
-  }, [dateFilteredTransactions, selectedEmployeeId]);
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(t => 
+        (t.description?.toLowerCase().includes(term)) ||
+        (employees.find(e => e.id === t.employeeId)?.name?.toLowerCase().includes(term))
+      );
+    }
+    
+    if (sortConfig) {
+      filtered.sort((a, b) => {
+        if (sortConfig.key === 'date') {
+          return sortConfig.direction === 'asc' 
+            ? new Date(String(a.date || '')).getTime() - new Date(String(b.date || '')).getTime()
+            : new Date(String(b.date || '')).getTime() - new Date(String(a.date || '')).getTime();
+        }
+        if (sortConfig.key === 'amount') {
+          return sortConfig.direction === 'asc' 
+            ? (Number(a.amount) || 0) - (Number(b.amount) || 0)
+            : (Number(b.amount) || 0) - (Number(a.amount) || 0);
+        }
+        return 0;
+      });
+    } else {
+      filtered.sort((a, b) => new Date(String(a.date || '')).getTime() - new Date(String(b.date || '')).getTime());
+    }
+    return filtered;
+  }, [dateFilteredTransactions, selectedEmployeeId, searchTerm, sortConfig, employees]);
+
+  const handleSort = (key: 'date'|'amount') => {
+    let direction: 'asc'|'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const monthTotalMasuk = filteredTransactions.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -165,7 +203,7 @@ export function KasbonManager() {
       toast({ title: "Error", description: "Pilih Karyawan terlebih dahulu", variant: "destructive" });
       return;
     }
-    const amount = Number(txAmount);
+    const amount = Number(txAmount.replace(/\./g, ''));
     if (!amount || amount <= 0) return;
 
     const emp = employees.find(e => e.id === selectedEmployeeId);
@@ -181,12 +219,57 @@ export function KasbonManager() {
       employeeId: selectedEmployeeId
     };
 
-    await addTransaction(newTx);
+    if (editingTxId) {
+      await updateTransaction(editingTxId, newTx);
+      toast({ title: "Berhasil", description: "Transaksi kasbon diperbarui." });
+    } else {
+      await addTransaction(newTx);
+      toast({ title: "Berhasil", description: "Transaksi kasbon dicatat." });
+    }
     
     setTxAmount('');
     setTxDesc('');
+    setEditingTxId(null);
     setIsTransactionOpen(false);
-    toast({ title: "Berhasil", description: "Transaksi kasbon dicatat." });
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    if (!rawValue) {
+      setTxAmount('');
+      return;
+    }
+    setTxAmount(new Intl.NumberFormat('id-ID').format(Number(rawValue)));
+  };
+
+  const handleEditTx = (t: any) => {
+    setEditingTxId(t.id);
+    setTxType(t.type === 'cash-out' ? 'kasbon' : 'bayar');
+    setTxDate(t.date || '');
+    setTxAmount(new Intl.NumberFormat('id-ID').format(Number(t.amount) || 0));
+    setTxAccount(t.accountId || 'Kas Bank BCA');
+    setSelectedEmployeeId(t.employeeId || 'all');
+    
+    let originalDesc = t.description || '';
+    if (originalDesc.includes(' - ')) {
+      originalDesc = originalDesc.split(' - ').slice(1).join(' - ');
+    }
+    setTxDesc(originalDesc);
+    setIsTransactionOpen(true);
+  };
+
+  const handleDeleteTx = async (id: string) => {
+    if (confirm("Yakin ingin menghapus transaksi ini?")) {
+      await deleteTransaction(id);
+      toast({ title: "Berhasil", description: "Transaksi dihapus." });
+    }
+  };
+
+  const handleOpenNewTx = () => {
+    setEditingTxId(null);
+    setTxAmount('');
+    setTxDesc('');
+    setIsTransactionOpen(true);
   };
 
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
@@ -308,11 +391,11 @@ export function KasbonManager() {
 
           <Dialog open={isTransactionOpen} onOpenChange={setIsTransactionOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full md:w-auto"><Wallet className="w-4 h-4 mr-2"/> Transaksi Kasbon</Button>
+              <Button className="w-full md:w-auto" onClick={handleOpenNewTx}><Wallet className="w-4 h-4 mr-2"/> Transaksi Kasbon</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Catat Kasbon / Pembayaran</DialogTitle>
+                <DialogTitle>{editingTxId ? 'Edit Kasbon / Pembayaran' : 'Catat Kasbon / Pembayaran'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -346,7 +429,7 @@ export function KasbonManager() {
                 </div>
                 <div className="space-y-2">
                   <Label>Jumlah (Rp)</Label>
-                  <Input type="number" value={txAmount} onChange={e => setTxAmount(e.target.value)} placeholder="500000" />
+                  <Input type="text" value={txAmount} onChange={handleAmountChange} placeholder="500.000" />
                 </div>
                 <div className="space-y-2">
                   <Label>Sumber/Tujuan Kas (Akun)</Label>
@@ -428,16 +511,36 @@ export function KasbonManager() {
                   </div>
                 )}
               </div>
+              
+              {/* Search Bar for Transactions */}
+              <div className="mt-6 flex flex-col md:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Cari transaksi atau karyawan..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-9 bg-background"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Tanggal</TableHead>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('date')}>
+                      <div className="flex items-center gap-1">Tanggal <ArrowUpDown className="w-3 h-3" /></div>
+                    </TableHead>
                     <TableHead>Karyawan</TableHead>
                     <TableHead>Keterangan</TableHead>
-                    <TableHead className="text-right">Keluar (Pinjam)</TableHead>
-                    <TableHead className="text-right">Masuk (Bayar)</TableHead>
+                    <TableHead className="text-right cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('amount')}>
+                      <div className="flex items-center justify-end gap-1">Keluar (Pinjam) <ArrowUpDown className="w-3 h-3" /></div>
+                    </TableHead>
+                    <TableHead className="text-right cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('amount')}>
+                      <div className="flex items-center justify-end gap-1">Masuk (Bayar) <ArrowUpDown className="w-3 h-3" /></div>
+                    </TableHead>
+                    <TableHead className="text-right w-[100px]">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -468,12 +571,23 @@ export function KasbonManager() {
                           </div>
                         ) : '-'}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEditTx(t)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive text-muted-foreground" onClick={() => handleDeleteTx(t.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="bg-muted/30 font-bold">
                     <TableCell colSpan={3} className="text-right">Total Periode Ini:</TableCell>
                     <TableCell className="text-right text-destructive">{formatCurrency(monthTotalKeluar)}</TableCell>
                     <TableCell className="text-right text-primary">{formatCurrency(monthTotalMasuk)}</TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
