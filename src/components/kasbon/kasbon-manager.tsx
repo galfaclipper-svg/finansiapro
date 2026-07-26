@@ -190,6 +190,16 @@ export function KasbonManager() {
   const monthTotalKeluar = filteredTransactions.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const monthTotalMasuk = filteredTransactions.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
+  const groupedTransactions = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    filteredTransactions.forEach(t => {
+      const empId = t.employeeId || 'unknown';
+      if (!groups[empId]) groups[empId] = [];
+      groups[empId].push(t);
+    });
+    return groups;
+  }, [filteredTransactions]);
+
   const handleAddEmployee = async () => {
     if (!newEmployeeName.trim()) return;
     await addEmployee({ name: newEmployeeName });
@@ -546,49 +556,79 @@ export function KasbonManager() {
                 <TableBody>
                   {filteredTransactions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Tidak ada transaksi kasbon pada periode ini.
                       </TableCell>
                     </TableRow>
-                  ) : filteredTransactions.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell>{formatDate(t.date)}</TableCell>
-                      <TableCell>
-                        {employees.find(e => e.id === t.employeeId)?.name || 'Tidak diketahui'}
-                      </TableCell>
-                      <TableCell>{t.description}</TableCell>
-                      <TableCell className="text-right text-destructive font-medium">
-                        {t.type === 'cash-out' ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <ArrowDownRight className="w-3 h-3" /> {formatCurrency(t.amount)}
-                          </div>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="text-right text-primary font-medium">
-                        {t.type === 'cash-in' ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <ArrowUpRight className="w-3 h-3" /> {formatCurrency(t.amount)}
-                          </div>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEditTx(t)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive text-muted-foreground" onClick={() => handleDeleteTx(t.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                  ) : (
+                    Object.entries(groupedTransactions).map(([empId, txs]) => {
+                      const empName = employees.find(e => e.id === empId)?.name || 'Karyawan Tidak Diketahui';
+                      const empTotalKeluar = txs.filter(t => t.type === 'cash-out').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+                      const empTotalMasuk = txs.filter(t => t.type === 'cash-in').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+                      
+                      return (
+                        <React.Fragment key={empId}>
+                          {/* Group Header */}
+                          <TableRow className="bg-muted/40">
+                            <TableCell colSpan={6} className="font-semibold text-primary py-3">
+                              👤 {empName}
+                            </TableCell>
+                          </TableRow>
+                          
+                          {/* Transactions */}
+                          {txs.map(t => (
+                            <TableRow key={t.id}>
+                              <TableCell>{formatDate(t.date)}</TableCell>
+                              <TableCell>
+                                {empName}
+                              </TableCell>
+                              <TableCell>{t.description}</TableCell>
+                              <TableCell className="text-right text-destructive font-medium">
+                                {t.type === 'cash-out' ? (
+                                  <div className="flex items-center justify-end gap-1">
+                                    <ArrowDownRight className="w-3 h-3" /> {formatCurrency(t.amount)}
+                                  </div>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right text-primary font-medium">
+                                {t.type === 'cash-in' ? (
+                                  <div className="flex items-center justify-end gap-1">
+                                    <ArrowUpRight className="w-3 h-3" /> {formatCurrency(t.amount)}
+                                  </div>
+                                ) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEditTx(t)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive text-muted-foreground" onClick={() => handleDeleteTx(t.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          
+                          {/* Group Footer */}
+                          <TableRow className="bg-muted/20 font-bold border-b-[3px] border-border">
+                            <TableCell colSpan={3} className="text-right">Total {empName}:</TableCell>
+                            <TableCell className="text-right text-destructive">{formatCurrency(empTotalKeluar)}</TableCell>
+                            <TableCell className="text-right text-primary">{formatCurrency(empTotalMasuk)}</TableCell>
+                            <TableCell></TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                  {filteredTransactions.length > 0 && Object.keys(groupedTransactions).length > 1 && (
+                    <TableRow className="bg-primary/10 font-extrabold text-base border-t-4 border-primary/20">
+                      <TableCell colSpan={3} className="text-right">TOTAL KESELURUHAN:</TableCell>
+                      <TableCell className="text-right text-destructive">{formatCurrency(monthTotalKeluar)}</TableCell>
+                      <TableCell className="text-right text-primary">{formatCurrency(monthTotalMasuk)}</TableCell>
+                      <TableCell></TableCell>
                     </TableRow>
-                  ))}
-                  <TableRow className="bg-muted/30 font-bold">
-                    <TableCell colSpan={3} className="text-right">Total Periode Ini:</TableCell>
-                    <TableCell className="text-right text-destructive">{formatCurrency(monthTotalKeluar)}</TableCell>
-                    <TableCell className="text-right text-primary">{formatCurrency(monthTotalMasuk)}</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
