@@ -66,6 +66,16 @@ export default function SettingsPage() {
         });
     }
 
+    // Sync form with Firestore data when it loads (fixes stale default values)
+    useEffect(() => {
+        form.reset({
+            name: companyProfile.name,
+            address: companyProfile.address,
+            isEnterpriseMode: companyProfile.isEnterpriseMode || false,
+            isKasbonMode: companyProfile.isKasbonMode || false,
+        });
+    }, [companyProfile.name, companyProfile.address, companyProfile.isEnterpriseMode, companyProfile.isKasbonMode]);
+
     function handleConfirmReset() {
         resetData();
         toast({
