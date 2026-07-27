@@ -34,7 +34,9 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function SettingsPage() {
-    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData, clients, invoices, accounts, employees, suppliers } = useAppState();
+    const appState = useAppState();
+    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData, clients, invoices, accounts, employees } = appState;
+    const suppliers: any[] = (appState as any).suppliers || [];
     const { user } = useAuth();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
