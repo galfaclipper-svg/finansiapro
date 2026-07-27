@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy, getDocs as fsGetDocs } from 'firebase/firestore';
-import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account, Employee } from '@/lib/types';
+import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account, Employee, Supplier } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 import { useAuth } from '@/contexts/auth-provider';
@@ -46,6 +46,11 @@ interface AppContextType {
   addAccount: (account: Account) => Promise<void>;
   updateAccount: (account: Account) => Promise<void>;
   deleteAccount: (accountId: string) => Promise<void>;
+  suppliers: Supplier[];
+  setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
+  addSupplier: (supplier: Omit<Supplier, 'id'>) => Promise<void>;
+  updateSupplier: (supplier: Supplier) => Promise<void>;
+  deleteSupplier: (supplierId: string) => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -58,6 +63,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -137,6 +143,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setEmployees(emps);
     });
 
+    // Suppliers subscription
+    const supRef = fsCollection(db, `users/${user.uid}/suppliers`);
+    const unsubSup = fsOnSnapshot(supRef, (snapshot) => {
+      const sups = snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Supplier));
+      setSuppliers(sups);
+    });
+
     // Invoices subscription
     const invcRef = fsCollection(db, `users/${user.uid}/invoices`);
     const unsubInvc = fsOnSnapshot(fsQuery(invcRef, fsOrderBy('date', 'desc')), (snapshot) => {
@@ -167,6 +180,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unsubInv();
       unsubClient();
       unsubEmp();
+      unsubSup();
       unsubInvc();
       unsubAccounts();
     };
@@ -390,6 +404,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const addSupplier = async (supplier: Omit<Supplier, 'id'>) => {
+    if (!user) return;
+    const newId = `SUP-${Date.now()}`;
+    const cleanItem = Object.fromEntries(
+      Object.entries({ ...supplier, id: newId }).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/suppliers`, newId), cleanItem);
+    } catch (err) {
+      console.error('Error adding supplier', err);
+    }
+  };
+
+  const updateSupplier = async (updatedSupplier: Supplier) => {
+    if (!user) return;
+    const cleanItem = Object.fromEntries(
+      Object.entries(updatedSupplier).filter(([_, v]) => v !== undefined)
+    );
+    try {
+      await fsSetDoc(fsDoc(db, `users/${user.uid}/suppliers`, updatedSupplier.id), cleanItem);
+    } catch (err) {
+      console.error('Error updating supplier', err);
+    }
+  };
+
+  const deleteSupplier = async (supplierId: string) => {
+    if (!user) return;
+    try {
+      await fsDeleteDoc(fsDoc(db, `users/${user.uid}/suppliers`, supplierId));
+    } catch (err) {
+      console.error('Error deleting supplier', err);
+    }
+  };
+
   const addInvoice = async (invoice: Omit<Invoice, 'id'>) => {
     if (!user) return;
     const newId = `INV-${Date.now()}`;
@@ -506,13 +554,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
 
       // ── STEP 1: Clear all existing data first ──────────────────────────
-      const [txSnap, invSnap, clSnap, empSnap, ivSnap, accSnap] = await Promise.all([
+      const [txSnap, invSnap, clSnap, empSnap, ivSnap, accSnap, supSnap] = await Promise.all([
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/transactions`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/inventory`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/clients`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/employees`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/invoices`))),
         fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/accounts`))),
+        fsGetDocs(fsQuery(fsCollection(db, `users/${user.uid}/suppliers`))),
       ]);
       await Promise.all([
         ...txSnap.docs.map(d => fsDeleteDoc(d.ref)),
@@ -521,6 +570,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...empSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...ivSnap.docs.map(d => fsDeleteDoc(d.ref)),
         ...accSnap.docs.map(d => fsDeleteDoc(d.ref)),
+        ...supSnap.docs.map(d => fsDeleteDoc(d.ref)),
       ]);
 
       // Helper: sanitize item for Firestore (remove undefined, convert Timestamps)
@@ -597,6 +647,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await Promise.all(accPromises);
       }
 
+      // ── STEP 8: Restore Suppliers ──────────────────────────────────────
+      if (Array.isArray(data.suppliers) && data.suppliers.length > 0) {
+        const supPromises = data.suppliers
+          .filter((sup: any) => sup && sup.id)
+          .map((sup: any) => fsSetDoc(fsDoc(db, `users/${user.uid}/suppliers`, sup.id), sanitize(sup)));
+        await Promise.all(supPromises);
+      }
+
     } catch (err) {
       console.error('Error restoring backup data', err);
       throw err;
@@ -633,6 +691,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addEmployee,
     updateEmployee,
     deleteEmployee,
+    suppliers,
+    setSuppliers,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
     invoices,
     setInvoices,
     addInvoice,

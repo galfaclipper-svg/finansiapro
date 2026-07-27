@@ -6,11 +6,29 @@ export type ReportRecipient = {
   salutation?: 'Bapak' | 'Ibu' | '';
 };
 
+export type SalaryComponent = {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'allowance' | 'deduction';
+};
+
 export type Employee = {
   id: string;
   name: string;
   position?: string;
   phone?: string;
+  notes?: string;
+  isActive?: boolean;
+  basicSalary?: number;
+  salaryComponents?: SalaryComponent[];
+};
+
+export type Supplier = {
+  id: string;
+  name: string;
+  contact?: string;
+  address?: string;
   notes?: string;
 };
 

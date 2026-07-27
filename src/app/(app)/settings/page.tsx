@@ -34,7 +34,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function SettingsPage() {
-    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData, clients, invoices, accounts } = useAppState();
+    const { companyProfile, setCompanyProfile, setTransactions, transactions, inventory, setInventory, resetData, restoreBackupData, clients, invoices, accounts, employees, suppliers } = useAppState();
     const { user } = useAuth();
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -276,6 +276,8 @@ export default function SettingsPage() {
             clients: clients || [],
             invoices: invoices || [],
             accounts: accounts || [],
+            employees: employees || [],
+            suppliers: suppliers || [],
         };
         const jsonStr = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -287,7 +289,7 @@ export default function SettingsPage() {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
         URL.revokeObjectURL(dataUrl);
-        const totalRecords = (transactions?.length || 0) + (inventory?.length || 0) + (clients?.length || 0) + (invoices?.length || 0);
+        const totalRecords = transactions.length + inventory.length + (clients?.length || 0) + (invoices?.length || 0) + (accounts?.length || 0) + (employees?.length || 0) + (suppliers?.length || 0);
         toast({ title: "Backup Berhasil", description: `File backup JSON berhasil diunduh. Total ${totalRecords} record tersimpan.` });
     };
 
