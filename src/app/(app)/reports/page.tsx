@@ -27,14 +27,12 @@ import { id } from 'date-fns/locale';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 export default function ReportsPage() {
   const { transactions, inventory, companyProfile, dateRange, setDateRange, accounts } = useAppState();
   const activeAccounts = accounts && accounts.length > 0 ? accounts : CHART_OF_ACCOUNTS;
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [quickMonth, setQuickMonth] = useState<string>((new Date().getMonth() + 1).toString());
-  const [quickYear, setQuickYear] = useState<string>(new Date().getFullYear().toString());
 
   // Download Selection States
   const [isDownloadOptionsOpen, setIsDownloadOptionsOpen] = useState(false);
@@ -68,15 +66,6 @@ export default function ReportsPage() {
     } else {
       handlePrintPDF();
     }
-  };
-
-  const handleQuickSelect = () => {
-    const year = parseInt(quickYear);
-    const month = parseInt(quickMonth);
-    setDateRange({
-      from: new Date(year, month - 1, 1),
-      to: new Date(year, month, 0)
-    });
   };
 
   const reportData = useMemo(() => {
@@ -425,7 +414,23 @@ export default function ReportsPage() {
         : `Seluruh Waktu (Hingga ${today})`;
       const companyName = companyProfile.name;
       const journalSheetName = 'Jurnal Umum';
-      const sanitizeSheetName = (n: string) => n.replace(/[\\/*?[\]:]/g, '').substring(0, 31);
+      const _sheetNameCache = new Map<string, string>();
+      const _usedSheetNames = new Set<string>();
+      
+      const sanitizeSheetName = (n: string) => {
+        if (_sheetNameCache.has(n)) return _sheetNameCache.get(n)!;
+        let base = n.replace(/[\\/*?[\]:]/g, '').trim().substring(0, 31);
+        let finalName = base;
+        let counter = 1;
+        while (_usedSheetNames.has(finalName.toLowerCase()) || finalName.toLowerCase() === 'history') {
+           const suffix = `(${counter})`;
+           finalName = base.substring(0, 31 - suffix.length) + suffix;
+           counter++;
+        }
+        _usedSheetNames.add(finalName.toLowerCase());
+        _sheetNameCache.set(n, finalName);
+        return finalName;
+      };
 
       // ── COLORS (ARGB = Alpha + R + G + B) ──────────────────────────
       const C = {
@@ -1206,7 +1211,7 @@ export default function ReportsPage() {
         { label: 'Margin Laba', valF: `IF(B10>0, TEXT(F10/B10, "0.0%"), "0.0%")`, color: gpMargin >= 20 ? DC.green : DC.orange, col: 'B' },
         { label: 'ROI', valF: `IF(H10>0, TEXT(F10/H10, "0.0%"), "0.0%")`, color: dash_roi >= 20 ? DC.gold : DC.orange, col: 'D' },
         { label: 'Rasio Arus Kas', valF: `IF(H10>0, TEXT(${dash_opCF}/H10, "0.0%"), "0.0%")`, color: dash_opCF > 0 ? DC.teal : DC.orange, col: 'F' },
-        { label: 'Rasio Modal', valF: `IF(H10>0, TEXT(${reportData.balanceSheet.equity.reduce((a, b) => a + b.val, 0)}/H10, "0.0%"), "0.0%")`, color: DC.accent, col: 'H' },
+        { label: 'Rasio Modal', valF: `IF(H10>0, TEXT(${Object.values(reportData.balanceSheet.equity).reduce((a, b) => a + (b as number), 0)}/H10, "0.0%"), "0.0%")`, color: DC.accent, col: 'H' },
         { label: 'Kas / Aset', valF: `IF(H10>0, TEXT(${dash_cash}/H10, "0.0%"), "0.0%")`, color: DC.gold, col: 'J' },
         { label: 'Laba Bersih', valF: `TEXT(F10, """Rp"" #,##0")`, color: dash_net >= 0 ? DC.green : DC.red, col: 'L' },
       ];
@@ -2064,39 +2069,6 @@ export default function ReportsPage() {
         description="Hasilkan dan lihat laporan keuangan bisnis Anda."
       >
         <div className="flex flex-nowrap md:flex-wrap items-center gap-2 w-max md:w-auto">
-          <div className="flex shrink-0 items-center gap-2 border rounded-md p-1 bg-muted/20">
-            <Select value={quickMonth} onValueChange={setQuickMonth}>
-              <SelectTrigger className="w-[120px] h-9 border-none bg-transparent shadow-none focus:ring-0">
-                <SelectValue placeholder="Bulan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Januari</SelectItem>
-                <SelectItem value="2">Februari</SelectItem>
-                <SelectItem value="3">Maret</SelectItem>
-                <SelectItem value="4">April</SelectItem>
-                <SelectItem value="5">Mei</SelectItem>
-                <SelectItem value="6">Juni</SelectItem>
-                <SelectItem value="7">Juli</SelectItem>
-                <SelectItem value="8">Agustus</SelectItem>
-                <SelectItem value="9">September</SelectItem>
-                <SelectItem value="10">Oktober</SelectItem>
-                <SelectItem value="11">November</SelectItem>
-                <SelectItem value="12">Desember</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={quickYear} onValueChange={setQuickYear}>
-              <SelectTrigger className="w-[100px] h-9 border-none bg-transparent shadow-none focus:ring-0">
-                <SelectValue placeholder="Tahun" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from({length: 10}, (_, i) => new Date().getFullYear() - 5 + i).map(y => (
-                  <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" onClick={handleQuickSelect} className="h-8">Terapkan</Button>
-          </div>
-          <span className="text-muted-foreground text-sm px-2 shrink-0">atau</span>
           <div className="shrink-0"><DatePickerWithRange /></div>
           <Button variant="outline" className="shrink-0 border-blue-600/30 text-blue-700 hover:bg-blue-50" onClick={() => setIsShareOpen(true)}>
             <Send className="mr-2 h-4 w-4" />
