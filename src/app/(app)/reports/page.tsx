@@ -45,6 +45,7 @@ export default function ReportsPage() {
     jurnalUmum: true,
     bukuBesar: true,
     audit: true,
+    inventory: true,
   });
 
   const handleSelectAll = (checked: boolean) => {
@@ -56,6 +57,7 @@ export default function ReportsPage() {
       jurnalUmum: checked,
       bukuBesar: checked,
       audit: checked,
+      inventory: checked,
     });
   };
 
@@ -878,7 +880,7 @@ export default function ReportsPage() {
         const cell = dashSheet.getCell(`${kpiCols[i]}${dr.number}`);
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: card.accent } };
         const gcol = String.fromCharCode(kpiCols[i].charCodeAt(0) + 1);
-        df(dashSheet.getCell(`${gcol}${dr.number}`), DC.bg);
+        df(dashSheet.getCell(`${gcol}${dr.number}`), card.bg);
       });
       df(dashSheet.getCell(`A${dr.number}`), DC.bg);
       df(dashSheet.getCell(`M${dr.number}`), DC.bg);
@@ -2054,6 +2056,58 @@ export default function ReportsPage() {
     }
     }
 
+    // --- Laporan Inventaris ---
+    if (selectedReports.inventory && inventory.length > 0) {
+      addSectionPage();
+      let totalPcs = 0;
+      let totalValue = 0;
+      const tableData = inventory.map((item, index) => {
+          totalPcs += item.stock;
+          totalValue += item.stock * item.costPerUnit;
+          return [
+              index + 1,
+              item.sku,
+              item.name,
+              item.stock.toLocaleString('id-ID'),
+              formatCurrency(item.costPerUnit),
+              formatCurrency(item.stock * item.costPerUnit)
+          ];
+      });
+      tableData.push([
+          "", "", "TOTAL KESELURUHAN",
+          totalPcs.toLocaleString('id-ID'),
+          "",
+          formatCurrency(totalValue)
+      ]);
+
+      autoTable(doc, {
+          startY: 40,
+          margin: { left: 20, right: 10, top: 40, bottom: 20 },
+          head: [['No', 'SKU', 'Nama Barang', 'Stok', 'Biaya / Unit', 'Total Nilai']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: { fillColor: primaryColor, halign: 'center', valign: 'middle' },
+          styles: { fontSize: 9, cellPadding: 3, valign: 'middle' },
+          columnStyles: {
+              0: { halign: 'center', cellWidth: 10 },
+              1: { halign: 'center', cellWidth: 25 },
+              2: { cellWidth: 60 },
+              3: { halign: 'center', cellWidth: 15 },
+              4: { halign: 'right', cellWidth: 35 },
+              5: { halign: 'right', cellWidth: 35 }
+          },
+          willDrawCell: (data) => {
+              if (data.row.index === tableData.length - 1) {
+                  data.doc.setFont('helvetica', 'bold');
+                  if (data.column.index === 2) {
+                      data.cell.styles.halign = 'right';
+                  }
+              }
+          },
+          didDrawPage: (data) => addHeaderAndFooter(data, 'Laporan Inventaris Fisik'),
+      });
+    }
+
     // Replace page number placeholder
     if (typeof (doc as any).putTotalPages === 'function') {
       (doc as any).putTotalPages(totalPagesExp);
@@ -2162,6 +2216,10 @@ export default function ReportsPage() {
             <div className="flex items-center space-x-2">
               <Checkbox id="repAudit" checked={selectedReports.audit} onCheckedChange={(c) => setSelectedReports(p => ({...p, audit: !!c}))} />
               <Label htmlFor="repAudit">Audit & Analisis BEP</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox id="repInventory" checked={(selectedReports as any).inventory} onCheckedChange={(c) => setSelectedReports(p => ({...p, inventory: !!c}))} />
+              <Label htmlFor="repInventory">Laporan Inventaris Fisik</Label>
             </div>
           </div>
           <DialogFooter>
