@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 
 const adjustmentSchema = z.object({
   actualStock: z.coerce.number().min(0, "Stok fisik tidak boleh kurang dari 0."),
+  reason: z.enum(['rusak', 'marketing', 'prive', 'normal']).default('normal'),
   notes: z.string().optional(),
 });
 
@@ -35,6 +36,7 @@ export function StockAdjustmentForm({ onSubmit, item, isSubmitting }: StockAdjus
   useEffect(() => {
     form.reset({
       actualStock: item.stock,
+      reason: 'normal',
       notes: '',
     });
   }, [item, form]);
@@ -62,6 +64,31 @@ export function StockAdjustmentForm({ onSubmit, item, isSubmitting }: StockAdjus
           )}
         />
         
+        {form.watch('actualStock') < item.stock && (
+            <FormField
+              control={form.control}
+              name="reason"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Alasan Barang Berkurang</FormLabel>
+                  <FormControl>
+                    <select
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    >
+                      <option value="normal">Penyesuaian Normal (Koreksi)</option>
+                      <option value="rusak">Barang Rusak / Pecah / Reject</option>
+                      <option value="marketing">Digunakan untuk Marketing / Endorse</option>
+                      <option value="prive">Diambil Pemilik (Prive)</option>
+                    </select>
+                  </FormControl>
+                  <FormDescription>Pilih agar sistem mencatat jurnal bebannya dengan tepat.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+        )}
+
         <FormField
             control={form.control}
             name="notes"

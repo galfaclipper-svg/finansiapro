@@ -37,12 +37,29 @@ export default function InventoryPage() {
     const totalPcs = useMemo(() => inventory.reduce((sum, item) => sum + item.stock, 0), [inventory]);
     const totalValue = useMemo(() => inventory.reduce((sum, item) => sum + (item.stock * item.costPerUnit), 0), [inventory]);
 
+    const itemStats = useMemo(() => {
+        const stats: Record<string, { marketing: number, rusak: number, totalOut: number }> = {};
+        inventory.forEach(i => stats[i.id] = { marketing: 0, rusak: 0, totalOut: 0 });
+        
+        transactions.forEach(t => {
+            if (t.itemId && t.description?.includes('[NON-CASH-ADJ]') && t.type === 'cash-out') {
+                 if (t.category === 'Beban Pemasaran') {
+                      stats[t.itemId].marketing += (t.quantity || 0);
+                 } else if (t.category === 'Beban Barang Rusak/Hilang') {
+                      stats[t.itemId].rusak += (t.quantity || 0);
+                 }
+                 stats[t.itemId].totalOut += (t.quantity || 0);
+            }
+        });
+        return stats;
+    }, [transactions, inventory]);
+
     const neracaBalance = useMemo(() => {
         let balance = 0;
         transactions.forEach(t => {
             const isNonCashAdj = t.description?.startsWith('[NON-CASH-ADJ]');
             if (isNonCashAdj) {
-                 if (t.category === 'Beban Barang Rusak/Hilang') {
+                 if (['Beban Barang Rusak/Hilang', 'Beban Pemasaran', 'Beban Lain-lain', 'Prive'].includes(t.category)) {
                       balance -= t.amount;
                  } else if (t.category === 'Persediaan Barang Dagang') {
                       balance += t.amount;
@@ -287,7 +304,13 @@ export default function InventoryPage() {
             }
 
             const amountValue = Math.abs(delta) * itemToAdjust.costPerUnit;
-            const category = delta < 0 ? 'Beban Barang Rusak/Hilang' : 'Persediaan Barang Dagang';
+            let category = 'Persediaan Barang Dagang';
+            if (delta < 0) {
+                 if (values.reason === 'marketing') category = 'Beban Pemasaran';
+                 else if (values.reason === 'prive') category = 'Prive';
+                 else if (values.reason === 'rusak') category = 'Beban Barang Rusak/Hilang';
+                 else category = 'Beban Lain-lain'; // normal penyesuaian turun
+            }
             const notes = values.notes ? ` - ${values.notes}` : '';
             const desc = `[NON-CASH-ADJ] Penyesuaian Stock Opname (Sistem: ${itemToAdjust.stock}, Fisik: ${values.actualStock})${notes}`;
 
@@ -386,7 +409,9 @@ export default function InventoryPage() {
                         <TableRow>
                             <TableHead>SKU</TableHead>
                             <TableHead>Nama Barang</TableHead>
-                            <TableHead>Stok</TableHead>
+                            <TableHead>Stok Aktual</TableHead>
+                            <TableHead className="text-muted-foreground">Mkt/Endorse</TableHead>
+                            <TableHead className="text-muted-foreground">Rusak/Reject</TableHead>
                             <TableHead>Biaya Per Unit</TableHead>
                             <TableHead>Nilai Stok</TableHead>
                             <TableHead className="text-right w-[80px]">Aksi</TableHead>
@@ -397,7 +422,9 @@ export default function InventoryPage() {
                             <TableRow key={item.id}>
                                 <TableCell className="font-medium">{item.sku}</TableCell>
                                 <TableCell>{item.name}</TableCell>
-                                <TableCell>{item.stock}</TableCell>
+                                <TableCell className="font-bold">{item.stock}</TableCell>
+                                <TableCell className="text-muted-foreground">{itemStats[item.id]?.marketing || 0}</TableCell>
+                                <TableCell className="text-muted-foreground">{itemStats[item.id]?.rusak || 0}</TableCell>
                                 <TableCell>{formatCurrency(item.costPerUnit)}</TableCell>
                                 <TableCell>{formatCurrency(item.stock * item.costPerUnit)}</TableCell>
                                 <TableCell className="text-right">
@@ -422,7 +449,7 @@ export default function InventoryPage() {
                             </TableRow>
                         )) : (
                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                     Belum ada barang di inventaris. Klik 'Tambah Barang' untuk memulai.
                                 </TableCell>
                            </TableRow>
