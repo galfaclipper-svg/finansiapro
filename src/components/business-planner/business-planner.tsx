@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HppCalculator } from './hpp-calculator';
 import { PricingRecommendation } from './pricing-recommendation';
 import { TargetAnalysis } from './target-analysis';
+import { SimulationProjection } from './simulation-projection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppContext } from '@/contexts/app-provider';
 import { PlannerState } from '@/lib/types';
@@ -78,10 +79,11 @@ export function BusinessPlanner() {
 
       <CardContent>
         <Tabs defaultValue="hpp" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 mb-6">
             <TabsTrigger value="hpp">1. Kalkulator HPP</TabsTrigger>
             <TabsTrigger value="pricing">2. Rekomendasi Harga</TabsTrigger>
             <TabsTrigger value="analysis">3. Analisis Target & ROI</TabsTrigger>
+            <TabsTrigger value="simulation">4. Simulasi Proyeksi 12 Bln</TabsTrigger>
           </TabsList>
           <TabsContent value="hpp">
             <HppCalculator 
@@ -97,6 +99,9 @@ export function BusinessPlanner() {
           </TabsContent>
           <TabsContent value="analysis">
             <TargetAnalysis state={plannerState} onChange={handleChange} />
+          </TabsContent>
+          <TabsContent value="simulation">
+            <SimulationProjection />
           </TabsContent>
         </Tabs>
       </CardContent>

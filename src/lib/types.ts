@@ -162,3 +162,28 @@ export type Invoice = {
   notes?: string;
   terms?: string;
 };
+
+export interface SimulationState {
+  channels: {
+    eceran: { qty: number };
+    reseller: { qty: number };
+    agen: { qty: number };
+    borongan: { qty: number };
+  };
+  operationalCostPerMonth: number;
+  marketingCostPerMonth: number;
+  monthsToFundOp: number;
+  monthsToFundMkt: number;
+  cashReserve: number;
+  weights: {
+    eceran: number[];
+    reseller: number[];
+    agen: number[];
+    borongan: number[];
+  };
+  initialStockOrder: {
+    itemId: string;
+    qty: number;
+  }[];
+  taxRate: number;
+}

@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { collection as fsCollection, doc as fsDoc, setDoc as fsSetDoc, onSnapshot as fsOnSnapshot, query as fsQuery, deleteDoc as fsDeleteDoc, orderBy as fsOrderBy, getDocs as fsGetDocs } from 'firebase/firestore';
-import type { CompanyProfile, Transaction, InventoryItem, PlannerState, Client, Invoice, Account, Employee, Supplier } from '@/lib/types';
+import type { CompanyProfile, Transaction, InventoryItem, PlannerState, SimulationState, Client, Invoice, Account, Employee, Supplier } from '@/lib/types';
 import { INITIAL_COMPANY_PROFILE, CHART_OF_ACCOUNTS } from '@/lib/constants';
 import type { DateRange } from 'react-day-picker';
 import { useAuth } from '@/contexts/auth-provider';
@@ -27,6 +27,8 @@ interface AppContextType {
   restoreBackupData: (data: any) => Promise<void>;
   plannerState: PlannerState;
   setPlannerState: React.Dispatch<React.SetStateAction<PlannerState>>;
+  simulationState: SimulationState;
+  setSimulationState: React.Dispatch<React.SetStateAction<SimulationState>>;
   clients: Client[];
   setClients: React.Dispatch<React.SetStateAction<Client[]>>;
   addClient: (client: Omit<Client, 'id'>) => Promise<void>;
@@ -82,6 +84,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fixedCosts: 5000000,
     investment: 20000000,
     targetUnits: 0
+  });
+  const [simulationState, setSimulationState] = useState<SimulationState>({
+    channels: {
+      eceran: { qty: 662 },
+      reseller: { qty: 991 },
+      agen: { qty: 991 },
+      borongan: { qty: 660 },
+    },
+    operationalCostPerMonth: 14973000,
+    marketingCostPerMonth: 4805000,
+    monthsToFundOp: 3,
+    monthsToFundMkt: 3,
+    cashReserve: 0,
+    weights: {
+      eceran: [6, 7, 8, 8, 9, 9, 9, 9, 9, 9, 9, 8],
+      reseller: [0, 5, 8, 10, 10, 10, 10, 10, 10, 10, 9, 8],
+      agen: [0, 0, 8, 10, 12, 12, 12, 12, 12, 10, 6, 6],
+      borongan: [0, 0, 20, 0, 0, 25, 0, 0, 30, 0, 25, 0],
+    },
+    initialStockOrder: [],
+    taxRate: 0.5,
   });
 
   // Initialize date range
@@ -681,6 +704,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     restoreBackupData,
     plannerState,
     setPlannerState,
+    simulationState,
+    setSimulationState,
     clients,
     setClients,
     addClient,
