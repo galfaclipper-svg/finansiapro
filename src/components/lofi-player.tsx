@@ -56,7 +56,7 @@ export function LofiPlayer() {
 
   return (
     <div className={cn(
-      "fixed bottom-6 z-[9998] flex items-center gap-2 transition-all duration-300",
+      "fixed bottom-24 md:bottom-6 z-[9998] flex items-center gap-2 transition-all duration-300",
       isDashboard ? "left-6 md:left-[17rem]" : "left-6"
     )}>
       <button

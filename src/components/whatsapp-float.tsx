@@ -11,7 +11,7 @@ export function WhatsAppFloat() {
   return (
     <button
       onClick={handleChat}
-      className="fixed bottom-6 left-6 z-[9999] bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center group"
+      className="fixed bottom-24 md:bottom-6 right-6 z-[9999] bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110 flex items-center justify-center group"
       aria-label="Chat WhatsApp Customer Service"
     >
       <MessageCircle className="w-7 h-7" />
