@@ -15,6 +15,7 @@ const itemSchema = z.object({
   name: z.string().min(2, "Nama barang minimal 2 karakter."),
   sku: z.string().min(1, "SKU harus diisi."),
   costPerUnit: z.coerce.number().min(0, "Biaya harus angka positif."),
+  stock: z.coerce.number().min(0, "Stok tidak boleh negatif.").default(0),
 });
 
 type ItemFormValues = Omit<z.infer<typeof itemSchema>, 'id'>;
@@ -32,6 +33,7 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
       name: '',
       sku: '',
       costPerUnit: 0,
+      stock: 0,
     },
   });
   
@@ -43,6 +45,7 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
           name: '',
           sku: '',
           costPerUnit: 0,
+          stock: 0,
         });
     }
   }, [initialData, form]);
@@ -87,6 +90,19 @@ export function ItemForm({ onSubmit, initialData, isSubmitting }: ItemFormProps)
                         value={field.value}
                         onValueChange={field.onChange}
                     />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+        />
+         <FormField
+            control={form.control}
+            name="stock"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Stok Awal / Koreksi Manual</FormLabel>
+                <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
