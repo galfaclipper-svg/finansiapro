@@ -224,7 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const applyStockChange = async (itemId: string, quantity: number, category: string, isReversal: boolean = false) => {
     if (!user) return;
     const account = CHART_OF_ACCOUNTS.find(a => a.name === category);
-    const isStockReduction = account?.type === 'Revenue' || ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi'].includes(category);
+    const isStockReduction = account?.type === 'Revenue' || ['Beban Barang Rusak/Hilang', 'Beban Sampel/Promosi', 'Beban Pemasaran', 'Prive', 'Beban Lain-lain'].includes(category);
     
     // Fetch latest directly from Firestore to avoid race conditions when updating and reversing sequentially
     const { getDoc } = await import('firebase/firestore');
