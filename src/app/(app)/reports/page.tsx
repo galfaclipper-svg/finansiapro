@@ -145,6 +145,12 @@ export default function ReportsPage() {
       const cashAccountName = t.accountId || "Kas Bank BCA";
 
       // Special handling for non-cash entries
+      if (t.description?.startsWith('[NON-CASH-ADJ]')) {
+          return [
+              { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount },
+              { ...t, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: t.amount }
+          ];
+      }
       if (t.category === 'Beban Penyusutan') {
         return [
           { ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount },

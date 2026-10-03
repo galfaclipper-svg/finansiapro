@@ -39,6 +39,13 @@ export function CashPositionChart() {
             const cashAccount = activeAccounts.find(a => a.id === t.accountId);
             const cashAccountName = cashAccount?.name ?? 'Kas';
 
+            if (t.description?.startsWith('[NON-CASH-ADJ]')) {
+                return [
+                    { ...t, entryType: 'Debit', accountName: t.category, amount: t.amount },
+                    { ...t, entryType: 'Credit', accountName: 'Persediaan Barang Dagang', amount: t.amount }
+                ];
+            }
+
             if (t.category === 'Beban Penyusutan') {
                 return [{ ...t, entryType: 'Debit', accountName: 'Beban Penyusutan', amount: t.amount }, { ...t, entryType: 'Credit', accountName: 'Akumulasi Penyusutan - Peralatan', amount: t.amount }];
             }
