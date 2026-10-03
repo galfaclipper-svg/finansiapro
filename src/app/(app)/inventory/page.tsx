@@ -257,14 +257,14 @@ export default function InventoryPage() {
         setIsAlertOpen(true);
     }
     
-    const handleFormSubmit = (values: Omit<InventoryItem, 'id' | 'stock'>) => {
+    const handleFormSubmit = (values: any) => {
         setIsSubmitting(true);
         try {
             if (itemToEdit) {
-                updateInventoryItem({ ...values, id: itemToEdit.id, stock: itemToEdit.stock });
+                updateInventoryItem({ ...itemToEdit, ...values });
                 toast({ title: "Barang Diperbarui", description: `Data untuk ${values.name} telah disimpan.` });
             } else {
-                addInventoryItem({ ...values, stock: 0 });
+                addInventoryItem({ ...values, stock: values.stock ?? 0 });
                 toast({ title: "Barang Ditambahkan", description: `${values.name} telah ditambahkan ke inventaris.` });
             }
             setIsDialogOpen(false);
